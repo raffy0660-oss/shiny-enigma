@@ -76,6 +76,9 @@ Kamera background diam per adegan: render background + peta cahaya **sekali per 
 Pion engine digabung dengan `comp_pion.py`. Ganti ekspresi = crossfade ke plate mood berikutnya.
 Peta cahaya mengikuti pose diam Pion. Gesture besar (tangan) tetap kena cahaya dari peta yang sama.
 
+Micro zoom tiap beberapa kata untuk hasil istana: `python3 ../engine/microzoom.py --in hasil.mp4 --out hasil_zoom.mp4
+--cues cues.txt --bbox bg.json` (pusat zoom di wajah Pion dari `--bbox`).
+
 ## Catatan
 - Render memakai CPU (tanpa GPU): 1080x1350 64 sampel sekitar 5 menit, peta cahaya sekitar 30 detik.
 - Model Blender `build_pion.py` hanya dipakai sebagai bayangan/peta cahaya. Proporsinya harus sama dengan

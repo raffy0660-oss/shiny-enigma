@@ -57,6 +57,18 @@ function hoverAmt(t) { let on = 1, t0 = -9; for (const [ht, v] of RX.hover) if (
 
 /* ---------- camera moves, body turns ---------- */
 const easeIO3 = u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+function zoomAt(t) { // autozoom: snap (0.12 s ease-out) to each key's level, slow push between snaps, '!' keys punch then settle
+  const Z = RX.zooms || []; let z = 1;
+  for (let i = 0; i < Z.length; i++) {
+    const K = Z[i]; if (t < K.t) break;
+    const nx = Z[i + 1], te = nx && nx.t < t ? nx.t : t, e = te - K.t, d = K.slow ? .5 : .12;
+    const u = 1 - Math.pow(1 - clamp(e / d, 0, 1), 3);
+    let tgt = K.z;
+    if (K.punch) tgt = lerp(1 + (K.z - 1) * .5, K.z, Math.exp(-Math.max(0, e - .12) / .3));
+    z = lerp(z, tgt, u) * (K.slow ? 1 : 1 + Math.min(.015, .008 * Math.max(0, e - d)));
+  }
+  return z;
+}
 function camAt(t) { // framing animated by "cam" keys: each eases from wherever the camera is to its target
   let cur = { cy: RX.fr.cy, vh: RX.fr.vh, cx: RX.fr.cx, roll: RX.fr.roll || 0 };
   for (let i = 0; i < RX.cams.length; i++) {
@@ -66,6 +78,7 @@ function camAt(t) { // framing animated by "cam" keys: each eases from wherever 
     cur = { cy: lerp(cur.cy, tgt.cy, u), vh: lerp(cur.vh, tgt.vh, u), cx: lerp(cur.cx, tgt.cx, u), roll: lerp(cur.roll, tgt.roll, u) };
   }
   let sx = 0, sy = 0; for (const S of RX.shakes) { const e = t - S.t; if (e < 0 || e > S.dur) continue; const a = S.amp * (1 - e / S.dur); sx += a * Math.sin(e * 71) * .5; sy += a * Math.sin(e * 53 + 1) * .5; }
+  const zf = zoomAt(t); if (zf !== 1) { const faceY = RX.faceCy || 3.0; cur.cy += (faceY - cur.cy) * (1 - 1 / zf) * 1.6; cur.vh /= zf; }
   return Object.assign({}, RX.fr, cur, { cx: cur.cx + sx * cur.vh * .02, cy: cur.cy + sy * cur.vh * .02 });
 }
 function turnAt(t) { let y = 0; for (const T of RX.turns) { if (t < T.t) break; const u = T.dur > 0 ? easeIO3(clamp((t - T.t) / T.dur, 0, 1)) : 1; y = lerp(y, T.deg * Math.PI / 180, u); } return y; }

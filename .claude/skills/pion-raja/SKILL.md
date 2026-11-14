@@ -27,6 +27,7 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
 | `engine/drive.js` | Renders an in-video plan to transparent PNG frames, in parallel |
 | `engine/react_render.js` | Reaction mode: voice-over + cue file -> talking Pion video |
 | `engine/preview.js` | Quick contact sheet of the character with no video |
+| `engine/microzoom.py` | Micro zoom (punch-in every few words) on any finished video, same rules as the `autozoom` cue |
 | `engine/sfx.py` | Procedural cartoon SFX (no samples) + mixer |
 | `engine/smooth_track.py` | Removes tracking jitter from `anchors.json` / `track.json` without sliding (keeps cuts, frozen frames, sudden moves) |
 | `engine/integrate.py` | Composites Pion into footage: matches sharpness, light wrap, matching grain (used by the example `composite*.py`) |
@@ -63,6 +64,9 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
    - `bg castle` / `bg hospital` puts Pion in a full commentary scene instead of green screen.
    - `light dir x y z key r g b amb r g b sky .. gnd .. rim .. exp v` overrides the toon light (to match a 3D plate).
    - `soktahu` also brings the "enlightenment" glow: the open book flares gold onto his face for ~1.5 s, then dims.
+   - `<t> autozoom [N] [strength]` / `<t> autozoom off`: micro zoom punch-ins every N karaoke words (default 3), level
+     cycling, a word with "!" punches harder; centred on the face, subtitles unaffected. For a finished video use
+     `engine/microzoom.py --in v.mp4 --out v_zoom.mp4 --cues cues.txt [--bbox castle.json]` (burned-in subs zoom too).
 3. Check first: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --preview 1,2.5,4` and look at the sheet.
 4. Render: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --size 2160x3840` (4K).
    `--bg green,black`, `--alpha` (ProRes 4444 .mov), `--png`, `--start/--dur/--local` for a section.

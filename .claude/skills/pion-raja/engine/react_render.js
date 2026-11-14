@@ -14,6 +14,7 @@
 //   --blur 16                        motion blur: max samples per frame (default 16, 1 = off); --shutter 0.4 (frames)
 //   --local                          cue times are relative to --start (default: absolute audio times)
 // cue `light dir x y z key r g b amb r g b rim r g b ...` overrides the toon light preset (to match a 3D background)
+// cue `<t> autozoom [N] [strength]` / `<t> autozoom off`: micro zoom punch-ins every N karaoke words, centred on the face
 const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('/opt/npm-tools/node_modules/playwright'); } })();
 const fs = require('fs'), path = require('path'), os = require('os'), { execFileSync } = require('child_process');
 
@@ -128,6 +129,9 @@ function parseCues(txt) {
     else if (cmd === 'boing') C.boing.push([t, +(w[2] || .8)]);
     else if (cmd === 'say' || cmd === 'bilang') { const dur = +(w[2] || 1.2), text = w.slice(3).join(' ') || '...'; C.fx.push({ type: 'say', t0: t, t1: t + dur, text }); C.say = (C.say || []).concat([{ t, dur: Math.min(dur, .25 + text.length * .055), text }]); }
     else if (cmd === 'word' || cmd === 'kata') (C.subs = C.subs || []).push([t, w.slice(2).join(' ')]);
+    else if (cmd === 'autozoom' || cmd === 'zoomauto') { // <t> autozoom [every N words] [strength]  |  <t> autozoom off
+      if (/^(off|mati)$/i.test(w[2] || '')) (C.az = C.az || []).push({ t, off: true });
+      else (C.az = C.az || []).push({ t, every: Math.max(1, +(w[2] || 3)), amt: +(w[3] || 1) }); }
     else if (cmd === 'hover' || cmd === 'melayang') C.hover.push([t, /^(off|mati|0|no)$/i.test(w[2] || '') ? 0 : 1]);
     else warn.push(`baris ${ln + 1}: perintah tidak dikenal: ${raw}`);
   });
@@ -167,7 +171,22 @@ async function openPage(data) {
     ex.forEach(([t0, k], i) => { if (k !== 'soktahu') return; const t1 = i + 1 < ex.length ? ex[i + 1][0] : tEnd;
       if (!cues.gest.some(G => G.t0 < t1 && G.t1 > t0)) cues.gest.push({ t0, t1, type: 'nerd', side: 1, auto: true }); });
   }
-  const data = { fps: FPS, n: au.n, env: au.env, onset: au.onset, jelly: JELLY, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
+  // autozoom: micro punch-ins every N words (from `word` cues, else every 2N syllables), level cycling, '!' words punch
+  const zooms = [];
+  if (cues.az && cues.az.length) {
+    const az = cues.az.slice().sort((p, q) => p.t - q.t), seg = t => { let S = null; for (const A of az) if (A.t <= t + 1e-6) S = A.off ? null : A; return S; };
+    const LV = [1.07, 1.0, 1.11, 1.035, 1.09, 1.0];
+    let marks = (cues.subs || []).slice().sort((p, q) => p[0] - q[0]).map(([t, txt]) => ({ t, bang: /!/.test(txt) }));
+    if (!marks.length) for (let f = 0; f < au.n; f++) if (au.onset[f] > 0) marks.push({ t: f / FPS + (arg('local') ? 0 : START), bang: false });
+    const per = cues.subs && cues.subs.length ? 1 : 2; let cnt = {}, li = 0;
+    for (const M of marks) { const S = seg(M.t); if (!S) continue; const k = az.indexOf(S); cnt[k] = (cnt[k] || 0) + 1;
+      if (M.bang) { zooms.push({ t: M.t, z: 1 + .16 * S.amt, punch: true }); continue; }
+      if ((cnt[k] - 1) % (S.every * per)) continue;
+      zooms.push({ t: M.t, z: 1 + (LV[li++ % LV.length] - 1) * S.amt }); }
+    for (const A of az) if (A.off) zooms.push({ t: A.t, z: 1, slow: true });
+    zooms.sort((p, q) => p.t - q.t);
+  }
+  const data = { fps: FPS, n: au.n, zooms, env: au.env, onset: au.onset, jelly: JELLY, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
   for (const [bt, s] of cues.boing) { const f = Math.round(bt * FPS); if (f >= 0 && f < data.n) data.onset[f] = Math.max(data.onset[f], s); }
   for (const S of cues.say || []) { // speech bubble: fake syllables drive the mouth + jelly
     const syl = Math.max(2, Math.round(S.text.replace(/[^a-z]/gi, '').length / 2.2)), f0 = Math.round(S.t * FPS), f1 = Math.round((S.t + S.dur) * FPS);
