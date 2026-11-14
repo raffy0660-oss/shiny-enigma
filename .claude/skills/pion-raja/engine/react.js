@@ -168,6 +168,52 @@ function willTex(u) { // the last will, SUBSCRIBE revealed as it is written (u 0
   else WILL.t = texFromCanvas(WILL.c, false);
   return WILL.t;
 }
+// soktahu "enlightenment": the open book flares gold for ~1.5 s (light from below on his face), then dims to an ember
+function nerdGlow(t) {
+  let g = 0;
+  for (const G of TL.gest) { if (G.type !== 'nerd' || t < G.t0 || t > G.t1) continue; const u = t - G.t0;
+    g = Math.max(g, gEnv(G, t) * smooth(0, .3, u) * (1 - .85 * smooth(1.4, 2.5, u))); }
+  return g;
+}
+const GOLD_GLOW = [1.0, .8, .42];
+function glowLight(L, g) { // the book becomes the key: strong gold uplight from the front, face flooded warm
+  const d0 = L.dir, d1 = [.22, -.5, .84], w = .95 * g, d = d0.map((v, i) => lerp(v, d1[i], w)), dl = Math.hypot(...d);
+  return Object.assign({}, L, { dir: d.map(v => v / dl), exp: (L.exp || 1) * (1 + .45 * g), key: L.key.map((v, i) => lerp(v, GOLD_GLOW[i] * 1.5, g)),
+    amb: L.amb.map((v, i) => v + GOLD_GLOW[i] * .42 * g), gnd: (L.gnd || [0, 0, 0]).map((v, i) => v + GOLD_GLOW[i] * .5 * g), rim: L.rim.map((v, i) => v + GOLD_GLOW[i] * .6 * g) });
+}
+function drawBookGlow(t, PP, base, cam) { // "golden briefcase": light pours out of the pages onto his face
+  const g = nerdGlow(t), Hd = PP.hands[1]; if (g < .02 || !Hd) return;
+  const pw = mat.xform(Hd.M, [-.1, .4, .3, 1]), p = cam.toPix([pw[0] / pw[3], pw[1] / pw[3], pw[2] / pw[3]]);
+  const hw = mat.xform(PP.headM, [0, -.25, .55, 1]), f = cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), U = cam.ppu;
+  fx.save(); fx.globalCompositeOperation = 'lighter';
+  // 1) cone of light from the open pages up to the face (soft, blurred)
+  const ax = f[0] - p[0], ay = f[1] - p[1], len = Math.hypot(ax, ay) || 1, nx = -ay / len, ny = ax / len, w0 = U * .22, w1 = U * 1.15;
+  fx.filter = `blur(${Math.round(U * .12)}px)`;
+  const lg = fx.createLinearGradient(p[0], p[1], f[0] + ax * .35, f[1] + ay * .35);
+  lg.addColorStop(0, `rgba(255,246,205,${.9 * g})`); lg.addColorStop(.55, `rgba(255,214,120,${.45 * g})`); lg.addColorStop(1, 'rgba(255,190,90,0)');
+  fx.fillStyle = lg; fx.beginPath();
+  fx.moveTo(p[0] + nx * w0, p[1] + ny * w0); fx.lineTo(f[0] + ax * .35 + nx * w1, f[1] + ay * .35 + ny * w1);
+  fx.lineTo(f[0] + ax * .35 - nx * w1, f[1] + ay * .35 - ny * w1); fx.lineTo(p[0] - nx * w0, p[1] - ny * w0); fx.closePath(); fx.fill();
+  // 2) face wash: warm light pooled on the lower face
+  const fw = fx.createRadialGradient(f[0], f[1], 0, f[0], f[1], U * 1.1);
+  fw.addColorStop(0, `rgba(255,232,170,${.42 * g})`); fw.addColorStop(.6, `rgba(255,200,110,${.18 * g})`); fw.addColorStop(1, 'rgba(255,180,90,0)');
+  fx.fillStyle = fw; fx.beginPath(); fx.arc(f[0], f[1], U * 1.1, 0, 7); fx.fill();
+  fx.filter = 'none';
+  // 3) bloom at the book: white-hot core, gold falloff
+  const R = U * (1.35 + .4 * g), gr = fx.createRadialGradient(p[0], p[1], 0, p[0], p[1], R);
+  gr.addColorStop(0, `rgba(255,255,235,${g})`); gr.addColorStop(.1, `rgba(255,236,170,${.8 * g})`); gr.addColorStop(.35, `rgba(255,200,95,${.4 * g})`); gr.addColorStop(1, 'rgba(255,170,60,0)');
+  fx.fillStyle = gr; fx.beginPath(); fx.arc(p[0], p[1], R, 0, 7); fx.fill();
+  // 4) anamorphic streak
+  const st = fx.createLinearGradient(p[0] - U * 2.6, 0, p[0] + U * 2.6, 0);
+  st.addColorStop(0, 'rgba(255,210,140,0)'); st.addColorStop(.5, `rgba(255,240,200,${.7 * g})`); st.addColorStop(1, 'rgba(255,210,140,0)');
+  fx.fillStyle = st; fx.beginPath(); fx.ellipse(p[0], p[1], U * 2.6, U * .045 * (1 + g), 0, 0, 7); fx.fill();
+  // 5) motes drifting up out of the pages (deterministic)
+  for (let k = 0; k < 26; k++) {
+    const sd = Math.sin(k * 91.7) * 43758.5453, r1 = sd - Math.floor(sd), ph = (t * (.35 + r1 * .3) + r1) % 1;
+    const x = p[0] + (r1 - .5) * U * .9 + ax * ph * .6 + Math.sin(t * 2 + k) * U * .06, y = p[1] + ay * ph * .6 - ph * U * .5, a = g * Math.sin(Math.PI * ph);
+    fx.fillStyle = `rgba(255,236,160,${.9 * a})`; fx.beginPath(); fx.arc(x, y, U * (.03 + .03 * r1), 0, 7); fx.fill(); }
+  fx.restore();
+}
 function drawProps(t, PP, base, VP, L, cam) {
   initProps(); const hands = PP.hands;
   const tex = (M, T, o) => drawToon(PROP.plane, M, VP, L, Object.assign({ tex: T, dbl: true }, o || {}));
@@ -186,7 +232,7 @@ function drawProps(t, PP, base, VP, L, cam) {
       for (const sd of [-1, 1]) { // sd 1 = front cover on the camera's right (he reads it left-to-right)
         const H = mat.chain(B, mat.RY(sd * .7)), C = mat.chain(H, mat.T(sd * .33, 0, 0));
         drawOutline(PROP.bookCover, mat.mul(C, mat.S(1.06, 1.05, 1.6)), VP, 0); drawToon(PROP.bookCover, C, VP, L, { color: [.29, .08, .19], spec: .12 });
-        drawToon(PROP.bookPages, mat.chain(H, mat.T(sd * .31, 0, -.045)), VP, L, { color: [.98, .93, .8] });
+        const gl0 = nerdGlow(t); drawToon(PROP.bookPages, mat.chain(H, mat.T(sd * .31, 0, -.045)), VP, L, { color: [.98 + 1.4 * gl0, .93 + 1.1 * gl0, .8 + .5 * gl0] });
         tex(mat.chain(C, mat.T(0, 0, .019), mat.S(.58, .8, 1)), sd > 0 ? PROP.bookFront : PROP.bookBack, { color: [1.1, 1.1, 1.1] });
       }
     }
@@ -366,8 +412,10 @@ function drawReact(f, u) {
   const yawNow = fr.yaw + bp.yaw + turnAt(t);
   const exNow = ex.m > .5 ? ex.b : ex.a; // expression 'soktahu' puts the nerd glasses on by itself
   const glasses = fxActive('glasses', t).length ? 1 : exNow === 'soktahu' ? 2 : 0, det = fxActive('detective', t).length ? 1 : 0;
-  FLASH = 0; drawPion(PP, base, VP, L, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, t });
-  drawProps(t, PP, base, VP, L, cam);
+  const ng = nerdGlow(t), Lg = ng > .01 ? glowLight(L, ng) : L;
+  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, t });
+  drawProps(t, PP, base, VP, Lg, cam);
+  drawBookGlow(t, PP, base, cam);
   const hw = mat.xform(PP.headM, [0, 0, 0, 1]), head = { p: cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), r: cam.ppu }; window.__head = head;
   const pix = (M, v) => { const w = mat.xform(M, [...v, 1]); return cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]); };
   window.__probe = [head.p, pix(base, [0, 0, 0]), pix(PP.crownM, [0, 1.0, 0]), pix(base, [1, 0, 0]), pix(base, [-1, 0, 0]), ...PP.hands.filter(Boolean).map(Hd => pix(Hd.M, [0, 0, 0]))];

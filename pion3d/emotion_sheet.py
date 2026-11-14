@@ -29,6 +29,8 @@ PRESETS = {
               (75, .38, 1.5), (1.05, ".97,1.02,1.05", 1.05)),
     "duit": ("duit", "dir 0 .9 .35 key .85 .68 .3 amb .35 .3 .2 sky .1 .08 .04 gnd .06 .04 .02 rim .2 .15 .05",
              (75, .3, 1.5), (1.2, "1.08,1,.85", 1.05)),
+    "pencerahan": ("soktahu", "dir .3 .8 .4 key .4 .45 .6 amb .22 .24 .32 sky .06 .07 .1 gnd .03 .03 .05 rim .15 .2 .35",
+                   (75, .4, 1.55), (1.05, "1,1,1.04", 1.05)),
     "misteri": ("penasaran", "dir .3 .8 .4 key .4 .32 .65 amb .22 .2 .3 sky .06 .05 .1 gnd .02 .02 .04 rim .15 .2 .4",
                 (75, .4, 1.45), (0.92, ".97,.95,1.06", 1.0)),
 }
@@ -53,7 +55,7 @@ def render_one(emo, work, res, samples, volume=True):
     cue = base + "_cue.txt"
     open(cue, "w").write(f"frame full\nlight {light} exp 1\n0.0 {expr}\n")
     run(["node", "react_render.js", "--audio", "test/vo_test.wav", "--cues", cue, "--out", base + "_eng",
-         "--dur", "0.4", "--png", "--blur", "1"], cwd=ENGINE)
+         "--dur", "1.2", "--png", "--blur", "1"], cwd=ENGINE)   # frame 10 (0.33 s) = soktahu book glow at its peak
     out = base + ".png"
     run(["python3", os.path.join(HERE, "comp_pion.py"), "--bg", base + "_bg.png", "--bbox", base + ".json",
          "--fg", os.path.join(base + "_eng_frames", "00010.png"), "--light", base + "_lp.png",

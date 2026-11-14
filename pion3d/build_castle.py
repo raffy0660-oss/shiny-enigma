@@ -608,14 +608,16 @@ def camera_and_key(res):
     cam = bpy.data.objects.new("Cam", cam_d); BP.link(cam)
     # straight-on and a little above Pion's head, like the engine camera (tiltDeg 6),
     # so the composited engine Pion and its Blender shadow proxy share one perspective
-    cam.location = (0.0, -16.0, 3.7 * PION_SCALE)
-    cam.rotation_euler = (math.radians(90 - 3.0), 0, 0)
-    cam_d.shift_y = 0.12   # keep the camera level-ish, frame more of the hall above Pion
-    if res[0] / res[1] > 0.7:
-        # 4:5 / square feeds: the height is barely the long side, so open the lens a little
-        # to keep the whole chandelier in frame and lift Pion off the bottom edge
-        cam_d.lens = 27
-        cam_d.shift_y = 0.1
+    # close, like the creator's videos: Pion fills ~60 % of the frame height, base near the bottom,
+    # head over the throne; a wide lens keeps the chandelier (hung behind him) in shot
+    cam.location = (0.0, -10.5, 4.4)
+    cam.rotation_euler = (math.radians(90 - 2.0), 0, 0)
+    cam_d.lens = 26
+    cam_d.shift_y = 0.08
+    if res[0] / res[1] > 0.7:   # 4:5 / square feeds
+        cam.location = (0.0, -9.0, 4.3)
+        cam_d.lens = 23
+        cam_d.shift_y = 0.06
     cam_d.dof.focus_distance = (Vector((0, -0.5 * PION_SCALE, HEAD_Z)) - cam.location).length
     sc.camera = cam
     sc.render.resolution_x, sc.render.resolution_y = res
@@ -688,6 +690,9 @@ EMOTIONS = {
                   under=((0.25, 1.0, 0.45), 1300), rim=((0.6, 0.15, 1.0), 3200)),
     "duit": dict(chand=(1.0, 0.72, 0.28), k=1.3, hub=4500, haze=(0.005, (1.0, 0.85, 0.5)), room=(0.45, (1.0, 0.75, 0.35)),
                  chests=((1.0, 0.7, 0.2), 900), top=((1.0, 0.78, 0.35), 2500)),
+    # soktahu "enlightenment": cool, dim hall; the open book in his left hand is the light (gold, from below-front)
+    "pencerahan": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.006, (0.85, 0.88, 1.0)), room=(0.3, (0.45, 0.58, 0.95)),
+                       book=((1.0, 0.78, 0.38), 2600), top=((1.0, 0.86, 0.55), 700)),
     "misteri": dict(chand=(0.65, 0.45, 1.0), k=0.5, hub=1500, haze=(0.007, (0.7, 0.65, 1.0)), room=(0.35, (0.6, 0.55, 1.0)),
                     rim=((0.35, 0.5, 1.0), 1800)),
 }
@@ -699,7 +704,7 @@ EXPR_TO_EMOTION = {
     "girang": "hangat", "bahagia": "hangat", "cium": "hangat", "lega": "hangat", "gemas": "hangat",
     "santai": "hangat", "ngiler": "hangat", "nangis": "sedih", "tersedu": "sedih", "merajuk": "sedih",
     "memelas": "sedih", "syok": "kaget", "kesal": "marah", "ngamuk": "marah", "bangga": "duit",
-    "bosan": "misteri", "cemas": "misteri", "soktahu": "misteri",
+    "bosan": "misteri", "cemas": "misteri", "soktahu": "pencerahan",
 }
 
 
@@ -769,6 +774,11 @@ def mood_emotion(name, volume):
                 pl.shadow_soft_size = 0.5
                 po = bpy.data.objects.new(f"ChestGlow_{k}", pl); BP.link(po)
                 po.location = ch.location + Vector((0, -0.6, 0.9))
+    if "book" in E:    # light from the open book (engine nerd pose: left hand, in front of the chest)
+        col, en = E["book"]
+        bl = bpy.data.lights.new("BookGlow", "POINT"); bl.energy = en; bl.color = col; bl.shadow_soft_size = 0.35
+        bo = bpy.data.objects.new("BookGlow", bl); BP.link(bo)
+        bo.location = Vector((0.52, -1.45, 1.85)) * PION_SCALE
     if "window" in E:
         g, b, en = E["window"]
         add_side_window(g, b, en)
@@ -812,7 +822,7 @@ def mood_window(volume):
                     n.inputs[1].default_value = 2.5
 
 
-def mood_chandelier(volume, pos=(0.0, -1.6, 12.8), color=(1.0, 0.52, 0.2)):
+def mood_chandelier(volume, pos=(0.0, 2.6, 11.2), color=(1.0, 0.52, 0.2)):
     """Night hall: the orange chandelier above Pion is the only light. Everything else is off:
     torches (flames hidden), window suns, stained glass dark."""
     ring = bpy.data.objects.get("ChandelierRing")
@@ -964,7 +974,7 @@ def main():
         print("RESULT bbox", info)
     # god rays only from the windows: other lights stay out of the haze
     for o in bpy.data.objects:
-        if o.type == "LIGHT" and not o.name.startswith(("WindowSun", "SunBeam", "ChandLight", "ChandHub", "TopSpot")):
+        if o.type == "LIGHT" and not o.name.startswith(("WindowSun", "SunBeam", "ChandLight", "ChandHub", "TopSpot", "BookGlow")):
             o.visible_volume_scatter = False
     bpy.ops.wm.save_as_mainfile(filepath=a.out)
     print("RESULT built", a.out)
