@@ -501,6 +501,120 @@ def build_statues(stone, statue):
         root.rotation_euler = (0, 0, rz)
         root.scale = (1.15, 1.15, 1.15)
 
+
+# ----------------------------------------------------------------- red drapery (theatre framing)
+
+def mat_drape():
+    m, N, L, b = node_mat("Drape")
+    lw = N.new("ShaderNodeLayerWeight"); lw.inputs["Blend"].default_value = 0.35
+    mix = N.new("ShaderNodeMix"); mix.data_type = "RGBA"
+    mix.inputs[6].default_value = (*lin((.5, .02, .05)), 1)       # deep red in the folds facing us
+    mix.inputs[7].default_value = (*lin((.8, .1, .14)), 1)        # brighter at grazing angles (velvet)
+    L.new(lw.outputs["Facing"], mix.inputs["Factor"]); L.new(mix.outputs[2], b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = 0.8
+    b.inputs["Sheen Weight"].default_value = 0.35
+    b.inputs["Sheen Tint"].default_value = (1.0, 0.45, 0.45, 1)
+    return m
+
+
+def swag(name, x0, x1, y, z_top, drop, scallops, mat, depth=0.35):
+    """Festoon of cloth hung from a straight top edge: each scallop sags in a soft U with folds."""
+    nx, nz = 24 * scallops, 18
+    bm_ = bmesh.new()
+    grid = []
+    for j in range(nz + 1):
+        v = j / nz
+        row = []
+        for i in range(nx + 1):
+            u = i / nx
+            us = (u * scallops) % 1.0
+            sag = drop * (0.35 + 0.65 * math.sin(math.pi * us))      # deeper in the middle of each scallop
+            x = x0 + (x1 - x0) * u
+            z = z_top - v * sag
+            fold = depth * v * math.sin(us * math.pi * 6) * math.sin(math.pi * us)
+            row.append(bm_.verts.new((x, y - 0.15 * v * math.sin(math.pi * us) + fold, z)))
+        grid.append(row)
+    for j in range(nz):
+        for i in range(nx):
+            bm_.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+    me = bpy.data.meshes.new(name); bm_.to_mesh(me); bm_.free()
+    o = BP.new_obj(name, me); BP.smooth(o)
+    sol = o.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.05
+    BP.assign(o, mat)
+    # gold trim along the bottom edge + a tassel at every join
+    pts = [Vector(grid[nz][i].co) for i in range(0, nx + 1, 2)] if False else None
+    edge = []
+    for i in range(nx + 1):
+        u = i / nx; us = (u * scallops) % 1.0
+        sag = drop * (0.35 + 0.65 * math.sin(math.pi * us))
+        fold = depth * math.sin(us * math.pi * 6) * math.sin(math.pi * us)
+        edge.append(Vector((x0 + (x1 - x0) * u, y - 0.15 * math.sin(math.pi * us) + fold, z_top - sag)))
+    return o, edge
+
+
+def build_drapes(res, gold):
+    """Red velvet framing like a stage: a festoon valance across the top of the shot, curtains
+    peeking in at the left and right edges (close to camera, a little soft), and deeper swags
+    across the hall's ceiling."""
+    drape = mat_drape()
+    cam = bpy.context.scene.camera
+    W, H = res
+    d = 5.6                                            # depth of the foreground drapery in front of the lens
+    y = cam.location.y + d
+    half_w = d * (cam.data.sensor_width / 2) / cam.data.lens * (W / max(W, H))
+    top = cam.location.z + d * ((cam.data.sensor_width / 2) / cam.data.lens * (H / max(W, H)) + cam.data.shift_y * cam.data.sensor_width / cam.data.lens)
+    # valance: its lowest point reaches ~12 % into the frame
+    o, edge = swag("Valance", -half_w * 1.3, half_w * 1.3, y, top + 0.3, 1.8, 4, drape)
+    trim = BP.tube("ValanceTrim", edge, 0.05, 10, cap=True); BP.assign(trim, gold)
+    for k in range(5):
+        x = -half_w * 1.3 + k * (2.6 * half_w / 4)
+        tz = top + 0.3 - 1.8 * 0.35
+        c = BP.cone(f"Tassel_{k}", 0.12, 0.55, 16); c.location = (x, y - 0.05, tz - 0.6); c.rotation_euler = (math.pi, 0, 0)
+        BP.assign(c, gold)
+        b = BP.uv_sphere(f"TasselKnot_{k}", 0.1, 16, 8, loc=(x, y - 0.05, tz - 0.02)); BP.assign(b, gold)
+    # side curtains: only their inner ~10 % of the frame shows, gathered with a gold tie-back
+    for sx in (-1, 1):
+        inner = sx * half_w * 0.84
+        nx, nz = 60, 50
+        bm_ = bmesh.new(); grid = []
+        hgt = top + 1.0
+        for j in range(nz + 1):
+            v = j / nz
+            tb = math.exp(-((v - 0.42) / 0.12) ** 2)           # tie-back pinch
+            row = []
+            for i in range(nx + 1):
+                u = i / nx
+                xw = 3.2 * (1 - 0.35 * tb)
+                x = inner + sx * u * xw
+                fold = (0.22 + 0.15 * tb) * math.sin(u * 7 * math.pi)
+                row.append(bm_.verts.new((x, y + 0.2 + fold, v * hgt)))
+            grid.append(row)
+        for j in range(nz):
+            for i in range(nx):
+                bm_.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+        me = bpy.data.meshes.new(f"SideDrape_{sx}"); bm_.to_mesh(me); bm_.free()
+        o = BP.new_obj(f"SideDrape_{sx}", me); BP.smooth(o)
+        sol = o.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.05
+        BP.assign(o, drape)
+        rope = BP.torus(f"SideTie_{sx}", 0.5, 0.07, 32, 10, loc=(inner + sx * 0.9, y + 0.1, 0.42 * hgt))
+        rope.rotation_euler = (math.pi / 2, 0, 0); BP.assign(rope, gold)
+    # the foreground drapes sit outside the room's light: give them their own warm key, linked to them only
+    coll = bpy.data.collections.new("Drapes"); bpy.context.scene.collection.children.link(coll)
+    for o in list(bpy.data.objects):
+        if o.name.startswith(("Valance", "SideDrape", "SideTie", "Tassel")):
+            coll.objects.link(o)
+    for nm, loc in (("DrapeKey", (-2.5, cam.location.y - 1.5, top + 1.0)), ("DrapeFill", (2.5, cam.location.y - 1.0, 1.5))):
+        L_ = bpy.data.lights.new(nm, "AREA"); L_.size = 4.0; L_.color = (1.0, 0.72, 0.5)
+        L_.energy = 900.0 if nm == "DrapeKey" else 350.0
+        lo = bpy.data.objects.new(nm, L_); BP.link(lo); lo.location = loc
+        lo.rotation_euler = (Vector((0, y, top * 0.6)) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
+        lo.light_linking.receiver_collection = coll
+        lo.light_linking.blocker_collection = coll
+    # deeper swags across the hall ceiling, for a red 'roof' above the chandelier
+    for k, yy in enumerate((4.0, 12.0, 20.0)):
+        o, edge = swag(f"CeilingSwag_{k}", -ROOM_X + 0.6, ROOM_X - 0.6, yy, CEIL_Z - 2.5, 3.2, 3, drape, depth=0.5)
+        t = BP.tube(f"CeilingTrim_{k}", edge, 0.06, 10, cap=True); BP.assign(t, gold)
+
 # ----------------------------------------------------------------- pion
 
 def pion_mat(name, base=None, ramp_fn=None, spec=0.0, dots=False, floor=0.06, gi=0.2):
@@ -839,6 +953,8 @@ def mood_chandelier(volume, pos=(0.0, 2.6, 11.2), color=(1.0, 0.52, 0.2)):
         ch.location = (new.x, new.y, new.z + h1 / 2)
     for o in bpy.data.objects:
         if o.type == "LIGHT":
+            if o.name.startswith(("DrapeKey", "DrapeFill")):
+                continue
             if o.name.startswith("ChandLight_"):
                 o.data.energy = 700.0
                 o.data.color = color
@@ -938,6 +1054,7 @@ def main():
                 o.visible_diffuse = True
     build_room(volume=not a.novolume)
     camera_and_key(tuple(int(v) for v in a.res.split("x")))
+    build_drapes(tuple(int(v) for v in a.res.split("x")), BP.mat_gold())
     if a.mood == "window":
         mood_window(not a.novolume)
     elif a.mood == "chandelier":
