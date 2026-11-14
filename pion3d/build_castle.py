@@ -510,7 +510,7 @@ def build_throne(M):
     z0, W, D = 1.35, 11.0, 4.4
     box("ThroneSeat", (W * 0.82, D, 2.2), (0, ty, z0 + 1.1), gold, bevel=0.18)
     box("ThroneCushion", (W * 0.7, D * 0.85, 0.7), (0, ty - 0.2, z0 + 2.45), velvet, bevel=0.25)
-    back_y, back_h = ty + D / 2 - 0.4, 8.0
+    back_y, back_h = ty + D / 2 - 0.4, 4.8   # crest + crown just clear Pion's head, like the creator's frames
     box("ThroneBack", (W * 0.82, 0.9, back_h), (0, back_y, z0 + 2.2 + back_h / 2), gold, bevel=0.18)
     box("ThroneBackPad", (W * 0.62, 0.3, back_h * 0.82), (0, back_y - 0.5, z0 + 2.4 + back_h * 0.45), velvet, bevel=0.2)
     top = z0 + 2.2 + back_h
@@ -545,9 +545,9 @@ def build_throne(M):
     # tall corner posts with finials
     for sx in (-1, 1):
         x = sx * (W * 0.41 + 0.35)
-        cylinder(f"ThronePost_{sx}", 0.42, back_h + 1.4, (x, back_y, z0 + 1.6), gold, 32)
-        fin = BP.uv_sphere(f"ThroneFinial_{sx}", 0.62, 32, 16, loc=(x, back_y, z0 + 3.0 + back_h + 0.6)); BP.assign(fin, gold)
-        tip = BP.cone(f"ThroneFinialTip_{sx}", 0.25, 0.9, 20); tip.location = (x, back_y, z0 + 3.0 + back_h + 1.15); BP.assign(tip, gold)
+        cylinder(f"ThronePost_{sx}", 0.42, back_h, (x, back_y, z0 + 1.6), gold, 32)
+        fin = BP.uv_sphere(f"ThroneFinial_{sx}", 0.58, 32, 16, loc=(x, back_y, z0 + 1.6 + back_h + 0.45)); BP.assign(fin, gold)
+        tip = BP.cone(f"ThroneFinialTip_{sx}", 0.22, 0.7, 20); tip.location = (x, back_y, z0 + 1.6 + back_h + 0.9); BP.assign(tip, gold)
         box(f"ThroneArm_{sx}", (0.8, D * 0.95, 1.6), (sx * (W * 0.41 + 0.1), ty - 0.1, z0 + 3.0), gold, bevel=0.2)
         scroll = BP.torus(f"ThroneScroll_{sx}", 0.55, 0.22, 48, 12, loc=(sx * (W * 0.41 + 0.1), ty - D / 2 + 0.1, z0 + 3.4))
         scroll.rotation_euler = (0, math.pi / 2, 0); BP.assign(scroll, gold)
@@ -641,7 +641,35 @@ SET_OUTLINE = [  # (name prefix, outline width in world units)
 ]
 
 
-OUTLINE_K = 1.8   # global ink thickness multiplier
+def setup_freestyle(sc, exclude_objs, res):
+    """Black ink lines on the whole set: silhouettes, borders, creases, contours (cartoon look).
+    The hidden Pion proxy and the haze volume are excluded."""
+    sc.render.use_freestyle = True
+    sc.render.line_thickness_mode = "ABSOLUTE"
+    sc.render.line_thickness = max(1.5, res[0] / 340.0)   # ~3 px at 1080 wide
+    coll = bpy.data.collections.new("NoInk"); sc.collection.children.link(coll)
+    for o in exclude_objs:
+        if o.name not in coll.objects:
+            coll.objects.link(o)
+    vl = sc.view_layers[0]
+    fs = vl.freestyle_settings
+    fs.mode = "EDITOR"
+    fs.crease_angle = math.radians(138)
+    ls = fs.linesets[0] if len(fs.linesets) else fs.linesets.new("Ink")
+    ls.select_by_visibility = True; ls.visibility = "VISIBLE"
+    ls.select_by_edge_types = True
+    for et in ("silhouette", "border", "crease", "external_contour", "contour"):
+        setattr(ls, "select_" + et, True)
+    ls.select_by_collection = True; ls.collection = coll; ls.collection_negation = "EXCLUSIVE"
+    st = ls.linestyle or bpy.data.linestyles.new("InkStyle")   # factory-empty files have no line style yet
+    ls.linestyle = st
+    st.color = (0.01, 0.008, 0.008)
+    st.thickness = 1.0
+    st.alpha = 1.0
+    return ls
+
+
+OUTLINE_K = 1.8   # global ink thickness multiplier (inverted-hull mode)
 
 
 def add_set_outlines():
@@ -1084,7 +1112,8 @@ def main():
     ap.add_argument("--res", default="1080x1920")
     ap.add_argument("--expr", default="senang")
     ap.add_argument("--novolume", action="store_true")
-    ap.add_argument("--no-outline", action="store_true", help="no black ink outlines on the furniture")
+    ap.add_argument("--no-outline", action="store_true", help="no black ink outlines")
+    ap.add_argument("--hull-outline", action="store_true", help="inverted-hull outlines on furniture instead of Freestyle lines")
     ap.add_argument("--proxy", action="store_true",
                     help="Pion invisible to camera/reflections, still casts shadows (for the engine Pion composite)")
     ap.add_argument("--bbox", default=None, help="write the proxy's screen bbox (px) to this JSON")
@@ -1119,7 +1148,12 @@ def main():
         mood_emotion(EXPR_TO_EMOTION.get(a.emotion, a.emotion), not a.novolume)
     render_settings(a.samples, not a.novolume)
     if not a.no_outline:
-        print("RESULT outlines", add_set_outlines())
+        if a.hull_outline:
+            print("RESULT outlines", add_set_outlines())
+        else:
+            excl = [o for o in pion_objs if o.type == "MESH"] + [o for o in bpy.data.objects if o.name == "Haze"]
+            setup_freestyle(bpy.context.scene, excl, tuple(int(v) for v in a.res.split("x")))
+            bpy.context.scene.camera.data.dof.aperture_fstop = 3.5   # crisp ink reads better with a deeper focus
     sc = bpy.context.scene
     sys.path.append("/home/user/shiny-enigma/.claude/skills/scenario-blender-lighting-rendering/scripts")
     try:
@@ -1195,6 +1229,7 @@ def render_lightpass(sc, pion_objs, path, samples):
             o.hide_render = True
     sc.render.film_transparent = True
     sc.render.use_compositing = False
+    sc.render.use_freestyle = False
     sc.view_settings.view_transform = "Standard"
     sc.view_settings.look = "None"
     sc.view_settings.exposure = -1.0      # headroom: the comp normalises it
