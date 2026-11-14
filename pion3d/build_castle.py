@@ -550,18 +550,18 @@ def add_side_window(glass_col, beam_col, energy):
 
 EMOTIONS = {
     # chandelier colour/scale, hub, extra lights, haze, comp grade, engine light cue
-    "hangat": dict(chand=(1.0, 0.52, 0.2), k=1.0, hub=3500, haze=(0.006, (1.0, 0.85, 0.7))),
-    "marah": dict(chand=(1.0, 0.22, 0.08), k=0.45, hub=1200, haze=(0.005, (1.0, 0.7, 0.65)),
+    "hangat": dict(chand=(1.0, 0.52, 0.2), k=1.0, hub=3500, haze=(0.005, (1.0, 0.85, 0.7)), room=(0.4, (1.0, 0.62, 0.32))),
+    "marah": dict(chand=(1.0, 0.22, 0.08), k=0.45, hub=1200, haze=(0.004, (1.0, 0.7, 0.65)), room=(0.35, (1.0, 0.45, 0.25)),
                   under=((1.0, 0.32, 0.1), 900), rim=((1.0, 0.15, 0.05), 2200)),
-    "sedih": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.009, (0.7, 0.8, 1.0)),
+    "sedih": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.007, (0.7, 0.8, 1.0)), room=(0.35, (0.55, 0.65, 1.0)),
                   window=((0.55, 0.7, 1.0), (0.45, 0.6, 1.0), 110000.0)),
-    "kaget": dict(chand=(1.0, 0.96, 0.9), k=2.0, hub=11000, haze=(0.004, (1.0, 1.0, 1.0)),
+    "kaget": dict(chand=(1.0, 0.96, 0.9), k=2.0, hub=11000, haze=(0.004, (1.0, 1.0, 1.0)), room=(0.4, (1.0, 0.9, 0.8)),
                   rim=((0.9, 0.95, 1.0), 2500)),
-    "licik": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.008, (0.75, 0.6, 1.0)),
+    "licik": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.006, (0.75, 0.6, 1.0)), room=(0.35, (0.6, 0.5, 1.0)),
                   under=((0.25, 1.0, 0.45), 1300), rim=((0.6, 0.15, 1.0), 3200)),
-    "duit": dict(chand=(1.0, 0.72, 0.28), k=1.3, hub=4500, haze=(0.006, (1.0, 0.85, 0.5)),
+    "duit": dict(chand=(1.0, 0.72, 0.28), k=1.3, hub=4500, haze=(0.005, (1.0, 0.85, 0.5)), room=(0.45, (1.0, 0.75, 0.35)),
                  chests=((1.0, 0.7, 0.2), 900), top=((1.0, 0.78, 0.35), 2500)),
-    "misteri": dict(chand=(0.65, 0.45, 1.0), k=0.5, hub=1500, haze=(0.009, (0.7, 0.65, 1.0)),
+    "misteri": dict(chand=(0.65, 0.45, 1.0), k=0.5, hub=1500, haze=(0.007, (0.7, 0.65, 1.0)), room=(0.35, (0.6, 0.55, 1.0)),
                     rim=((0.35, 0.5, 1.0), 1800)),
 }
 EXPR_TO_EMOTION = {
@@ -598,6 +598,24 @@ def mood_emotion(name, volume):
             b = m.node_tree.nodes["Principled BSDF"]
             b.inputs["Emission Color"].default_value = (*E["chand"], 1)
             b.inputs["Emission Strength"].default_value = 60.0 * min(1.0, E["k"]) if E["k"] > 0 else 0.0
+    # keep the hall readable (not a horror set): torches back on at a low, tinted level,
+    # a big soft bounce from the ceiling, and the stained glass glowing a little
+    lvl, rc = E.get("room", (0.35, (1.0, 0.62, 0.32)))
+    for o in bpy.data.objects:
+        if o.type == "LIGHT" and o.name.startswith("TorchLight"):
+            o.data.energy = 1400.0 * lvl
+            o.data.color = rc
+        elif o.name.startswith("TorchFlame"):
+            o.hide_render = False
+    flame = bpy.data.materials.get("Flame")
+    if flame:
+        flame.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (*rc, 1)
+    _area("RoomBounce", (0.0, 6.0, CEIL_Z - 1.0), (0.0, 8.0, 0.0), rc, 9000.0 * lvl, size=22.0)
+    for m in bpy.data.materials:
+        if m.name.startswith("StainedGlass_"):
+            for n in m.node_tree.nodes:
+                if n.type == "MATH" and n.operation == "MULTIPLY":
+                    n.inputs[1].default_value = 7.0 * lvl
     head = (0.0, 0.0, 3.0)
     if "under" in E:   # uplight from the floor in front: menace
         col, en = E["under"]
