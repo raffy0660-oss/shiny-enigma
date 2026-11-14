@@ -569,6 +569,54 @@ def mood_window(volume):
                     n.inputs[1].default_value = 2.5
 
 
+def mood_chandelier(volume, pos=(0.0, -1.0, 9.6), color=(1.0, 0.52, 0.2)):
+    """Night hall: the orange chandelier above Pion is the only light. Everything else is off:
+    torches (flames hidden), window suns, stained glass dark."""
+    old = Vector((0.0, 8.0, 17.0))           # where build_room hangs it
+    new = Vector(pos)
+    d = new - old
+    for o in bpy.data.objects:
+        if o.name.startswith(("ChandelierRing", "Candle_", "CandleFlame_", "ChandLight_")):
+            o.location += d
+    ch = bpy.data.objects.get("ChandelierChain")
+    if ch:
+        h0, h1 = CEIL_Z - old.z, CEIL_Z - new.z
+        ch.scale.z = h1 / h0
+        ch.location = (new.x, new.y, new.z + h1 / 2)
+    for o in bpy.data.objects:
+        if o.type == "LIGHT":
+            if o.name.startswith("ChandLight_"):
+                o.data.energy = 700.0
+                o.data.color = color
+                o.data.shadow_soft_size = 0.15
+            else:
+                o.data.energy = 0.0
+        elif o.name.startswith("TorchFlame"):
+            o.hide_render = True
+    for m in bpy.data.materials:
+        if m.name.startswith("StainedGlass_"):
+            for n in m.node_tree.nodes:
+                if n.type == "MATH" and n.operation == "MULTIPLY":
+                    n.inputs[1].default_value = 0.0
+        if m.name == "CandleFlame":
+            m.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (1.0, 0.5, 0.16, 1)
+            m.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 60.0
+    # one stronger hub light in the ring: the main shadow caster on Pion and the floor
+    hub = bpy.data.lights.new("ChandHub", "POINT")
+    hub.energy = 3500.0
+    hub.color = color
+    hub.shadow_soft_size = 0.9
+    ho = bpy.data.objects.new("ChandHub", hub)
+    BP.link(ho)
+    ho.location = (new.x, new.y, new.z + 0.5)
+    sc = bpy.context.scene
+    sc.world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.0, 0.0, 0.0, 1)
+    hz = bpy.data.objects.get("Haze")
+    if hz and volume:
+        hz.data.materials[0].node_tree.nodes["Principled Volume"].inputs["Density"].default_value = 0.006
+        hz.data.materials[0].node_tree.nodes["Principled Volume"].inputs["Color"].default_value = (1.0, 0.85, 0.7, 1)
+
+
 def render_settings(samples, volume):
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
@@ -614,7 +662,7 @@ def main():
     ap.add_argument("--lightpass", default=None,
                     help="also render the proxy alone in white clay, lit by the room (RGBA PNG) for relighting the engine Pion")
     ap.add_argument("--lightpass-only", action="store_true", help="skip the beauty render")
-    ap.add_argument("--mood", default="warm", choices=["warm", "window"],
+    ap.add_argument("--mood", default="warm", choices=["warm", "window", "chandelier"],
                     help="warm = torch-lit hall; window = dark hall, one sunbeam from a side window onto Pion")
     a = ap.parse_args(argv)
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -632,6 +680,8 @@ def main():
     camera_and_key(tuple(int(v) for v in a.res.split("x")))
     if a.mood == "window":
         mood_window(not a.novolume)
+    elif a.mood == "chandelier":
+        mood_chandelier(not a.novolume)
     render_settings(a.samples, not a.novolume)
     sc = bpy.context.scene
     sys.path.append("/home/user/shiny-enigma/.claude/skills/scenario-blender-lighting-rendering/scripts")
@@ -662,7 +712,7 @@ def main():
         print("RESULT bbox", info)
     # god rays only from the windows: other lights stay out of the haze
     for o in bpy.data.objects:
-        if o.type == "LIGHT" and not o.name.startswith(("WindowSun", "SunBeam")):
+        if o.type == "LIGHT" and not o.name.startswith(("WindowSun", "SunBeam", "ChandLight", "ChandHub")):
             o.visible_volume_scatter = False
     bpy.ops.wm.save_as_mainfile(filepath=a.out)
     print("RESULT built", a.out)
