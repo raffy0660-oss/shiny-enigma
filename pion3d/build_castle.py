@@ -231,6 +231,7 @@ def build_room(volume=True):
         "brass": BP.mat_simple("Brass", (.78, .55, .22), rough=0.3, metal=1.0),
         "wax": BP.mat_simple("Wax", (.95, .9, .78), rough=0.4, sss=0.5),
         "blue": BP.mat_simple("BannerBlue", (.06, .14, .5), rough=0.7, sheen=0.6),
+        "ruby": BP.mat_simple("ThroneRuby", (.85, .04, .1), rough=0.05, coat=1.0),
     }
 
     # floor: marble chessboard (big tiles), slightly polished
@@ -270,20 +271,7 @@ def build_room(volume=True):
             plo = bpy.data.objects.new(f"TorchLight_{sx}_{k}", pl); BP.link(plo)
             plo.location = (tx - sx * 0.25, y, 8.0)
 
-    # dais + throne
-    for s, (w, d, h) in enumerate(((11, 6.5, 0.45), (9, 5.2, 0.9), (7, 4.0, 1.35))):
-        box(f"Dais_{s}", (w, d, 0.45), (0, BACK_Y - 3.6 - (2 - s) * 0.0, h - 0.225), M["marbleL"] if s % 2 == 0 else M["stone"], bevel=0.05)
-    ty, S = BACK_Y - 3.4, 1.5   # throne scaled up: it is the room's focal prop behind Pion
-    box("ThroneSeat", (3.2 * S, 2.6 * S, 1.2 * S), (0, ty, 1.35 + 0.6 * S), M["gold"], bevel=0.12)
-    box("ThroneCushion", (2.8 * S, 2.2 * S, 0.4 * S), (0, ty - 0.1, 1.35 + 1.35 * S), M["velvet"], bevel=0.15)
-    box("ThroneBack", (3.2 * S, 0.6 * S, 6.5 * S), (0, ty + 1.1 * S, 1.35 + 3.25 * S), M["gold"], bevel=0.12)
-    box("ThroneBackPad", (2.4 * S, 0.2 * S, 5.0 * S), (0, ty + 0.76 * S, 1.35 + 3.4 * S), M["velvet"], bevel=0.1)
-    for sx in (-1, 1):
-        box(f"ThroneArm_{sx}", (0.45 * S, 2.6 * S, 1.0 * S), (sx * 1.75 * S, ty, 1.35 + 1.65 * S), M["gold"], bevel=0.12)
-        ball = BP.uv_sphere(f"ThroneFinial_{sx}", 0.35 * S, 24, 12, loc=(sx * 1.45 * S, ty + 1.1 * S, 1.35 + 6.85 * S))
-        BP.assign(ball, M["gold"])
-    crest = BP.uv_sphere("ThroneCrest", 0.55 * S, 32, 16, loc=(0, ty + 1.05 * S, 1.35 + 7.05 * S), scale=(1, 0.4, 1.2))
-    BP.assign(crest, M["gold"])
+    build_throne(M)
 
     # stained-glass windows on the back wall, with lead frame + light shafts
     win_w, win_h = 3.6, 10.0
@@ -505,61 +493,141 @@ def build_statues(stone, statue):
 
 
 
+
+# ----------------------------------------------------------------- throne
+
+THRONE_Y = 12.0   # brought forward and enlarged so it reads above and around Pion's head
+
+
+def build_throne(M):
+    """Grand gold throne on a three-step dais: tall red-velvet back with an arched crest, a gold
+    crown on top, tall corner posts with finials, scrolled arms."""
+    gold, velvet, ty = M["gold"], M["velvet"], THRONE_Y
+    for s_, (w, d, h) in enumerate(((15.0, 9.0, 0.45), (12.5, 7.6, 0.9), (10.0, 6.2, 1.35))):
+        box(f"Dais_{s_}", (w, d, 0.45), (0, ty, h - 0.225), M["marbleL"] if s_ % 2 == 0 else M["stone"], bevel=0.06)
+    for s_, w in enumerate((15.0, 12.5, 10.0)):   # gold nosing on each step
+        box(f"DaisTrim_{s_}", (w + 0.05, 0.12, 0.12), (0, ty - (9.0, 7.6, 6.2)[s_] / 2, (0.45, 0.9, 1.35)[s_] - 0.04), gold, bevel=0.02)
+    z0, W, D = 1.35, 11.0, 4.4
+    box("ThroneSeat", (W * 0.82, D, 2.2), (0, ty, z0 + 1.1), gold, bevel=0.18)
+    box("ThroneCushion", (W * 0.7, D * 0.85, 0.7), (0, ty - 0.2, z0 + 2.45), velvet, bevel=0.25)
+    back_y, back_h = ty + D / 2 - 0.4, 8.0
+    box("ThroneBack", (W * 0.82, 0.9, back_h), (0, back_y, z0 + 2.2 + back_h / 2), gold, bevel=0.18)
+    box("ThroneBackPad", (W * 0.62, 0.3, back_h * 0.82), (0, back_y - 0.5, z0 + 2.4 + back_h * 0.45), velvet, bevel=0.2)
+    top = z0 + 2.2 + back_h
+    # arched crest: gold half-disc with a velvet inner half-disc (semicircles, flat side down on the back)
+    def half_disc(nm, r, depth, y, mat):
+        bm_ = bmesh.new()
+        ring = [bm_.verts.new((r * math.cos(math.pi * i / 48), 0.0, r * math.sin(math.pi * i / 48))) for i in range(49)]
+        f = bm_.faces.new(ring)
+        ext = bmesh.ops.extrude_face_region(bm_, geom=[f])
+        bmesh.ops.translate(bm_, verts=[e for e in ext["geom"] if isinstance(e, bmesh.types.BMVert)], vec=(0, depth, 0))
+        bmesh.ops.translate(bm_, verts=bm_.verts, vec=(0, -depth / 2, 0))
+        bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces)
+        me = bpy.data.meshes.new(nm); bm_.to_mesh(me); bm_.free()
+        o = BP.new_obj(nm, me); o.location = (0, y, top - 0.05)
+        bv = o.modifiers.new("Bevel", "BEVEL"); bv.width = 0.1; bv.segments = 3; bv.limit_method = "ANGLE"
+        BP.assign(o, mat)
+        return o
+    half_disc("ThroneCrest", W * 0.41, 0.9, back_y, gold)
+    half_disc("ThroneCrestPad", W * 0.31, 0.3, back_y - 0.5, velvet)
+    # gold crown on the crest
+    cz = top - 0.2 + W * 0.41
+    band = BP.lathe("ThroneCrownBand", [(1.3, -0.45), (1.42, 0.0), (1.55, 0.45)], 64)
+    band.location = (0, back_y, cz + 0.4); sol = band.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.12
+    BP.assign(band, gold)
+    for k in range(5):
+        a = math.pi * (0.15 + 0.7 * k / 4)          # spikes across the front half, facing the camera
+        x, yy = 1.5 * math.cos(a), -1.5 * math.sin(a)
+        h = 1.5 if k % 2 == 0 else 1.05
+        sp = BP.cone(f"ThroneCrownSpike_{k}", 0.24, h, 24); sp.location = (x, back_y + yy * 0.35, cz + 0.8); BP.assign(sp, gold)
+        bl = BP.uv_sphere(f"ThroneCrownBall_{k}", 0.24, 24, 12, loc=(x, back_y + yy * 0.35, cz + 0.8 + h)); BP.assign(bl, gold)
+        gem = BP.uv_sphere(f"ThroneCrownGem_{k}", 0.16, 16, 8, loc=(x * 1.02, back_y + yy * 0.38 - 0.05, cz + 0.45)); BP.assign(gem, M.get("ruby") or gold)
+    # tall corner posts with finials
+    for sx in (-1, 1):
+        x = sx * (W * 0.41 + 0.35)
+        cylinder(f"ThronePost_{sx}", 0.42, back_h + 1.4, (x, back_y, z0 + 1.6), gold, 32)
+        fin = BP.uv_sphere(f"ThroneFinial_{sx}", 0.62, 32, 16, loc=(x, back_y, z0 + 3.0 + back_h + 0.6)); BP.assign(fin, gold)
+        tip = BP.cone(f"ThroneFinialTip_{sx}", 0.25, 0.9, 20); tip.location = (x, back_y, z0 + 3.0 + back_h + 1.15); BP.assign(tip, gold)
+        box(f"ThroneArm_{sx}", (0.8, D * 0.95, 1.6), (sx * (W * 0.41 + 0.1), ty - 0.1, z0 + 3.0), gold, bevel=0.2)
+        scroll = BP.torus(f"ThroneScroll_{sx}", 0.55, 0.22, 48, 12, loc=(sx * (W * 0.41 + 0.1), ty - D / 2 + 0.1, z0 + 3.4))
+        scroll.rotation_euler = (0, math.pi / 2, 0); BP.assign(scroll, gold)
+
 # ----------------------------------------------------------------- vaulted ceiling
 
-def mat_vault():
-    """Painted vault: deep royal blue with small gold stars (Sainte-Chapelle style)."""
-    m, N, L, b = node_mat("VaultPaint")
-    geo = N.new("ShaderNodeNewGeometry")
-    vor = N.new("ShaderNodeTexVoronoi"); vor.inputs["Scale"].default_value = 1.1; vor.inputs["Randomness"].default_value = 0.8
-    L.new(geo.outputs["Position"], vor.inputs["Vector"])
-    star = N.new("ShaderNodeMapRange"); star.inputs["From Min"].default_value = 0.06; star.inputs["From Max"].default_value = 0.09
-    star.inputs["To Min"].default_value = 1.0; star.inputs["To Max"].default_value = 0.0
-    L.new(vor.outputs["Distance"], star.inputs["Value"])
-    mix = N.new("ShaderNodeMix"); mix.data_type = "RGBA"
-    mix.inputs[6].default_value = (*lin((.07, .11, .32)), 1)
-    mix.inputs[7].default_value = (*lin((1.0, .78, .3)), 1)
-    L.new(star.outputs[0], mix.inputs["Factor"]); L.new(mix.outputs[2], b.inputs["Base Color"])
-    L.new(star.outputs[0], b.inputs["Metallic"])
-    b.inputs["Roughness"].default_value = 0.55
+def mat_vault(nu=14, nv=18):
+    """Coffered ceiling: deep crimson panels in raised gold frames, a gold rosette in every coffer."""
+    m, N, L, b = node_mat("VaultCoffers")
+    uv = N.new("ShaderNodeUVMap")
+    mp = N.new("ShaderNodeMapping"); mp.inputs["Scale"].default_value = (nu, nv, 1)
+    L.new(uv.outputs["UV"], mp.inputs["Vector"])
+    brick = N.new("ShaderNodeTexBrick"); brick.offset = 0.0; brick.offset_frequency = 1
+    brick.inputs["Scale"].default_value = 1.0; brick.inputs["Brick Width"].default_value = 1.0
+    brick.inputs["Row Height"].default_value = 1.0; brick.inputs["Mortar Size"].default_value = 0.13
+    brick.inputs["Mortar Smooth"].default_value = 0.35
+    L.new(mp.outputs[0], brick.inputs["Vector"])
+    vor = N.new("ShaderNodeTexVoronoi"); vor.inputs["Scale"].default_value = 1.0; vor.inputs["Randomness"].default_value = 0.0
+    L.new(mp.outputs[0], vor.inputs["Vector"])
+    ros = N.new("ShaderNodeMapRange"); ros.inputs["From Min"].default_value = 0.13; ros.inputs["From Max"].default_value = 0.16
+    ros.inputs["To Min"].default_value = 1.0; ros.inputs["To Max"].default_value = 0.0
+    L.new(vor.outputs["Distance"], ros.inputs["Value"])
+    ring = N.new("ShaderNodeMapRange"); ring.inputs["From Min"].default_value = 0.0; ring.inputs["From Max"].default_value = 0.025
+    ring.inputs["To Min"].default_value = 1.0; ring.inputs["To Max"].default_value = 0.0
+    dist = N.new("ShaderNodeMath"); dist.operation = "ABSOLUTE"
+    sub = N.new("ShaderNodeMath"); sub.operation = "SUBTRACT"; sub.inputs[1].default_value = 0.27
+    L.new(vor.outputs["Distance"], sub.inputs[0]); L.new(sub.outputs[0], dist.inputs[0]); L.new(dist.outputs[0], ring.inputs["Value"])
+    goldmask = N.new("ShaderNodeMath"); goldmask.operation = "MAXIMUM"
+    g2 = N.new("ShaderNodeMath"); g2.operation = "MAXIMUM"
+    L.new(brick.outputs["Fac"], goldmask.inputs[0]); L.new(ros.outputs[0], goldmask.inputs[1])
+    L.new(goldmask.outputs[0], g2.inputs[0]); L.new(ring.outputs[0], g2.inputs[1])
+    # panel: crimson with a darker vignette toward the frame
+    shade = N.new("ShaderNodeMapRange"); shade.inputs["From Min"].default_value = 0.1; shade.inputs["From Max"].default_value = 0.5
+    shade.inputs["To Min"].default_value = 1.0; shade.inputs["To Max"].default_value = 0.55
+    L.new(vor.outputs["Distance"], shade.inputs["Value"])
+    pan = N.new("ShaderNodeMix"); pan.data_type = "RGBA"; pan.blend_type = "MULTIPLY"; pan.inputs["Factor"].default_value = 1.0
+    pan.inputs[6].default_value = (*lin((.5, .05, .08)), 1)
+    L.new(shade.outputs[0], pan.inputs[7])
+    col = N.new("ShaderNodeMix"); col.data_type = "RGBA"
+    L.new(pan.outputs[2], col.inputs[6]); col.inputs[7].default_value = (1.0, 0.72, 0.28, 1)
+    L.new(g2.outputs[0], col.inputs["Factor"]); L.new(col.outputs[2], b.inputs["Base Color"])
+    L.new(g2.outputs[0], b.inputs["Metallic"])
+    rough = N.new("ShaderNodeMapRange"); rough.inputs["To Min"].default_value = 0.6; rough.inputs["To Max"].default_value = 0.25
+    L.new(g2.outputs[0], rough.inputs["Value"]); L.new(rough.outputs[0], b.inputs["Roughness"])
+    bump = N.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 0.6; bump.inputs["Distance"].default_value = 0.15
+    L.new(g2.outputs[0], bump.inputs["Height"]); L.new(bump.outputs["Normal"], b.inputs["Normal"])
     return m
 
 
 def build_vault(gold):
-    """Barrel vault over the hall: painted shell, gold transverse ribs springing from every pillar,
-    longitudinal ribs, gold bosses where they cross."""
-    R, K, seg_t, y0, y1 = ROOM_X, 0.55, 48, FRONT_Y, BACK_Y
+    """Barrel vault over the hall, coffered (gold frames, crimson panels, rosettes), big gold
+    transverse ribs springing from the pillars, and a gold cornice along the wall tops."""
+    R, K, seg_t, y0, y1 = ROOM_X, 0.55, 64, FRONT_Y, BACK_Y
     arc = lambda th: (R * math.cos(th), SPRING_Z + R * K * math.sin(th))
-    ny = 40
+    ny = 48
     bm_ = bmesh.new(); grid = []
     for j in range(ny + 1):
         y = y0 + (y1 - y0) * j / ny
-        grid.append([bm_.verts.new((*(lambda p: (p[0], y, p[1]))(arc(math.pi * i / seg_t)),)) for i in range(seg_t + 1)])
+        grid.append([bm_.verts.new((arc(math.pi * i / seg_t)[0], y, arc(math.pi * i / seg_t)[1])) for i in range(seg_t + 1)])
+    uvl = bm_.loops.layers.uv.new("UVMap")
     for j in range(ny):
         for i in range(seg_t):
-            bm_.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
-    bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces)
+            f = bm_.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+            for loop, (ii, jj) in zip(f.loops, ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1))):
+                loop[uvl].uv = (ii / seg_t, jj / ny)
     me = bpy.data.meshes.new("Vault"); bm_.to_mesh(me); bm_.free()
     v = BP.new_obj("Vault", me); BP.smooth(v)
-    for p in v.data.polygons:                    # normals must face down into the hall
-        pass
     BP.assign(v, mat_vault())
-    inset = 0.12
-    def arc_pts(y, n=64):
+    inset = 0.15
+    def arc_pts(y, n=72):
         return [Vector((arc(math.pi * i / n)[0] * (1 - inset / R), y, arc(math.pi * i / n)[1] - inset)) for i in range(n + 1)]
-    ys = [-2.0, 3.5, 9.0, 14.5, 20.0, 25.5]      # every pillar, and halfway between
-    for k, y in enumerate(ys):
-        rib = BP.tube(f"VaultRib_{k}", arc_pts(y), 0.22 if k % 2 == 0 else 0.14, 14)
-        BP.assign(rib, gold)
-    for k, th in enumerate((math.pi * 0.25, math.pi * 0.5, math.pi * 0.75)):
-        x, z = arc(th)
-        pts = [Vector((x * (1 - inset / R), yy, z - inset)) for yy in (y0, y1)]
-        rib = BP.tube(f"VaultSpine_{k}", pts, 0.14, 12)
-        BP.assign(rib, gold)
-        for j, y in enumerate(ys):
-            boss = BP.uv_sphere(f"VaultBoss_{k}_{j}", 0.38 if k == 1 else 0.28, 24, 12,
-                                loc=(x * (1 - (inset + 0.15) / R), y, z - inset - 0.15))
-            BP.assign(boss, gold)
+    for k, y in enumerate((-2.0, 9.0, 20.0)):          # over every pillar pair
+        rib = BP.tube(f"VaultRib_{k}", arc_pts(y), 0.34, 16); BP.assign(rib, gold)
+        boss = BP.uv_sphere(f"VaultBoss_{k}", 0.55, 32, 16, loc=(0, y, SPRING_Z + R * K - inset - 0.35)); BP.assign(boss, gold)
+    for sx in (-1, 1):                                  # cornice where the vault meets the walls
+        for nm, dz, r in (("CorniceA", 0.0, 0.32), ("CorniceB", -0.55, 0.18)):
+            t = BP.tube(f"{nm}_{sx}", [Vector((sx * (ROOM_X - 0.25), FRONT_Y, SPRING_Z + dz)), Vector((sx * (ROOM_X - 0.25), BACK_Y, SPRING_Z + dz))], r, 16)
+            BP.assign(t, gold)
+    t = BP.tube("CorniceBack", [Vector((-ROOM_X, BACK_Y - 0.25, SPRING_Z)), Vector((ROOM_X, BACK_Y - 0.25, SPRING_Z))], 0.32, 16)
+    BP.assign(t, gold)
 
 
 # ----------------------------------------------------------------- black outlines on the set
@@ -569,7 +637,7 @@ SET_OUTLINE = [  # (name prefix, outline width in world units)
     ("ChandelierChain", 0.025), ("TorchStick", 0.03), ("TorchCup", 0.03), ("Statue_", 0.05), ("Plinth", 0.06),
     ("Pillar", 0.07), ("Throne", 0.06), ("Chest", 0.04), ("Dais", 0.06), ("Carpet", 0.04), ("Window", 0.04),
     ("SideSill", 0.04), ("Damask", 0.04), ("CurtainRod", 0.04), ("Curtain_", 0.05), ("TieBack", 0.03),
-    ("Banner", 0.04), ("VaultRib", 0.05), ("VaultSpine", 0.04), ("VaultBoss", 0.04), ("Mullion", 0.02),
+    ("Banner", 0.04), ("VaultRib", 0.05), ("VaultBoss", 0.04), ("Cornice", 0.04), ("Mullion", 0.02),
 ]
 
 
@@ -924,7 +992,7 @@ def mood_window(volume):
                     n.inputs[1].default_value = 2.5
 
 
-def mood_chandelier(volume, pos=(0.0, 2.6, 11.2), color=(1.0, 0.52, 0.2)):
+def mood_chandelier(volume, pos=(0.0, 7.5, 16.9), color=(1.0, 0.52, 0.2)):
     """Night hall: the orange chandelier above Pion is the only light. Everything else is off:
     torches (flames hidden), window suns, stained glass dark."""
     ring = bpy.data.objects.get("ChandelierRing")
