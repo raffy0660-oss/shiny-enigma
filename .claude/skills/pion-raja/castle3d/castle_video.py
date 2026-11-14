@@ -97,7 +97,7 @@ def engine_cues(src, segs, dst):
         light = ES.PRESETS[m][1]
         w = light.split(); d = np.array([float(v) for v in w[w.index("dir") + 1:w.index("dir") + 4]])
         pos = np.array([0.0, 3.0, 0.0]) + d / np.linalg.norm(d) * 4.2   # point key fixed in the room, along the mood key: moving changes his light
-        out.append(f"{t:.3f} light {light} pos {pos[0]:.2f} {pos[1]:.2f} {pos[2]:.2f} exp 1")
+        out.append(f"{t:.3f} light {light} pos {pos[0]:.2f} {pos[1]:.2f} {pos[2]:.2f} exp {ES.subject_exp(m)}")
     open(dst, "w").write("\n".join(out) + "\n")
 
 

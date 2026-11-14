@@ -972,8 +972,8 @@ EMOTIONS = {
     "hangat": dict(chand=(1.0, 0.52, 0.2), k=1.0, hub=3500, haze=(0.005, (1.0, 0.85, 0.7)), room=(0.4, (1.0, 0.62, 0.32))),
     "marah": dict(chand=(1.0, 0.22, 0.08), k=0.45, hub=1200, haze=(0.004, (1.0, 0.7, 0.65)), room=(0.35, (1.0, 0.45, 0.25)),
                   under=((1.0, 0.32, 0.1), 900), rim=((1.0, 0.15, 0.05), 2200)),
-    "sedih": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.007, (0.7, 0.8, 1.0)), room=(0.35, (0.55, 0.65, 1.0)),
-                  window=((0.55, 0.7, 1.0), (0.45, 0.6, 1.0), 110000.0)),
+    "sedih": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.007, (0.7, 0.8, 1.0)), room=(0.25, (0.55, 0.65, 1.0)),
+                  window=((0.55, 0.7, 1.0), (0.45, 0.6, 1.0), 65000.0), rim=((0.55, 0.72, 1.0), 2600), rim_side=-1),
     "kaget": dict(chand=(1.0, 0.96, 0.9), k=2.0, hub=11000, haze=(0.004, (1.0, 1.0, 1.0)), room=(0.4, (1.0, 0.9, 0.8)),
                   rim=((0.9, 0.95, 1.0), 2500)),
     "licik": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.006, (0.75, 0.6, 1.0)), room=(0.35, (0.6, 0.5, 1.0)),
@@ -1027,6 +1027,7 @@ def mood_emotion(name, volume):
     # keep the hall readable (not a horror set): torches back on at a low, tinted level,
     # a big soft bounce from the ceiling, and the stained glass glowing a little
     lvl, rc = E.get("room", (0.35, (1.0, 0.62, 0.32)))
+    lvl *= 0.8   # the set a step darker than Pion (value separation); the mood colour stays
     for o in bpy.data.objects:
         if o.type == "LIGHT" and o.name.startswith("TorchLight"):
             o.data.energy = 1400.0 * lvl
@@ -1044,12 +1045,18 @@ def mood_emotion(name, volume):
                 if n.type == "MATH" and n.operation == "MULTIPLY":
                     n.inputs[1].default_value = 7.0 * lvl
     head = (0.0, 0.0, HEAD_Z)
+    pcol = bpy.data.collections.get("PionProxy")
+    def subject_only(o):   # light-linked to Pion (his light pass), never brightening the set around him
+        if pcol:
+            o.light_linking.receiver_collection = pcol
+        return o
     if "under" in E:   # uplight from the floor in front: menace
         col, en = E["under"]
-        _area("UnderLight", (0.0, -3.2, 0.25), head, col, en, size=0.9)
-    if "rim" in E:     # hard edge from behind
+        subject_only(_area("UnderLight", (0.0, -3.2, 0.25), head, col, en, size=0.9))
+    if "rim" in E:     # hard edge from behind, on the key side
         col, en = E["rim"]
-        _area("RimMood", (1.5, 3.2 * PION_SCALE, 5.5 * PION_SCALE), head, col, en, size=1.2, size_y=4.0 * PION_SCALE)
+        side = E.get("rim_side", 1)   # rim on the key side: the side the mood's light comes from
+        subject_only(_area("RimMood", (1.5 * side, 3.2 * PION_SCALE, 5.5 * PION_SCALE), head, col, en, size=1.2, size_y=4.0 * PION_SCALE))
     if "top" in E:     # narrow spot from above
         col, en = E["top"]
         sp = bpy.data.lights.new("TopSpot", "SPOT"); sp.energy = en * 10; sp.color = col
@@ -1151,6 +1158,14 @@ def mood_chandelier(volume, pos=(0.0, 7.5, 16.9), color=(1.0, 0.52, 0.2)):
         if m.name == "LampBulb":
             m.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (1.0, 0.5, 0.16, 1)
             m.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 60.0
+    # value separation (Andy: darken the set before brightening the subject): the chandelier, the brightest
+    # source, skips the gold throne right behind Pion; the room bounce and torches still show it
+    tcol = bpy.data.collections.get("ThroneNoChandelier") or bpy.data.collections.new("ThroneNoChandelier")
+    if tcol.name not in bpy.context.scene.collection.children:
+        bpy.context.scene.collection.children.link(tcol)
+    for o in bpy.data.objects:
+        if o.type == "MESH" and o.name.startswith(("Throne", "Dais")) and o.name not in tcol.objects:
+            tcol.objects.link(o)
     # one stronger hub light in the ring, also aimed down: the main shadow caster on Pion
     hub = bpy.data.lights.new("ChandHub", "SPOT")
     hub.energy = 3500.0
@@ -1161,6 +1176,11 @@ def mood_chandelier(volume, pos=(0.0, 7.5, 16.9), color=(1.0, 0.52, 0.2)):
     ho = bpy.data.objects.new("ChandHub", hub)
     BP.link(ho)
     ho.location = (new.x, new.y, new.z - 0.6)
+    for o in bpy.data.objects:
+        if o.type == "LIGHT" and (o.name.startswith("ChandLight_") or o.name == "ChandHub"):
+            o.light_linking.receiver_collection = tcol
+    for co in tcol.collection_objects:
+        co.light_linking.link_state = "EXCLUDE"
     sc = bpy.context.scene
     sc.world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.0, 0.0, 0.0, 1)
     hz = bpy.data.objects.get("Haze")
@@ -1227,6 +1247,11 @@ def main():
     a = ap.parse_args(argv)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     rig, pion_objs = build_pion(a.expr)
+    pcol = bpy.data.collections.new("PionProxy")             # target for light-linked subject lights
+    bpy.context.scene.collection.children.link(pcol)
+    for o in pion_objs:
+        if o.type == "MESH":
+            pcol.objects.link(o)
     rig.scale = (PION_SCALE, PION_SCALE, PION_SCALE)   # Pion bigger relative to the hall
     bpy.context.view_layer.update()
     if a.proxy:

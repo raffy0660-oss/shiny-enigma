@@ -151,6 +151,7 @@ def main():
     ap.add_argument("--dx", type=float, default=0.0)
     ap.add_argument("--dy", type=float, default=0.0)
     ap.add_argument("--contact", type=float, default=0.75)
+    ap.add_argument("--mask", default=None, help="also write Pion's alpha in the frame (subject mask for light checks)")
     ap.add_argument("--light", default=None, help="light pass PNG from build_castle.py --lightpass")
     ap.add_argument("--relight", type=float, default=1.0, help="how much of the room light goes onto Pion")
     ap.add_argument("--bands", type=int, default=4, help="cel bands for the room light (0 = smooth)")
@@ -217,6 +218,8 @@ def main():
     rng = np.random.default_rng(3)
     out = out + rng.normal(0, a.grain, out.shape[:2])[..., None]
     Image.fromarray((np.clip(out, 0, 1) * 255 + 0.5).astype(np.uint8)).save(a.out)
+    if a.mask:
+        Image.fromarray((alpha[..., 0] * 255).astype(np.uint8)).save(a.mask)
     print("RESULT comp", a.out, {"pos": (px, py), "size": crop.size})
 
 

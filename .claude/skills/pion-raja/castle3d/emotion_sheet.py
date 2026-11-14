@@ -16,22 +16,29 @@ ENGINE = os.path.expanduser(os.environ.get("PION_ENGINE", "~/pion/pion_raja"))  
 BPY = os.environ.get("PION_BPY", "/opt/bpyenv/bin/python")                        # Python with the bpy module
 
 # expression shown, engine light cue, relight (ref, floor, top), grade (sat, tint, contrast)
+SUBJECT_EXP = 1.25   # Pion a touch brighter than the room around him (value separation, measured by light_check.py)
+SUBJECT_EXP_MOOD = {"sedih": 1.7}   # moonlight leaves the red pawn dark: lift him more there
+
+
+def subject_exp(mood):
+    return SUBJECT_EXP_MOOD.get(mood, SUBJECT_EXP)
+
 PRESETS = {
-    "hangat": ("senang", "dir 0 .92 .35 key .6 .42 .25 amb .38 .33 .3 sky .1 .08 .06 gnd .03 .02 .02 rim .05 .04 .03",
+    "hangat": ("senang", "dir 0 .92 .35 key .6 .42 .25 amb .38 .33 .3 sky .1 .08 .06 gnd .03 .02 .02 rim .45 .32 .18",
                (75, .4, 1.5), (1.05, "1,1,1", 1.0)),
-    "marah": ("marah", "dir 0 -.45 .9 key .85 .2 .1 amb .22 .1 .08 sky .05 .02 .02 gnd .1 .02 .01 rim .45 .08 .04",
+    "marah": ("marah", "dir 0 -.45 .9 key .85 .2 .1 amb .22 .1 .08 sky .05 .02 .02 gnd .1 .02 .01 rim .55 .14 .06",
               (75, .38, 1.5), (1.05, "1.04,.94,.92", 1.08)),
-    "sedih": ("kecewa", "dir -.9 .42 -.15 key .35 .45 .7 amb .32 .34 .42 sky .06 .07 .1 gnd .02 .02 .03 rim .06 .08 .12",
+    "sedih": ("kecewa", "dir -.9 .42 -.15 key .35 .45 .7 amb .32 .34 .42 sky .06 .07 .1 gnd .02 .02 .03 rim .22 .3 .48",
               (75, .4, 1.35), (0.75, ".92,.97,1.08", 0.97)),
-    "kaget": ("kaget", "dir 0 .9 .4 key .9 .9 .88 amb .5 .5 .5 sky .12 .12 .12 gnd .04 .04 .04 rim .2 .2 .22",
+    "kaget": ("kaget", "dir 0 .9 .4 key .9 .9 .88 amb .5 .5 .5 sky .12 .12 .12 gnd .04 .04 .04 rim .38 .38 .4",
               (70, .35, 1.6), (0.95, "1,1,1.03", 1.2)),
     "licik": ("licik", "dir 0 -.45 .9 key .25 .75 .38 amb .24 .22 .3 sky .03 .03 .05 gnd .04 .08 .05 rim .3 .12 .45",
               (75, .38, 1.5), (1.05, ".97,1.02,1.05", 1.05)),
-    "duit": ("duit", "dir 0 .9 .35 key .85 .68 .3 amb .35 .3 .2 sky .1 .08 .04 gnd .06 .04 .02 rim .2 .15 .05",
+    "duit": ("duit", "dir 0 .9 .35 key .85 .68 .3 amb .35 .3 .2 sky .1 .08 .04 gnd .06 .04 .02 rim .48 .36 .12",
              (75, .3, 1.5), (1.2, "1.08,1,.85", 1.05)),
     "pencerahan": ("soktahu", "dir .3 .8 .4 key .4 .45 .6 amb .22 .24 .32 sky .06 .07 .1 gnd .03 .03 .05 rim .15 .2 .35",
                    (75, .55, 1.15), (1.1, "1,.98,1.02", 1.08)),   # the engine already floods the face: light relight
-    "misteri": ("penasaran", "dir .3 .8 .4 key .4 .32 .65 amb .22 .2 .3 sky .06 .05 .1 gnd .02 .02 .04 rim .15 .2 .4",
+    "misteri": ("penasaran", "dir .3 .8 .4 key .4 .32 .65 amb .22 .2 .3 sky .06 .05 .1 gnd .02 .02 .04 rim .28 .28 .52",
                 (75, .4, 1.45), (0.92, ".97,.95,1.06", 1.0)),
 }
 
@@ -53,14 +60,14 @@ def render_one(emo, work, res, samples, volume=True):
         cmd.append("--novolume")
     run(cmd)
     cue = base + "_cue.txt"
-    open(cue, "w").write(f"frame full\nlight {light} exp 1\n0.0 {expr}\n")
+    open(cue, "w").write(f"frame full\nlight {light} exp {subject_exp(emo)}\n0.0 {expr}\n")
     run(["node", "react_render.js", "--audio", "test/vo_test.wav", "--cues", cue, "--out", base + "_eng",
          "--dur", "1.2", "--png", "--blur", "1"], cwd=ENGINE)   # frame 10 (0.33 s) = soktahu book glow at its peak
     out = base + ".png"
     run(["python3", os.path.join(HERE, "comp_pion.py"), "--bg", base + "_bg.png", "--bbox", base + ".json",
          "--fg", os.path.join(base + "_eng_frames", "00010.png"), "--light", base + "_lp.png",
          "--ref", str(ref), "--floor", str(floor), "--top", str(top),
-         "--sat", str(sat), "--tint", tint, "--contrast", str(con), "--out", out])
+         "--sat", str(sat), "--tint", tint, "--contrast", str(con), "--out", out, "--mask", base + "_mask.png"])
     return out
 
 
