@@ -178,7 +178,7 @@ function nerdGlow(t) {
 const GOLD_GLOW = [1.0, .8, .42];
 function glowLight(L, g) { // the book becomes the key: strong gold uplight from the front, face flooded warm
   const d0 = L.dir, d1 = [.22, -.5, .84], w = .95 * g, d = d0.map((v, i) => lerp(v, d1[i], w)), dl = Math.hypot(...d);
-  return Object.assign({}, L, { dir: d.map(v => v / dl), exp: (L.exp || 1) * (1 + .45 * g), key: L.key.map((v, i) => lerp(v, GOLD_GLOW[i] * 1.5, g)),
+  return Object.assign({}, L, { dir: d.map(v => v / dl), exp: (L.exp || 1) * (1 + .3 * g), key: L.key.map((v, i) => lerp(v, GOLD_GLOW[i] * 1.5, g)),
     amb: L.amb.map((v, i) => v + GOLD_GLOW[i] * .42 * g), gnd: (L.gnd || [0, 0, 0]).map((v, i) => v + GOLD_GLOW[i] * .5 * g), rim: L.rim.map((v, i) => v + GOLD_GLOW[i] * .6 * g) });
 }
 function drawBookGlow(t, PP, base, cam) { // "golden briefcase": light pours out of the pages onto his face
@@ -196,7 +196,7 @@ function drawBookGlow(t, PP, base, cam) { // "golden briefcase": light pours out
   fx.lineTo(f[0] + ax * .35 - nx * w1, f[1] + ay * .35 - ny * w1); fx.lineTo(p[0] - nx * w0, p[1] - ny * w0); fx.closePath(); fx.fill();
   // 2) face wash: warm light pooled on the lower face
   const fw = fx.createRadialGradient(f[0], f[1], 0, f[0], f[1], U * 1.1);
-  fw.addColorStop(0, `rgba(255,232,170,${.42 * g})`); fw.addColorStop(.6, `rgba(255,200,110,${.18 * g})`); fw.addColorStop(1, 'rgba(255,180,90,0)');
+  fw.addColorStop(0, `rgba(255,232,170,${.3 * g})`); fw.addColorStop(.6, `rgba(255,200,110,${.18 * g})`); fw.addColorStop(1, 'rgba(255,180,90,0)');
   fx.fillStyle = fw; fx.beginPath(); fx.arc(f[0], f[1], U * 1.1, 0, 7); fx.fill();
   fx.filter = 'none';
   // 3) bloom at the book: white-hot core, gold falloff

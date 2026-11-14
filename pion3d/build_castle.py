@@ -1105,6 +1105,8 @@ def render_lightpass(sc, pion_objs, path, samples):
     for o in bpy.data.objects:
         if o.type != "MESH":
             continue
+        if o.name in names and o.name.startswith(("Spike", "SpikeBall", "CrownRim")):
+            o.visible_shadow = False  # crown spikes over a top light print a dark 'nose' on the face
         if o.name in names and o.name.startswith(("EyeWhite", "Pupil", "Brow", "Mouth", "Ruby")):
             o.hide_render = True      # the engine draws its own face: keep only the head's form
             continue
