@@ -4,8 +4,9 @@ description: >
   Pion Raja: the user's own 3D cartoon mascot (an orange chess pawn with a gold crown, red robe and ermine
   collar) for their semi-AI YouTube Shorts. Use whenever the user asks to put Pion Raja / "pion" into a video,
   make Pion react or talk over a voice-over (green screen), render a castle/hospital commentary scene,
-  add Pion sound effects, or continue a Pion project (proj1/proj2/proj4 style). Renders locally with
-  WebGL2 + Playwright + ffmpeg; no AI image/video API needed.
+  add Pion sound effects, continue a Pion project (proj1/proj2/proj4 style), or put the original Pion in the
+  3D "AAA" throne room (Blender background, real shadows, room light and per-emotion lighting on Pion: castle3d/).
+  Renders locally with WebGL2 + Playwright + ffmpeg (+ Blender's bpy for castle3d); no AI image/video API needed.
 ---
 
 # Pion Raja
@@ -34,6 +35,8 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
 | `PERUBAHAN.md` | Changelog of the engine |
 | `examples/proj1`, `proj2`, `proj4` | Finished projects: `plan_pN.py`, `cues/`, `sfx_events.txt`, `composite*.py`, helper grids. Copy one as a template |
 | `PERBANDINGAN_V2.jpg` | Before/after of the v2 motion & shading upgrade |
+| `castle3d/` | Mode 3: 3D throne room in Blender + relight of the engine Pion (`build_castle.py`, `comp_pion.py`, `emotion_sheet.py`, `setup.sh`, guide `PANDUAN_ISTANA3D.md`, examples in `contoh/`) |
+| `EKSPRESI.jpg`, `SOKTAHU.jpg` | All 33 expressions; the soktahu pose (glasses, finger up, open book) |
 
 ## Setup (once per machine/session)
 
@@ -58,6 +61,8 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
      takes the `nerd` pose by itself: right index finger up, an open "THE BOOK OF LARP" in the left hand, as if reading it)
    - Gestures: up cheer present shrug wave point press clap lookout dance facepalm knock cross think phone paper throw hang fist write magnify nerd
    - `bg castle` / `bg hospital` puts Pion in a full commentary scene instead of green screen.
+   - `light dir x y z key r g b amb r g b sky .. gnd .. rim .. exp v` overrides the toon light (to match a 3D plate).
+   - `soktahu` also brings the "enlightenment" glow: the open book flares gold onto his face for ~1.5 s, then dims.
 3. Check first: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --preview 1,2.5,4` and look at the sheet.
 4. Render: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --size 2160x3840` (4K).
    `--bg green,black`, `--alpha` (ProRes 4444 .mov), `--png`, `--start/--dur/--local` for a section.
@@ -89,6 +94,24 @@ Follow `examples/proj4` (newest). Per project folder with `src/input.mp4` (1080x
    The example composites call `integrate.over()` for every Pion layer (sharpness match, light wrap, grain), so
    Pion looks shot by the same phone. For an older project's composite, replace its plain alpha blend with it.
 9. **Review every frame of the result** (contact sheets, `compcheck.py`) and fix before delivering.
+
+## Mode 3: original Pion in the 3D castle (castle3d/)
+
+Pion stays the engine character; Blender renders only the room, his real shadow and the room's light on him.
+Full guide (Indonesian): `castle3d/PANDUAN_ISTANA3D.md`.
+
+1. Setup once: `bash .claude/skills/pion-raja/castle3d/setup.sh` (EGL libs, `bpy==5.2.4` in `/opt/bpyenv`, engine copy).
+2. Fast path, one frame per mood: `cd castle3d && python3 emotion_sheet.py --out out.png --res 1080x1350 --samples 48 --only hangat,marah`
+   (moods: hangat marah sedih kaget licik duit misteri pencerahan; `--res 432x540 --samples 16` to check quickly).
+3. Manual: `build_castle.py --proxy --bbox b.json --lightpass lp.png --mood chandelier --emotion <mood|expression>`
+   renders the plate (hidden Blender Pion casts the shadow), Pion's screen box and the light pass; render the engine
+   Pion with the matching `light` cue (`emotion_sheet.PRESETS`); `comp_pion.py` places it on the proxy, multiplies
+   the light pass in cel bands (majority-vote cleanup), adds light wrap, contact shadow, grain and the mood grade.
+4. Room: marble chessboard floor, red carpet, big gold throne whose crest and crown clear Pion's head, coffered gold
+   barrel vault, stained glass, brass chandelier facing down, torches, chests and coins, stone chess statues, haze,
+   Freestyle black ink on every object. Framing: Pion about 60 % of the frame (9:16 and 4:5 each framed).
+5. Video: camera static per scene, so render each mood plate + light pass once and composite every engine frame.
+   Keep the Blender proxy at engine proportions (crown not enlarged), or a dark dot appears mid-face.
 
 ## What the engine does automatically (v2)
 

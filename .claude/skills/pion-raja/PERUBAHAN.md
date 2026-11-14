@@ -1,5 +1,20 @@
 # Pion Raja: catatan perubahan
 
+## v3: 33 ekspresi, pose soktahu, istana 3D dengan cahaya per emosi
+- **18 ekspresi baru** (dari desain Pion 2D lama, digambar ulang dengan gaya wajah engine): `nangis` `tersedu`
+  `girang` `bahagia` `cium` `lega` `gemas` `syok` `kesal` `ngiler` `merajuk` `memelas` `bosan` `cemas` `bangga`
+  `ngamuk` `santai` `soktahu`. Semua punya mulut bicara sendiri dan yang bermata terbuka ikut berkedip. Lihat `EKSPRESI.jpg`.
+- **Pose `soktahu`** (otomatis, atau `gest nerd`): kacamata kotak tebal, telunjuk kanan ke atas, tangan kiri membuka buku
+  "THE BOOK OF LARP" seperti sedang dibaca, mata melirik ke buku. Lihat `SOKTAHU.jpg`.
+- **Efek pencerahan**: saat `soktahu`, buku menyala emas sekitar 1,5 detik (cahaya ke wajah, bloom, garis silau,
+  partikel naik) lalu meredup.
+- **Cue `light`**: atur arah/warna cahaya toon Pion supaya cocok dengan background 3D.
+- **Mode 3 `castle3d/`**: istana 3D di Blender (gaya game AAA) untuk Pion asli: bayangan asli dari model bayangan
+  tak terlihat, peta cahaya ruangan yang dikalikan ke Pion dalam tingkat cel, 8 mood cahaya per emosi
+  (hangat, marah, sedih, kaget, licik, duit, misteri, pencerahan), tahta emas besar, langit-langit kotak-kotak emas,
+  patung batu catur, lampu gantung kap kuningan, garis tinta hitam di semua benda, framing Pion sekitar 60% frame.
+  Panduan: `castle3d/PANDUAN_ISTANA3D.md`.
+
 ## v2: gerak lebih halus, bayangan lebih bagus, menyatu dengan video
 Lihat `PERBANDINGAN_V2.jpg` untuk sebelum/sesudah.
 - **Motion blur** di mode video (`drive.js`, env `BLUR`, `SHUTTER`) dan mode reaksi (`--blur`, `--shutter`).

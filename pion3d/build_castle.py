@@ -1155,7 +1155,11 @@ def main():
             setup_freestyle(bpy.context.scene, excl, tuple(int(v) for v in a.res.split("x")))
             bpy.context.scene.camera.data.dof.aperture_fstop = 3.5   # crisp ink reads better with a deeper focus
     sc = bpy.context.scene
-    sys.path.append("/home/user/shiny-enigma/.claude/skills/scenario-blender-lighting-rendering/scripts")
+    for _cand in (os.environ.get("BX_LIGHT_SCRIPTS", ""),   # optional bloom/vignette helper (scenario-blender-lighting-rendering skill)
+                  os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scenario-blender-lighting-rendering", "scripts"),
+                  os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".claude", "skills", "scenario-blender-lighting-rendering", "scripts")):
+        if _cand and os.path.isdir(_cand):
+            sys.path.append(_cand)
     try:
         import bx_light as BL
         BL.comp_finish(scene=sc, bloom=0.3, threshold=1.0, bloom_size=0.6, vignette=0.3, contrast=0.03)

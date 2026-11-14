@@ -12,8 +12,8 @@ import subprocess
 from PIL import Image, ImageDraw, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ENGINE = os.path.expanduser("~/pion/pion_raja")
-BPY = "/opt/bpyenv/bin/python"
+ENGINE = os.path.expanduser(os.environ.get("PION_ENGINE", "~/pion/pion_raja"))   # copy of the skill's engine/ (setup.sh)
+BPY = os.environ.get("PION_BPY", "/opt/bpyenv/bin/python")                        # Python with the bpy module
 
 # expression shown, engine light cue, relight (ref, floor, top), grade (sat, tint, contrast)
 PRESETS = {

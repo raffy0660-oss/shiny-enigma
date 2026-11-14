@@ -14,6 +14,7 @@ Mapping: (x, y, z)_engine -> (x, -z, y)_blender.
 """
 import argparse
 import math
+import os
 import sys
 
 import bpy  # must come before bmesh/mathutils with the pip module
@@ -780,7 +781,11 @@ def render_settings(samples):
 
 def comp(sc):
     """Light finish: bloom (Glare), vignette via lens distortion-free ellipse mask."""
-    sys.path.append("/home/user/shiny-enigma/.claude/skills/scenario-blender-lighting-rendering/scripts")
+    for _cand in (os.environ.get("BX_LIGHT_SCRIPTS", ""),   # optional bloom/vignette helper (scenario-blender-lighting-rendering skill)
+                  os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "scenario-blender-lighting-rendering", "scripts"),
+                  os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".claude", "skills", "scenario-blender-lighting-rendering", "scripts")):
+        if _cand and os.path.isdir(_cand):
+            sys.path.append(_cand)
     try:
         import bx_light as BL
         BL.comp_finish(scene=sc, bloom=0.18, threshold=1.2, bloom_size=0.55, vignette=0.28, contrast=0.04, color_boost=0.03)
