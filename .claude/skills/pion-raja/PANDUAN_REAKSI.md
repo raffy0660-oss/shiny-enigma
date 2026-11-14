@@ -46,12 +46,13 @@ Ekspresi tambahan (diadaptasi dari desain Pion 2D lama):
 `syok` (melotot, pupil kecil) · `kesal` (mata "=", urat 💢) · `ngiler` (melongo + iler) · `merajuk` (manyun) ·
 `memelas` (mata anak anjing) · `bosan` · `cemas` (keringat, mulut bergelombang) · `bangga` (sombong) ·
 `ngamuk` (teriak + 💢) · `santai` (mata not ♪, nyengir) · **`soktahu`** (🤓 kacamata kotak otomatis + gigi kelinci,
-cocok dipasangkan dengan `gest up`).
+otomatis pose `nerd`: telunjuk kanan ke atas + tangan kiri pegang buku "FAKTA UNIK", kecuali di waktu itu
+sudah ada gesture lain).
 
 ## Gesture
 `shrug` (angkat bahu) · `facepalm` · `point` (nunjuk, bisa ke titik layar) · `clap` · `cross` (tangan bersilang)
 · `lookout` (tangan di dahi, celingukan) · `up` / `cheer` (tangan ke atas) · `wave` · `dance` · `present`
-· `knock` · `press`
+· `knock` · `press` · `nerd` (telunjuk ke atas + pegang buku)
 
 ## Contoh file cue
 ```

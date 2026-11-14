@@ -125,6 +125,13 @@ function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.w
 function initProps() {
   if (PROP.ok) return; PROP.ok = true;
   PROP.phone = new Mesh(boxGeo(.36, .66, .07)); PROP.plane = new Mesh(planeGeo(1, 1));
+  PROP.bookCover = new Mesh(boxGeo(.62, .82, .13)); PROP.bookPages = new Mesh(boxGeo(.58, .77, .1));
+  PROP.bookTex = canvasTex(310, 410, (g, w, h) => { // hardcover: navy cloth, gold frame, gold title + pawn emblem
+    g.fillStyle = '#16244f'; g.fillRect(0, 0, w, h); g.strokeStyle = '#e6b84a'; g.lineWidth = 10; g.strokeRect(18, 18, w - 36, h - 36); g.lineWidth = 3; g.strokeRect(32, 32, w - 64, h - 64);
+    g.fillStyle = '#f2c95a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '900 68px Inter, Arial Black, sans-serif'; g.fillText('FAKTA', w / 2, 120);
+    g.font = '900 46px Inter, Arial Black, sans-serif'; g.fillText('UNIK', w / 2, 178);
+    g.beginPath(); g.arc(w / 2, 248, 22, 0, 7); g.fill(); g.beginPath(); g.moveTo(w / 2 - 16, 266); g.lineTo(w / 2 + 16, 266); g.lineTo(w / 2 + 34, 330); g.lineTo(w / 2 - 34, 330); g.closePath(); g.fill();
+    g.fillRect(w / 2 - 44, 330, 88, 16); });
   PROP.screenScan = canvasTex(256, 470, (g, w, h) => { g.fillStyle = '#0d1b2a'; g.fillRect(0, 0, w, h); g.fillStyle = '#16314d'; g.fillRect(14, 60, w - 28, h - 130);
     g.strokeStyle = '#3dff8c'; g.lineWidth = 10; const L = 46, x0 = 50, y0 = 130, s = w - 100; for (const [cx, cy, sx, sy] of [[x0, y0, 1, 1], [x0 + s, y0, -1, 1], [x0, y0 + s, 1, -1], [x0 + s, y0 + s, -1, -1]]) { g.beginPath(); g.moveTo(cx, cy + sy * L); g.lineTo(cx, cy); g.lineTo(cx + sx * L, cy); g.stroke(); }
     g.fillStyle = 'rgba(61,255,140,.8)'; g.fillRect(x0, y0 + s / 2 - 4, s, 8); g.fillStyle = '#fff'; g.font = '700 30px Inter, sans-serif'; g.textAlign = 'center'; g.fillText('SCANNING...', w / 2, h - 40); });
@@ -169,6 +176,12 @@ function drawProps(t, PP, base, VP, L, cam) {
       const scanned = RX.fxl.some(e => e.type === 'scan' && t > e.t1 - .05);
       tex(mat.chain(M0, mat.T(0, 0, -.037), mat.RY(Math.PI), mat.S(.31, .6, 1)), scanned ? PROP.screenOK : PROP.screenScan, { color: [1.15, 1.15, 1.15] });
       drawToon(PROP.phone, mat.chain(M0, mat.T(-.1, .24, .04), mat.S(.18, .1, .3)), VP, L, { color: [.3, .3, .34] }); // camera bump
+    }
+    if (G.type === 'nerd' && hands[1]) { // book in his left hand: cover to the camera, cream page block showing on the open side
+      const sc = clamp(env * 1.3, 0, 1), B = mat.chain(hands[1].M, mat.T(-.1, .34, .2), mat.RZ(.16), mat.RX(-.2), mat.RY(-.25), mat.S(sc, sc, sc));
+      drawOutline(PROP.bookCover, mat.mul(B, mat.S(1.08, 1.06, 1.35)), VP, 0); drawToon(PROP.bookCover, B, VP, L, { color: [.09, .14, .31], spec: .15 });
+      const P = mat.chain(B, mat.T(.05, 0, 0)); drawToon(PROP.bookPages, P, VP, L, { color: [.98, .93, .8] });
+      tex(mat.chain(B, mat.T(0, 0, .067), mat.S(.6, .8, 1)), PROP.bookTex, { color: [1.1, 1.1, 1.1] });
     }
     if (G.type === 'write') { // sheet held at the chest, pen in the right hand
       const u = clamp((t - G.t0) / Math.max(.1, (G.t1 - G.t0) * .8), 0, 1), sc = clamp(env * 1.2, 0, 1);
@@ -364,7 +377,7 @@ function drawReact(f, u) {
   drawSub(fx, t);
   for (const E of fxActive('say', t)) drawBubble(fx, t, head, E);
   for (const E of fxActive('money', t)) drawMoney(trailCtx, fx, t, E, cam);
-  for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw') && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears
+  for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw' || G.type === 'nerd') && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears
     const Hd = PP.hands[(G.side || 1) > 0 ? 1 : 0] || PP.hands[0]; if (!Hd) continue; const w = mat.xform(Hd.M, [0, 0, 0, 1]), q = cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]);
     drawSparkle(fx, q[0], q[1], cam.ppu * 1.1, t - G.t0 - .1); }
 }

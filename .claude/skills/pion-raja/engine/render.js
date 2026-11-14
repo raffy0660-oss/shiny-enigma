@@ -200,6 +200,11 @@ function gestureState(t, o) {
     else if (G.type === 'think') { // hand on the chin (tapping), other arm folded under it
       res[k0] = { env, h: [sd0 * .3, 2.12 + .035 * Math.max(0, Math.sin(ph * 9)), 1.02], head: true }; res[1 - k0] = { env, h: [sd0 * .15, 1.62, .98] };
     }
+    else if (G.type === 'nerd') { // "well, actually": his right index finger up beside the head, a book in his left hand
+      const tap = .05 * Math.max(0, Math.sin(ph * 5)), d = [-.08, 1, .22], dl = Math.hypot(...d);
+      res[0] = { env, h: [-1.0, 2.95 + tap, .75], point: true, dir: d.map(v => v / dl) };
+      res[1] = { env, h: [.98, 1.55 + .02 * Math.sin(ph * 2.3), 1.05] };
+    }
     else if (G.type === 'phone') { res[k0] = { env, h: [sd0 * .95, 2.95 + .03 * Math.sin(ph * 5), .85] }; }      // holding a phone up beside the head (visible from front and back)
     else if (G.type === 'paper') { const b = .03 * Math.sin(ph * 4); res[0] = { env, h: [-.92, 2.0 + b, 1.0] }; res[1] = { env, h: [.92, 2.0 + b, 1.0] }; } // showing a sheet with both hands
     else if (G.type === 'throw') { // wind up behind the head, fling forward, follow through

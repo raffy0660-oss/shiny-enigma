@@ -54,8 +54,9 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
    `cam`, `shake`, `photo`, `say`, `word` (karaoke), effects (`aha`, `ask`, `sweat`, `anger`, `money`, `stamp`, `poof`...).
    - Expressions: datar imut senang kaget penasaran curiga pusing sinis ngakak duit marah sakit kecewa ragu licik
      nangis tersedu girang bahagia cium lega gemas syok kesal ngiler merajuk memelas bosan cemas bangga ngamuk santai soktahu
-     (`soktahu` = "well, actually" face; it puts thick nerd glasses on by itself, pair it with `gest up`)
-   - Gestures: up cheer present shrug wave point press clap lookout dance facepalm knock cross think phone paper throw hang fist write magnify
+     (`soktahu` = "well, actually" face: puts thick nerd glasses on and, unless another gesture covers it,
+     takes the `nerd` pose by itself: right index finger up, a "FAKTA UNIK" book in the left hand)
+   - Gestures: up cheer present shrug wave point press clap lookout dance facepalm knock cross think phone paper throw hang fist write magnify nerd
    - `bg castle` / `bg hospital` puts Pion in a full commentary scene instead of green screen.
 3. Check first: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --preview 1,2.5,4` and look at the sheet.
 4. Render: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --size 2160x3840` (4K).
