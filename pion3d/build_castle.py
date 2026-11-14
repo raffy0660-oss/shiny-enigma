@@ -484,6 +484,11 @@ def camera_and_key(res):
     cam.location = (0.0, -11.5, 3.7)
     cam.rotation_euler = (math.radians(90 - 3.0), 0, 0)
     cam_d.shift_y = 0.12   # keep the camera level-ish, frame more of the hall above Pion
+    if res[0] / res[1] > 0.7:
+        # 4:5 / square feeds: the height is barely the long side, so open the lens a little
+        # to keep the whole chandelier in frame and lift Pion off the bottom edge
+        cam_d.lens = 27
+        cam_d.shift_y = 0.1
     cam_d.dof.focus_distance = (Vector((0, -0.5, 3.0)) - cam.location).length
     sc.camera = cam
     sc.render.resolution_x, sc.render.resolution_y = res
@@ -569,7 +574,7 @@ def mood_window(volume):
                     n.inputs[1].default_value = 2.5
 
 
-def mood_chandelier(volume, pos=(0.0, -1.0, 9.6), color=(1.0, 0.52, 0.2)):
+def mood_chandelier(volume, pos=(0.0, -1.0, 9.0), color=(1.0, 0.52, 0.2)):
     """Night hall: the orange chandelier above Pion is the only light. Everything else is off:
     torches (flames hidden), window suns, stained glass dark."""
     old = Vector((0.0, 8.0, 17.0))           # where build_room hangs it
