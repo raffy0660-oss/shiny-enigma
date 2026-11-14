@@ -37,6 +37,8 @@ ROOM_X = 15.0
 BACK_Y = 28.0
 FRONT_Y = -22.0
 CEIL_Z = 26.0
+PION_SCALE = 1.6            # Pion relative to the hall (1.0 = engine proportions vs this room)
+HEAD_Z = 2.95 * PION_SCALE
 
 
 # ----------------------------------------------------------------- materials
@@ -224,7 +226,8 @@ def build_room(volume=True):
         "wood": mat_wood(),
         "iron": BP.mat_simple("Iron", (.08, .08, .085), rough=0.45, metal=1.0),
         "flame": mat_emit("Flame", (1.0, 0.45, 0.12), 40.0),
-        "candle": mat_emit("CandleFlame", (1.0, 0.62, 0.28), 30.0),
+        "candle": mat_emit("LampBulb", (1.0, 0.62, 0.28), 30.0),
+        "brass": BP.mat_simple("Brass", (.78, .55, .22), rough=0.3, metal=1.0),
         "wax": BP.mat_simple("Wax", (.95, .9, .78), rough=0.4, sss=0.5),
         "blue": BP.mat_simple("BannerBlue", (.06, .14, .5), rough=0.7, sheen=0.6),
     }
@@ -315,21 +318,29 @@ def build_room(volume=True):
             em = BP.uv_sphere(f"BannerCrest_{sx}_{k}", 0.6, 24, 12, loc=(sx * (ROOM_X - 0.12), y, 13.6), scale=(0.15, 1, 1.15))
             BP.assign(em, M["gold"])
 
-    # chandelier: gold ring, candles, warm point lights
+    # chandelier: gold ring with 8 brass lamp shades hanging under it, opening DOWNWARD,
+    # a glowing bulb in each and a spot light pointing at the floor
     cz, cy = 17.0, 8.0
     ring = BP.torus("ChandelierRing", 2.6, 0.12, 96, 16, loc=(0, cy, cz))
     BP.assign(ring, M["gold"])
     chain = cylinder("ChandelierChain", 0.07, CEIL_Z - cz, (0, cy, cz), M["gold"], 12)
-    for k in range(10):
-        a = k / 10 * 2 * math.pi
+    shade_prof = [(0.06, 0.0), (0.14, -0.08), (0.3, -0.32), (0.5, -0.62), (0.53, -0.66)]
+    for k in range(8):
+        a = k / 8 * 2 * math.pi
         x, y = 2.6 * math.cos(a), cy + 2.6 * math.sin(a)
-        cylinder(f"Candle_{k}", 0.1, 0.55, (x, y, cz + 0.1), M["wax"], 12)
-        fl = BP.uv_sphere(f"CandleFlame_{k}", 0.07, 12, 8, loc=(x, y, cz + 0.78), scale=(1, 1, 1.7))
-        BP.assign(fl, M["candle"])
-        if k % 2 == 0:
-            pl = bpy.data.lights.new(f"ChandLight_{k}", "POINT")
-            pl.energy = 350; pl.color = (1.0, 0.68, 0.38); pl.shadow_soft_size = 0.2
-            plo = bpy.data.objects.new(f"ChandLight_{k}", pl); BP.link(plo); plo.location = (x, y, cz + 0.9)
+        rod = cylinder(f"LampRod_{k}", 0.035, 0.55, (x, y, cz - 0.55), M["gold"], 10)
+        sh = BP.lathe(f"LampShade_{k}", shade_prof, 48)
+        sh.location = (x, y, cz - 0.55)
+        so_ = sh.modifiers.new("Solid", "SOLIDIFY"); so_.thickness = 0.03; so_.offset = 1.0
+        BP.subsurf(sh, 1)
+        BP.assign(sh, M["brass"])
+        bulb = BP.uv_sphere(f"LampBulb_{k}", 0.13, 16, 10, loc=(x, y, cz - 1.0))
+        BP.assign(bulb, M["candle"])
+        sp = bpy.data.lights.new(f"ChandLight_{k}", "SPOT")
+        sp.energy = 350; sp.color = (1.0, 0.68, 0.38); sp.shadow_soft_size = 0.15
+        sp.spot_size = math.radians(85); sp.spot_blend = 0.6
+        plo = bpy.data.objects.new(f"ChandLight_{k}", sp); BP.link(plo)
+        plo.location = (x, y, cz - 1.05)        # default spot direction is -Z: straight down
 
     # treasure chests + coin piles near the dais
     for k, (x, y, rz) in enumerate(((-6.2, 19.0, 0.35), (6.0, 18.0, -0.4))):
@@ -481,7 +492,7 @@ def camera_and_key(res):
     cam = bpy.data.objects.new("Cam", cam_d); BP.link(cam)
     # straight-on and a little above Pion's head, like the engine camera (tiltDeg 6),
     # so the composited engine Pion and its Blender shadow proxy share one perspective
-    cam.location = (0.0, -11.5, 3.7)
+    cam.location = (0.0, -16.0, 3.7 * PION_SCALE)
     cam.rotation_euler = (math.radians(90 - 3.0), 0, 0)
     cam_d.shift_y = 0.12   # keep the camera level-ish, frame more of the hall above Pion
     if res[0] / res[1] > 0.7:
@@ -489,7 +500,7 @@ def camera_and_key(res):
         # to keep the whole chandelier in frame and lift Pion off the bottom edge
         cam_d.lens = 27
         cam_d.shift_y = 0.1
-    cam_d.dof.focus_distance = (Vector((0, -0.5, 3.0)) - cam.location).length
+    cam_d.dof.focus_distance = (Vector((0, -0.5 * PION_SCALE, HEAD_Z)) - cam.location).length
     sc.camera = cam
     sc.render.resolution_x, sc.render.resolution_y = res
     sc.render.resolution_percentage = 100
@@ -594,7 +605,7 @@ def mood_emotion(name, volume):
         if o.name == "ChandHub":
             o.data.energy = E["hub"]
     for m in bpy.data.materials:   # candle flames follow the chandelier (off when it is off)
-        if m.name == "CandleFlame":
+        if m.name == "LampBulb":
             b = m.node_tree.nodes["Principled BSDF"]
             b.inputs["Emission Color"].default_value = (*E["chand"], 1)
             b.inputs["Emission Strength"].default_value = 60.0 * min(1.0, E["k"]) if E["k"] > 0 else 0.0
@@ -616,18 +627,18 @@ def mood_emotion(name, volume):
             for n in m.node_tree.nodes:
                 if n.type == "MATH" and n.operation == "MULTIPLY":
                     n.inputs[1].default_value = 7.0 * lvl
-    head = (0.0, 0.0, 3.0)
+    head = (0.0, 0.0, HEAD_Z)
     if "under" in E:   # uplight from the floor in front: menace
         col, en = E["under"]
         _area("UnderLight", (0.0, -3.2, 0.25), head, col, en, size=0.9)
     if "rim" in E:     # hard edge from behind
         col, en = E["rim"]
-        _area("RimMood", (1.5, 3.2, 5.5), head, col, en, size=1.2, size_y=4.0)
+        _area("RimMood", (1.5, 3.2 * PION_SCALE, 5.5 * PION_SCALE), head, col, en, size=1.2, size_y=4.0 * PION_SCALE)
     if "top" in E:     # narrow spot from above
         col, en = E["top"]
         sp = bpy.data.lights.new("TopSpot", "SPOT"); sp.energy = en * 10; sp.color = col
         sp.spot_size = math.radians(28); sp.spot_blend = 0.4; sp.shadow_soft_size = 0.3
-        so = bpy.data.objects.new("TopSpot", sp); BP.link(so); so.location = (0.0, -1.5, 12.0)
+        so = bpy.data.objects.new("TopSpot", sp); BP.link(so); so.location = (0.0, -1.5, 15.0)
         so.rotation_euler = (Vector(head) - so.location).to_track_quat("-Z", "Y").to_euler()
     if "chests" in E:  # treasure glows
         col, en = E["chests"]
@@ -666,7 +677,7 @@ def mood_window(volume):
         elif n == "FillRoom":
             o.data.energy = 12.0
     for o in bpy.data.objects:            # dim the emissive flames a little too
-        if o.name.startswith(("TorchFlame", "CandleFlame")):
+        if o.name.startswith(("TorchFlame", "LampBulb")):
             pass
     so = add_side_window((1.0, 0.9, 0.72), (1.0, 0.88, 0.68), 240000.0)
     so.visible_volume_scatter = True
@@ -681,7 +692,7 @@ def mood_window(volume):
                     n.inputs[1].default_value = 2.5
 
 
-def mood_chandelier(volume, pos=(0.0, -1.0, 9.0), color=(1.0, 0.52, 0.2)):
+def mood_chandelier(volume, pos=(0.0, -1.6, 12.8), color=(1.0, 0.52, 0.2)):
     """Night hall: the orange chandelier above Pion is the only light. Everything else is off:
     torches (flames hidden), window suns, stained glass dark."""
     ring = bpy.data.objects.get("ChandelierRing")
@@ -689,7 +700,7 @@ def mood_chandelier(volume, pos=(0.0, -1.0, 9.0), color=(1.0, 0.52, 0.2)):
     new = Vector(pos)
     d = new - old
     for o in bpy.data.objects:
-        if o.name.startswith(("ChandelierRing", "Candle_", "CandleFlame_", "ChandLight_")):
+        if o.name.startswith(("ChandelierRing", "LampRod_", "LampShade_", "LampBulb_", "ChandLight_")):
             o.location += d
     ch = bpy.data.objects.get("ChandelierChain")
     if ch:
@@ -711,17 +722,19 @@ def mood_chandelier(volume, pos=(0.0, -1.0, 9.0), color=(1.0, 0.52, 0.2)):
             for n in m.node_tree.nodes:
                 if n.type == "MATH" and n.operation == "MULTIPLY":
                     n.inputs[1].default_value = 0.0
-        if m.name == "CandleFlame":
+        if m.name == "LampBulb":
             m.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (1.0, 0.5, 0.16, 1)
             m.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 60.0
-    # one stronger hub light in the ring: the main shadow caster on Pion and the floor
-    hub = bpy.data.lights.new("ChandHub", "POINT")
+    # one stronger hub light in the ring, also aimed down: the main shadow caster on Pion
+    hub = bpy.data.lights.new("ChandHub", "SPOT")
     hub.energy = 3500.0
     hub.color = color
     hub.shadow_soft_size = 0.9
+    hub.spot_size = math.radians(110)
+    hub.spot_blend = 0.7
     ho = bpy.data.objects.new("ChandHub", hub)
     BP.link(ho)
-    ho.location = (new.x, new.y, new.z + 0.5)
+    ho.location = (new.x, new.y, new.z - 0.6)
     sc = bpy.context.scene
     sc.world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.0, 0.0, 0.0, 1)
     hz = bpy.data.objects.get("Haze")
@@ -782,6 +795,8 @@ def main():
     a = ap.parse_args(argv)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     rig, pion_objs = build_pion(a.expr)
+    rig.scale = (PION_SCALE, PION_SCALE, PION_SCALE)   # Pion bigger relative to the hall
+    bpy.context.view_layer.update()
     if a.proxy:
         for o in pion_objs:
             if o.type == "MESH":
