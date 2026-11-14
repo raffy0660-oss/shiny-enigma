@@ -200,6 +200,11 @@ function gestureState(t, o) {
     else if (G.type === 'think') { // hand on the chin (tapping), other arm folded under it
       res[k0] = { env, h: [sd0 * .3, 2.12 + .035 * Math.max(0, Math.sin(ph * 9)), 1.02], head: true }; res[1 - k0] = { env, h: [sd0 * .15, 1.62, .98] };
     }
+    else if (G.type === 'nerd') { // "well, actually": his right index finger up beside the head, a book in his left hand
+      const tap = .05 * Math.max(0, Math.sin(ph * 5)), d = [-.08, 1, .22], dl = Math.hypot(...d);
+      res[0] = { env, h: [-1.0, 2.95 + tap, .75], point: true, dir: d.map(v => v / dl) };
+      res[1] = { env, h: [.62, 1.45 + .02 * Math.sin(ph * 2.3), 1.12] };
+    }
     else if (G.type === 'phone') { res[k0] = { env, h: [sd0 * .95, 2.95 + .03 * Math.sin(ph * 5), .85] }; }      // holding a phone up beside the head (visible from front and back)
     else if (G.type === 'paper') { const b = .03 * Math.sin(ph * 4); res[0] = { env, h: [-.92, 2.0 + b, 1.0] }; res[1] = { env, h: [.92, 2.0 + b, 1.0] }; } // showing a sheet with both hands
     else if (G.type === 'throw') { // wind up behind the head, fling forward, follow through
@@ -335,7 +340,7 @@ function drawPion(PP, base, VP, L, face) {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.a)); gl.uniform1i(faceP.u.uA, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.b)); gl.uniform1i(faceP.u.uB, 1);
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, GLOSS); gl.uniform1i(faceP.u.uGloss, 2);
-  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, det ? MONOCLE : glasses ? GLASSES : HURT); gl.uniform1i(faceP.u.uHurt, 3); gl.uniform1f(faceP.u.uHurtA, det ? 1 : glasses ? glasses : hurt);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, det ? MONOCLE : glasses === 2 ? NERD : glasses ? GLASSES : HURT); gl.uniform1i(faceP.u.uHurt, 3); gl.uniform1f(faceP.u.uHurtA, det ? 1 : glasses ? Math.min(1, glasses) : hurt);
   gl.uniform1f(faceP.u.uMix, ex.m); gl.uniform1f(faceP.u.uSq, ex.sq); gl.uniform1f(faceP.u.uFlash, FLASH); gl.uniform1f(faceP.u.uExp, clamp(exp * 1.05, .5, 1)); gl.uniform3fv(faceP.u.uTint, tint.map(v => lerp(1, v, .3)));
   gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); M.face.draw();
   gl.disable(gl.POLYGON_OFFSET_FILL); gl.depthMask(true); gl.disable(gl.BLEND); SOOT = 0;

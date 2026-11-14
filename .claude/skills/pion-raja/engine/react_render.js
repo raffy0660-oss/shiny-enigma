@@ -13,6 +13,7 @@
 //   --preview t1,t2,...              only render a contact sheet of these moments (fast check)
 //   --blur 16                        motion blur: max samples per frame (default 16, 1 = off); --shutter 0.4 (frames)
 //   --local                          cue times are relative to --start (default: absolute audio times)
+// cue `light dir x y z key r g b amb r g b rim r g b ...` overrides the toon light preset (to match a 3D background)
 const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('/opt/npm-tools/node_modules/playwright'); } })();
 const fs = require('fs'), path = require('path'), os = require('os'), { execFileSync } = require('child_process');
 
@@ -54,7 +55,7 @@ function analyse(file) {
 
 /* ---------- cue file ---------- */
 // lines: <time> <command> [args]   time = seconds or m:ss.xx ; '#' starts a comment
-//   <t> <expression>                 e.g. "1.2 kaget"  (datar imut senang kaget penasaran curiga pusing sinis ngakak)
+//   <t> <expression>                 e.g. "1.2 kaget"  (see EXPR below: 33 expressions; soktahu adds nerd glasses)
 //   <t> gest <type> [dur] [kiri|kanan] [x y]   type: up cheer present shrug wave point press clap lookout dance facepalm knock cross
 //   <t> look <turn°> [nod°] [tilt°]  head turn (+ = toward screen right), nod (+ = down), tilt; "look 0" resets
 //   <t> startle                      jump of surprise
@@ -62,8 +63,9 @@ function analyse(file) {
 //   <t> fly [dur] [jauh|kiri|kanan|atas|bawah]   fly in toward the camera (invisible before)
 //   <t> flyout [dur] [jauh|kiri|kanan|atas|bawah] fly away
 //   <t> hover off|on                 gentle floating (on by default)
-const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik'];
-const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify'];
+const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
+  'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu'];
+const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd'];
 function parseCues(txt) {
   const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], bg: null, frame: null, frameOverride: null }, warn = [];
   const time = s => { const m = s.split(':').map(Number); return m.length > 1 ? m[0] * 60 + m[1] : m[0]; };
@@ -71,6 +73,9 @@ function parseCues(txt) {
     const line = raw.replace(/#.*/, '').trim(); if (!line) return;
     const w = line.split(/\s+/);
     if (w[0] === 'bg') { C.bg = w[1] || null; return; }
+    if (w[0] === 'light') { // match a 3D background: light dir x y z | key r g b | amb | sky | gnd | rim | exp v
+      C.light = C.light || {}; for (let i = 1; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; C.light[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
+      return; }
     if (w[0] === 'face') { C.faceCy = +w[1]; return; }
     if (w[0] === 'hurt') { C.hurt = +(w[1] ?? 1); return; }
     if (w[0] === 'frame') { const v = w[1] || 'close'; if (v.includes(',')) { const [cy, vh, cx] = v.split(',').map(Number); C.frameOverride = { cy, vh, cx: cx || 0 }; } else C.frame = v; return; }
@@ -157,7 +162,12 @@ async function openPage(data) {
     }
     cues.cams.sort((a, b) => a.t - b.t);
   }
-  const data = { fps: FPS, n: au.n, env: au.env, onset: au.onset, jelly: JELLY, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
+  { // expression 'soktahu' brings its own pose (book in the left hand, right index finger up) unless a gesture already covers it
+    const ex = cues.expr.slice().sort((p, q) => p[0] - q[0]), tEnd = au.dur + (arg('local') ? 0 : START);
+    ex.forEach(([t0, k], i) => { if (k !== 'soktahu') return; const t1 = i + 1 < ex.length ? ex[i + 1][0] : tEnd;
+      if (!cues.gest.some(G => G.t0 < t1 && G.t1 > t0)) cues.gest.push({ t0, t1, type: 'nerd', side: 1, auto: true }); });
+  }
+  const data = { fps: FPS, n: au.n, env: au.env, onset: au.onset, jelly: JELLY, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
   for (const [bt, s] of cues.boing) { const f = Math.round(bt * FPS); if (f >= 0 && f < data.n) data.onset[f] = Math.max(data.onset[f], s); }
   for (const S of cues.say || []) { // speech bubble: fake syllables drive the mouth + jelly
     const syl = Math.max(2, Math.round(S.text.replace(/[^a-z]/gi, '').length / 2.2)), f0 = Math.round(S.t * FPS), f1 = Math.round((S.t + S.dur) * FPS);

@@ -125,6 +125,16 @@ function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.w
 function initProps() {
   if (PROP.ok) return; PROP.ok = true;
   PROP.phone = new Mesh(boxGeo(.36, .66, .07)); PROP.plane = new Mesh(planeGeo(1, 1));
+  PROP.bookCover = new Mesh(boxGeo(.62, .84, .035)); PROP.bookPages = new Mesh(boxGeo(.56, .78, .06)); PROP.bookSpine = new Mesh(boxGeo(.08, .84, .1));
+  const goldFrame = (g, w, h) => { g.fillStyle = '#4a1530'; g.fillRect(0, 0, w, h); g.strokeStyle = '#e6b84a'; g.lineWidth = 10; g.strokeRect(18, 18, w - 36, h - 36); g.lineWidth = 3; g.strokeRect(32, 32, w - 64, h - 64);
+    g.fillStyle = '#f2c95a'; g.textAlign = 'center'; g.textBaseline = 'middle'; };
+  PROP.bookFront = canvasTex(310, 420, (g, w, h) => { // front cover of the open book (faces the camera)
+    goldFrame(g, w, h); g.font = '800 34px Georgia, serif'; g.fillText('THE BOOK', w / 2, 88); g.font = 'italic 700 28px Georgia, serif'; g.fillText('of', w / 2, 128);
+    g.font = '900 88px Inter, Arial Black, sans-serif'; g.fillText('LARP', w / 2, 196);
+    g.beginPath(); g.arc(w / 2, 270, 18, 0, 7); g.fill(); g.beginPath(); g.moveTo(w / 2 - 13, 285); g.lineTo(w / 2 + 13, 285); g.lineTo(w / 2 + 28, 338); g.lineTo(w / 2 - 28, 338); g.closePath(); g.fill(); g.fillRect(w / 2 - 36, 338, 72, 13);
+    g.font = '700 18px Georgia, serif'; g.fillText('~ for true believers ~', w / 2, 378); });
+  PROP.bookBack = canvasTex(310, 420, (g, w, h) => { goldFrame(g, w, h); g.font = '700 22px Georgia, serif'; g.fillText('vol. I', w / 2, h - 70);
+    g.beginPath(); g.arc(w / 2, h / 2 - 10, 34, 0, 7); g.lineWidth = 6; g.strokeStyle = '#e6b84a'; g.stroke(); g.font = '900 34px Georgia, serif'; g.fillText('L', w / 2, h / 2 - 8); });
   PROP.screenScan = canvasTex(256, 470, (g, w, h) => { g.fillStyle = '#0d1b2a'; g.fillRect(0, 0, w, h); g.fillStyle = '#16314d'; g.fillRect(14, 60, w - 28, h - 130);
     g.strokeStyle = '#3dff8c'; g.lineWidth = 10; const L = 46, x0 = 50, y0 = 130, s = w - 100; for (const [cx, cy, sx, sy] of [[x0, y0, 1, 1], [x0 + s, y0, -1, 1], [x0, y0 + s, 1, -1], [x0 + s, y0 + s, -1, -1]]) { g.beginPath(); g.moveTo(cx, cy + sy * L); g.lineTo(cx, cy); g.lineTo(cx + sx * L, cy); g.stroke(); }
     g.fillStyle = 'rgba(61,255,140,.8)'; g.fillRect(x0, y0 + s / 2 - 4, s, 8); g.fillStyle = '#fff'; g.font = '700 30px Inter, sans-serif'; g.textAlign = 'center'; g.fillText('SCANNING...', w / 2, h - 40); });
@@ -158,6 +168,52 @@ function willTex(u) { // the last will, SUBSCRIBE revealed as it is written (u 0
   else WILL.t = texFromCanvas(WILL.c, false);
   return WILL.t;
 }
+// soktahu "enlightenment": the open book flares gold for ~1.5 s (light from below on his face), then dims to an ember
+function nerdGlow(t) {
+  let g = 0;
+  for (const G of TL.gest) { if (G.type !== 'nerd' || t < G.t0 || t > G.t1) continue; const u = t - G.t0;
+    g = Math.max(g, gEnv(G, t) * smooth(0, .3, u) * (1 - .85 * smooth(1.4, 2.5, u))); }
+  return g;
+}
+const GOLD_GLOW = [1.0, .8, .42];
+function glowLight(L, g) { // the book becomes the key: strong gold uplight from the front, face flooded warm
+  const d0 = L.dir, d1 = [.22, -.5, .84], w = .95 * g, d = d0.map((v, i) => lerp(v, d1[i], w)), dl = Math.hypot(...d);
+  return Object.assign({}, L, { dir: d.map(v => v / dl), exp: (L.exp || 1) * (1 + .3 * g), key: L.key.map((v, i) => lerp(v, GOLD_GLOW[i] * 1.5, g)),
+    amb: L.amb.map((v, i) => v + GOLD_GLOW[i] * .42 * g), gnd: (L.gnd || [0, 0, 0]).map((v, i) => v + GOLD_GLOW[i] * .5 * g), rim: L.rim.map((v, i) => v + GOLD_GLOW[i] * .6 * g) });
+}
+function drawBookGlow(t, PP, base, cam) { // "golden briefcase": light pours out of the pages onto his face
+  const g = nerdGlow(t), Hd = PP.hands[1]; if (g < .02 || !Hd) return;
+  const pw = mat.xform(Hd.M, [-.1, .4, .3, 1]), p = cam.toPix([pw[0] / pw[3], pw[1] / pw[3], pw[2] / pw[3]]);
+  const hw = mat.xform(PP.headM, [0, -.25, .55, 1]), f = cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), U = cam.ppu;
+  fx.save(); fx.globalCompositeOperation = 'lighter';
+  // 1) cone of light from the open pages up to the face (soft, blurred)
+  const ax = f[0] - p[0], ay = f[1] - p[1], len = Math.hypot(ax, ay) || 1, nx = -ay / len, ny = ax / len, w0 = U * .22, w1 = U * 1.15;
+  fx.filter = `blur(${Math.round(U * .12)}px)`;
+  const lg = fx.createLinearGradient(p[0], p[1], f[0] + ax * .35, f[1] + ay * .35);
+  lg.addColorStop(0, `rgba(255,246,205,${.9 * g})`); lg.addColorStop(.55, `rgba(255,214,120,${.45 * g})`); lg.addColorStop(1, 'rgba(255,190,90,0)');
+  fx.fillStyle = lg; fx.beginPath();
+  fx.moveTo(p[0] + nx * w0, p[1] + ny * w0); fx.lineTo(f[0] + ax * .35 + nx * w1, f[1] + ay * .35 + ny * w1);
+  fx.lineTo(f[0] + ax * .35 - nx * w1, f[1] + ay * .35 - ny * w1); fx.lineTo(p[0] - nx * w0, p[1] - ny * w0); fx.closePath(); fx.fill();
+  // 2) face wash: warm light pooled on the lower face
+  const fw = fx.createRadialGradient(f[0], f[1], 0, f[0], f[1], U * 1.1);
+  fw.addColorStop(0, `rgba(255,232,170,${.3 * g})`); fw.addColorStop(.6, `rgba(255,200,110,${.18 * g})`); fw.addColorStop(1, 'rgba(255,180,90,0)');
+  fx.fillStyle = fw; fx.beginPath(); fx.arc(f[0], f[1], U * 1.1, 0, 7); fx.fill();
+  fx.filter = 'none';
+  // 3) bloom at the book: white-hot core, gold falloff
+  const R = U * (1.35 + .4 * g), gr = fx.createRadialGradient(p[0], p[1], 0, p[0], p[1], R);
+  gr.addColorStop(0, `rgba(255,255,235,${g})`); gr.addColorStop(.1, `rgba(255,236,170,${.8 * g})`); gr.addColorStop(.35, `rgba(255,200,95,${.4 * g})`); gr.addColorStop(1, 'rgba(255,170,60,0)');
+  fx.fillStyle = gr; fx.beginPath(); fx.arc(p[0], p[1], R, 0, 7); fx.fill();
+  // 4) anamorphic streak
+  const st = fx.createLinearGradient(p[0] - U * 2.6, 0, p[0] + U * 2.6, 0);
+  st.addColorStop(0, 'rgba(255,210,140,0)'); st.addColorStop(.5, `rgba(255,240,200,${.7 * g})`); st.addColorStop(1, 'rgba(255,210,140,0)');
+  fx.fillStyle = st; fx.beginPath(); fx.ellipse(p[0], p[1], U * 2.6, U * .045 * (1 + g), 0, 0, 7); fx.fill();
+  // 5) motes drifting up out of the pages (deterministic)
+  for (let k = 0; k < 26; k++) {
+    const sd = Math.sin(k * 91.7) * 43758.5453, r1 = sd - Math.floor(sd), ph = (t * (.35 + r1 * .3) + r1) % 1;
+    const x = p[0] + (r1 - .5) * U * .9 + ax * ph * .6 + Math.sin(t * 2 + k) * U * .06, y = p[1] + ay * ph * .6 - ph * U * .5, a = g * Math.sin(Math.PI * ph);
+    fx.fillStyle = `rgba(255,236,160,${.9 * a})`; fx.beginPath(); fx.arc(x, y, U * (.03 + .03 * r1), 0, 7); fx.fill(); }
+  fx.restore();
+}
 function drawProps(t, PP, base, VP, L, cam) {
   initProps(); const hands = PP.hands;
   const tex = (M, T, o) => drawToon(PROP.plane, M, VP, L, Object.assign({ tex: T, dbl: true }, o || {}));
@@ -169,6 +225,16 @@ function drawProps(t, PP, base, VP, L, cam) {
       const scanned = RX.fxl.some(e => e.type === 'scan' && t > e.t1 - .05);
       tex(mat.chain(M0, mat.T(0, 0, -.037), mat.RY(Math.PI), mat.S(.31, .6, 1)), scanned ? PROP.screenOK : PROP.screenScan, { color: [1.15, 1.15, 1.15] });
       drawToon(PROP.phone, mat.chain(M0, mat.T(-.1, .24, .04), mat.S(.18, .1, .3)), VP, L, { color: [.3, .3, .34] }); // camera bump
+    }
+    if (G.type === 'nerd' && hands[1]) { // open book in his left hand, pages toward his face, covers (a V) toward the camera
+      const sc = clamp(env * 1.3, 0, 1), B = mat.chain(hands[1].M, mat.T(-.1, .36, .28), mat.RX(-.2), mat.RY(-.12), mat.S(sc, sc, sc));
+      drawToon(PROP.bookSpine, mat.chain(B, mat.T(0, 0, .02)), VP, L, { color: [.22, .06, .13] });
+      for (const sd of [-1, 1]) { // sd 1 = front cover on the camera's right (he reads it left-to-right)
+        const H = mat.chain(B, mat.RY(sd * .7)), C = mat.chain(H, mat.T(sd * .33, 0, 0));
+        drawOutline(PROP.bookCover, mat.mul(C, mat.S(1.06, 1.05, 1.6)), VP, 0); drawToon(PROP.bookCover, C, VP, L, { color: [.29, .08, .19], spec: .12 });
+        const gl0 = nerdGlow(t); drawToon(PROP.bookPages, mat.chain(H, mat.T(sd * .31, 0, -.045)), VP, L, { color: [.98 + 1.4 * gl0, .93 + 1.1 * gl0, .8 + .5 * gl0] });
+        tex(mat.chain(C, mat.T(0, 0, .019), mat.S(.58, .8, 1)), sd > 0 ? PROP.bookFront : PROP.bookBack, { color: [1.1, 1.1, 1.1] });
+      }
     }
     if (G.type === 'write') { // sheet held at the chest, pen in the right hand
       const u = clamp((t - G.t0) / Math.max(.1, (G.t1 - G.t0) * .8), 0, 1), sc = clamp(env * 1.2, 0, 1);
@@ -311,7 +377,8 @@ function drawReact(f, u) {
   for (const g of [fx, trailCtx, bgCtx]) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, g.canvas.width, g.canvas.height); }
   fx.setTransform(fx.canvas.width / W, 0, 0, fx.canvas.height / H, 0, 0); trailCtx.setTransform(trailCtx.canvas.width / W, 0, 0, trailCtx.canvas.height / H, 0, 0);
   const fr = camAt(t), cam = reactCam(fr), VP = cam.VP; window.EYE = cam.eye;
-  const castle = RX.bg === 'castle' || RX.bg === 'hospital', L = RX.bg === 'castle' ? LIGHT_CASTLE : LIGHT;
+  const castle = RX.bg === 'castle' || RX.bg === 'hospital', L0 = RX.bg === 'castle' ? LIGHT_CASTLE : LIGHT;
+  const L = RX.light ? Object.assign({}, L0, RX.light) : L0; // cue `light ...`: match a 3D background's key/rim
   const fl = flyPos(t), fv = flyVel(t);
   const hidden = RX.fxl.some(e => e.type === 'hide' && t >= e.t0);   // after 'hide': only fx + subtitles (transparent), e.g. over an inserted clip
   if (castle && !hidden) { // background zooms with the camera (a bit less: parallax), anchored on the pion
@@ -343,9 +410,12 @@ function drawReact(f, u) {
   if (gs.clap && gs.clap.k > .01) { const w = mat.xform(base, [...gs.clap.p, 1]); window.__clap = { p: cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]), k: gs.clap.k, r: cam.ppu }; }
   const ex = exprAt(t), blink = blinking(t) && ex.since > .25;
   const yawNow = fr.yaw + bp.yaw + turnAt(t);
-  const glasses = fxActive('glasses', t).length ? 1 : 0, det = fxActive('detective', t).length ? 1 : 0;
-  FLASH = 0; drawPion(PP, base, VP, L, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, t });
-  drawProps(t, PP, base, VP, L, cam);
+  const exNow = ex.m > .5 ? ex.b : ex.a; // expression 'soktahu' puts the nerd glasses on by itself
+  const glasses = fxActive('glasses', t).length ? 1 : exNow === 'soktahu' ? 2 : 0, det = fxActive('detective', t).length ? 1 : 0;
+  const ng = nerdGlow(t), Lg = ng > .01 ? glowLight(L, ng) : L;
+  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, t });
+  drawProps(t, PP, base, VP, Lg, cam);
+  drawBookGlow(t, PP, base, cam);
   const hw = mat.xform(PP.headM, [0, 0, 0, 1]), head = { p: cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), r: cam.ppu }; window.__head = head;
   const pix = (M, v) => { const w = mat.xform(M, [...v, 1]); return cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]); };
   window.__probe = [head.p, pix(base, [0, 0, 0]), pix(PP.crownM, [0, 1.0, 0]), pix(base, [1, 0, 0]), pix(base, [-1, 0, 0]), ...PP.hands.filter(Boolean).map(Hd => pix(Hd.M, [0, 0, 0]))];
@@ -362,7 +432,7 @@ function drawReact(f, u) {
   drawSub(fx, t);
   for (const E of fxActive('say', t)) drawBubble(fx, t, head, E);
   for (const E of fxActive('money', t)) drawMoney(trailCtx, fx, t, E, cam);
-  for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw') && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears
+  for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw' || G.type === 'nerd') && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears
     const Hd = PP.hands[(G.side || 1) > 0 ? 1 : 0] || PP.hands[0]; if (!Hd) continue; const w = mat.xform(Hd.M, [0, 0, 0, 1]), q = cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]);
     drawSparkle(fx, q[0], q[1], cam.ppu * 1.1, t - G.t0 - .1); }
 }

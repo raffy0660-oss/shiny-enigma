@@ -40,10 +40,19 @@ Custom: `frame 2.4,9.5,0.8` = tinggi bidikan, tinggi yang terlihat (makin besar 
 satu alis naik, senyum miring) **`ngakak`**. Saat ngomong, bentuk mulutnya ikut ekspresi
 (`curiga`/`datar`/`sinis` mulutnya miring nyengir, `senang`/`ngakak` mulut lebar).
 
+Ekspresi tambahan (diadaptasi dari desain Pion 2D lama):
+`nangis` (air mata mengalir) · `tersedu` (T_T, sungai air mata) · `girang` (mata berbinar, ketawa lebar) ·
+`bahagia` (^ ^ + blush) · `cium` (bibir "3" + hati) · `lega` (mata terpejam, "hah~") · `gemas` (>_< pipi merah) ·
+`syok` (melotot, pupil kecil) · `kesal` (mata "=", urat 💢) · `ngiler` (melongo + iler) · `merajuk` (manyun) ·
+`memelas` (mata anak anjing) · `bosan` · `cemas` (keringat, mulut bergelombang) · `bangga` (sombong) ·
+`ngamuk` (teriak + 💢) · `santai` (mata not ♪, nyengir) · **`soktahu`** (🤓 kacamata kotak otomatis + gigi kelinci,
+otomatis pose `nerd`: telunjuk kanan ke atas + tangan kiri memegang buku terbuka "THE BOOK OF LARP" seperti sedang dibaca, kecuali di waktu itu
+sudah ada gesture lain).
+
 ## Gesture
 `shrug` (angkat bahu) · `facepalm` · `point` (nunjuk, bisa ke titik layar) · `clap` · `cross` (tangan bersilang)
 · `lookout` (tangan di dahi, celingukan) · `up` / `cheer` (tangan ke atas) · `wave` · `dance` · `present`
-· `knock` · `press`
+· `knock` · `press` · `nerd` (telunjuk ke atas + baca buku terbuka)
 
 ## Contoh file cue
 ```
