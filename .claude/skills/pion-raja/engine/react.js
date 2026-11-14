@@ -344,7 +344,8 @@ function drawReact(f, u) {
   if (gs.clap && gs.clap.k > .01) { const w = mat.xform(base, [...gs.clap.p, 1]); window.__clap = { p: cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]), k: gs.clap.k, r: cam.ppu }; }
   const ex = exprAt(t), blink = blinking(t) && ex.since > .25;
   const yawNow = fr.yaw + bp.yaw + turnAt(t);
-  const glasses = fxActive('glasses', t).length ? 1 : 0, det = fxActive('detective', t).length ? 1 : 0;
+  const exNow = ex.m > .5 ? ex.b : ex.a; // expression 'soktahu' puts the nerd glasses on by itself
+  const glasses = fxActive('glasses', t).length ? 1 : exNow === 'soktahu' ? 2 : 0, det = fxActive('detective', t).length ? 1 : 0;
   FLASH = 0; drawPion(PP, base, VP, L, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, t });
   drawProps(t, PP, base, VP, L, cam);
   const hw = mat.xform(PP.headM, [0, 0, 0, 1]), head = { p: cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), r: cam.ppu }; window.__head = head;

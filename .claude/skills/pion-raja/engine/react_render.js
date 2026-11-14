@@ -55,7 +55,7 @@ function analyse(file) {
 
 /* ---------- cue file ---------- */
 // lines: <time> <command> [args]   time = seconds or m:ss.xx ; '#' starts a comment
-//   <t> <expression>                 e.g. "1.2 kaget"  (datar imut senang kaget penasaran curiga pusing sinis ngakak)
+//   <t> <expression>                 e.g. "1.2 kaget"  (see EXPR below: 33 expressions; soktahu adds nerd glasses)
 //   <t> gest <type> [dur] [kiri|kanan] [x y]   type: up cheer present shrug wave point press clap lookout dance facepalm knock cross
 //   <t> look <turn°> [nod°] [tilt°]  head turn (+ = toward screen right), nod (+ = down), tilt; "look 0" resets
 //   <t> startle                      jump of surprise
@@ -63,7 +63,8 @@ function analyse(file) {
 //   <t> fly [dur] [jauh|kiri|kanan|atas|bawah]   fly in toward the camera (invisible before)
 //   <t> flyout [dur] [jauh|kiri|kanan|atas|bawah] fly away
 //   <t> hover off|on                 gentle floating (on by default)
-const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik'];
+const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
+  'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu'];
 const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify'];
 function parseCues(txt) {
   const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], bg: null, frame: null, frameOverride: null }, warn = [];

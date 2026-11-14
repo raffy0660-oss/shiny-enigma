@@ -335,7 +335,7 @@ function drawPion(PP, base, VP, L, face) {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.a)); gl.uniform1i(faceP.u.uA, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.b)); gl.uniform1i(faceP.u.uB, 1);
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, GLOSS); gl.uniform1i(faceP.u.uGloss, 2);
-  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, det ? MONOCLE : glasses ? GLASSES : HURT); gl.uniform1i(faceP.u.uHurt, 3); gl.uniform1f(faceP.u.uHurtA, det ? 1 : glasses ? glasses : hurt);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, det ? MONOCLE : glasses === 2 ? NERD : glasses ? GLASSES : HURT); gl.uniform1i(faceP.u.uHurt, 3); gl.uniform1f(faceP.u.uHurtA, det ? 1 : glasses ? Math.min(1, glasses) : hurt);
   gl.uniform1f(faceP.u.uMix, ex.m); gl.uniform1f(faceP.u.uSq, ex.sq); gl.uniform1f(faceP.u.uFlash, FLASH); gl.uniform1f(faceP.u.uExp, clamp(exp * 1.05, .5, 1)); gl.uniform3fv(faceP.u.uTint, tint.map(v => lerp(1, v, .3)));
   gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); M.face.draw();
   gl.disable(gl.POLYGON_OFFSET_FILL); gl.depthMask(true); gl.disable(gl.BLEND); SOOT = 0;

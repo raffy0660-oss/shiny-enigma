@@ -696,6 +696,10 @@ EXPR_TO_EMOTION = {
     "marah": "marah", "kecewa": "sedih", "sakit": "sedih", "kaget": "kaget",
     "licik": "licik", "curiga": "licik", "sinis": "licik", "duit": "duit",
     "penasaran": "misteri", "ragu": "misteri", "pusing": "misteri",
+    "girang": "hangat", "bahagia": "hangat", "cium": "hangat", "lega": "hangat", "gemas": "hangat",
+    "santai": "hangat", "ngiler": "hangat", "nangis": "sedih", "tersedu": "sedih", "merajuk": "sedih",
+    "memelas": "sedih", "syok": "kaget", "kesal": "marah", "ngamuk": "marah", "bangga": "duit",
+    "bosan": "misteri", "cemas": "misteri", "soktahu": "misteri",
 }
 
 
