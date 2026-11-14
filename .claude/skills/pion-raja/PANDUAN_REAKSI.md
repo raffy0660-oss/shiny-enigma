@@ -1,0 +1,73 @@
+# Mode Reaksi: Pion Raja ngomong pakai voice over kamu
+
+Pion besar di layar, background **green screen** (atau transparan). Setiap suku kata di voice over
+bikin badannya **goyang jelly** (memipih/memanjang, goyang kiri-kanan, kepala ikut membal, jubah berkibar),
+dan **mulutnya buka-tutup** sesuai keras-pelannya suara. Ekspresi, gesture, dan arah kepala diatur lewat file cue.
+
+## Alurnya
+1. Kamu kirim **file voice over** (mp3/m4a/wav/mp4, apa saja).
+2. Ceritakan **isi VO-nya** + reaksi yang kamu mau (misal "detik 3 sarkas", "pas bilang 'gila' dia kaget").
+   Saya tidak bisa mendengar audio, jadi teks/waktunya dari kamu. Kalau tidak dikasih, dia tetap ngomong
+   dan goyang jelly, cuma ekspresinya datar.
+3. Saya buatkan file cue, render, dan kirim **`.._green.mp4`** (audio VO sudah di dalamnya, untuk patokan sinkron).
+4. Di **CapCut**: taruh video kamu / layar hitam / blur sebagai latar → **Overlay** → tambahkan `_green.mp4`
+   → **Hapus latar → Chroma key** → pilih warna hijau → **Intensitas** sekitar 20–40, naikkan **Bayangan** sedikit
+   kalau ada garis hijau di pinggir. Audio overlay-nya bisa di-mute kalau VO aslinya sudah ada di timeline.
+
+## Framing (`frame`)
+| preset | isi layar |
+|---|---|
+| `small` | seluruh pion, kira-kira 38% tinggi layar |
+| `mid` (default) | seluruh pion, kira-kira setengah tinggi layar |
+| `big` | seluruh pion, kira-kira 65% tinggi layar |
+| `full` | seluruh pion memenuhi layar |
+| `close` | kepala + kerah besar |
+| `face` | close-up ekstrem, kepala selebar layar |
+| `bottom` | pion di setengah bawah, setengah atas kosong untuk video |
+
+Custom: `frame 2.4,9.5,0.8` = tinggi bidikan, tinggi yang terlihat (makin besar = pion makin kecil), geser samping (+ = pion ke kiri).
+
+## Terbang masuk / keluar
+- `0.3 fly 3.0 jauh`: sebelum detik 0.3 layar kosong (untuk transisi dari video kamu), lalu pion terbang
+  **pelan dari kejauhan menuju kamera** selama 3 detik. Tangannya terbentang, jubahnya berkibar, ada jejak kilau emas
+  di belakangnya, lalu mendarat dengan "boing" jelly dan mulai menjelaskan.
+  Arah datang: `jauh` (lurus dari kejauhan), `kiri`, `kanan`, `atas`, `bawah`.
+- `9.0 flyout 1.4 atas`: terbang pergi (arah sama pilihannya).
+- Selama menjelaskan dia **melayang** pelan naik-turun. Matikan dengan `hover off`.
+
+## Ekspresi
+`datar` `imut` `senang` `kaget` `penasaran` `curiga` `pusing` **`sinis`** (sarkas: mata setengah tertutup,
+satu alis naik, senyum miring) **`ngakak`**. Saat ngomong, bentuk mulutnya ikut ekspresi
+(`curiga`/`datar`/`sinis` mulutnya miring nyengir, `senang`/`ngakak` mulut lebar).
+
+## Gesture
+`shrug` (angkat bahu) · `facepalm` · `point` (nunjuk, bisa ke titik layar) · `clap` · `cross` (tangan bersilang)
+· `lookout` (tangan di dahi, celingukan) · `up` / `cheer` (tangan ke atas) · `wave` · `dance` · `present`
+· `knock` · `press`
+
+## Contoh file cue
+```
+frame mid
+0.0   senang
+0.3   fly 3.0 jauh          # layar kosong dulu, lalu terbang dari jauh ke depan kamera
+3.3   penasaran
+3.6   look -10 0 5          # melirik ke kiri layar, kepala miring
+4.2   sinis
+4.3   gest shrug 0.9        # angkat bahu selama 0.9 detik
+5.6   look 0                # kepala kembali lurus
+5.8   kaget
+5.8   startle               # lompat kaget
+6.4   ngakak
+6.4   gest clap 0.8
+7.2   gest point 0.9 kiri 200 300   # nunjuk ke titik (200,300) di layar 1080x1920
+8.6   flyout 1.4 atas       # terbang pergi
+```
+Waktu bisa ditulis `75.5` atau `1:15.5`. `look <toleh°> [angguk°] [miring°]`, toleh + = ke kanan layar.
+
+## Perintah render (untuk saya)
+```bash
+node react_render.js --audio vo.m4a --cues cues.txt --out hasil/reaksi1
+```
+- `--frame small` ganti framing · `--bg black` latar hitam · `--bg green,black` sekali render dua versi · `--jelly 1.5` jelly lebih kuat / `0.6` lebih halus
+- `--alpha` tambah `.mov` transparan ProRes 4444 (besar, ~30 MB/detik) · `--png` simpan PNG transparan
+- `--start 12 --dur 8` pakai sebagian audio saja · `--preview 1,2.5,4` cek cepat beberapa momen jadi satu gambar

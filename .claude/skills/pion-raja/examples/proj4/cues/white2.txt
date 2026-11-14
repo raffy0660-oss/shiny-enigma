@@ -1,0 +1,17 @@
+# putih 2 (12.133-14.3): pion meniru gaya meme AHAtik: hitam-putih, push-in pelan, kepala menoleh, lirikan curiga
+bg castle
+frame 2.4,8.8,0.3
+face 3.05
+0.0   detective
+0.0   curiga
+0.0   fly 0.32 kamera
+0.32  boing 0.6
+0.03  wz
+0.41  wz
+0.62  wzo
+0.62  licik
+0.62  look -30 8 12
+0.75  cam 3.1,4.3,-0.2,-5 1.35
+1.35  look -36 10 15
+1.75  curiga
+1.80  look -26 4 9

@@ -1,0 +1,12 @@
+# transisi: layar kosong dulu, lalu pion terbang dari jauh ke depan kamera
+0.0   senang
+0.3   fly 3.0 jauh
+3.3   penasaran
+3.6   look -10 0 5
+4.2   sinis
+4.3   gest shrug 0.9
+5.6   look 0
+5.8   kaget
+6.4   ngakak
+6.4   gest clap 0.8
+8.6   flyout 1.4 atas

@@ -1,0 +1,24 @@
+# putih 3 (22.8-25.233): case solved, muka licik
+bg castle
+frame 2.4,8.6,0
+face 3.05
+0.0   detective
+0.0   licik
+0.0   fly 0.4 kamera
+0.4   boing 0.8
+0.18  wz
+0.30  wz
+0.60  wzo
+0.45  gest magnify 0.9 kanan
+0.69  wz
+1.12  wz
+1.30  wz
+1.40  gest cross 1.0
+1.87  wz
+1.87  ngakak
+1.92  stamp 0.6 "CASE|SOLVED!" 539 1230 100
+1.92  shake 1.3 0.35
+2.15  licik
+2.15  wzo
+2.2   look -10 6 -8
+

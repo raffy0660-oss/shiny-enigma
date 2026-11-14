@@ -1,0 +1,16 @@
+# putih 3 (26.567 - 28.30 = 1.73 dtk): di rumah sakit, menulis wasiat SUBSCRIBE lalu menunjukkannya
+bg hospital
+hurt 1
+frame 2.5,7.2,0
+0.0   sakit
+0.0   gest write 1.05
+0.0   look 0 14 0
+0.95  look 0
+1.0   kecewa
+1.05  gest paper 1.0 will
+1.05  boing 0.5
+1.1   cam 2.35,5.4,0,-4 0.45
+0.62 word SO
+0.79 word I CAN
+1.03 word GET
+1.19 word BETTER!

@@ -1,0 +1,21 @@
+# layar putih 3 (27.50 - 32.33 = 4.83 dtk): mencerna "ohhh i see", ambil kertas SUBSCRIBE, lempar objek QR ke kamera
+bg castle
+frame 2.45,8.4,0
+0.0   penasaran
+0.0   fly 0.75 kamera
+0.75  boing 1
+0.85  gest think 0.85
+0.85  look 0 -12 0
+1.15  senang
+1.2   say 1.25 Ohhh, I see!
+1.25  look 0 12 0
+1.5   look 0 -3 0
+1.75  look 0 10 0
+2.0   look 0
+2.2   gest paper 1.1
+2.2   cam 2.55,6.4,0.25,5 0.5
+2.3   imut
+3.2   cam 2.45,8.4,0,0 0.4
+3.3   senang
+3.3   gest throw 0.7 kanan 1.0
+3.6   boing 0.6

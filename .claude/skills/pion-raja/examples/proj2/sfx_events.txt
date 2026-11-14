@@ -1,0 +1,77 @@
+# clip 1a: bumped, thrown high, falls into the hot tandir
+0.00  woosh_down 0.9
+0.43  land 0.7
+0.48  boing 0.5
+0.73  boing 0.7
+0.76  woosh 0.7
+1.05  fall 0.8
+1.27  thud 0.9
+1.28  sizzle 0.9
+# clip 1b: hanging on the pad, flung at the camera
+3.00  stretch 0.6
+3.50  woosh_long 1.0
+# white 1
+3.733 woosh_down 0.8
+4.25  boing 0.7
+4.70  rumble 0.8
+6.45  woosh 0.9
+6.80  woosh_down 0.6
+# clip 2 drop onto the rim
+6.85  fall 0.6
+7.10  land 0.8
+# in-scene clips 3-6
+8.53  hop 0.6
+8.75  hop 0.6
+8.95  land 0.6
+10.10 fall 0.6
+10.37 land 0.7
+10.95 boing 0.5
+11.35 rumble 0.5
+12.43 hop 0.6
+12.62 hop 0.6
+12.80 land 0.6
+14.00 boing 0.6
+15.43 woosh_long 0.9
+# white 2
+15.85 woosh_down 0.6
+15.90 woosh_down 0.8
+16.45 boing 0.7
+18.55 question 0.8
+19.03 woosh 0.9
+19.30 woosh_down 0.6
+# in-scene clips 7-10
+19.33 hop 0.6
+19.53 hop 0.6
+19.73 land 0.6
+22.10 hop 0.6
+22.27 hop 0.6
+22.43 land 0.6
+22.50 boing 0.6
+22.80 rumble 0.5
+24.23 fall 0.6
+24.50 land 0.7
+26.10 boing 0.5
+26.13 woosh_long 0.9
+# white 3: writing the will
+26.55 woosh_down 0.6
+26.57 scribble 0.9
+27.62 pop 0.7
+27.65 tada 0.5
+# interactions: walk, slaps, hops onto bodies, stomps
+7.13  hop 0.3
+7.33  hop 0.3
+7.53  hop 0.3
+9.33  hop 0.7
+23.00 hop 0.7
+7.867 slap 1.0
+8.100 slap 1.0
+8.333 slap 1.0
+9.633 thud 0.8
+9.900 thud 0.8
+23.300 thud 0.8
+23.567 thud 0.8
+23.833 thud 0.8
+24.100 thud 0.8
+7.77  boing 0.3
+9.63  boing 0.4
+23.30 boing 0.4

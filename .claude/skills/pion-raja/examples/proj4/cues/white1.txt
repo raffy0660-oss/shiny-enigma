@@ -1,0 +1,30 @@
+# putih 1 (3.933-7.1): kaget, cari di HP, vine boom -> foto Herkules dewasa, "when he was a baby" -> foto bayi
+bg castle
+frame 2.3,10.5,1.5
+face 3.05
+0.0   kaget
+0.0   fly 0.42 kamera
+0.42  boing 0.8
+0.45  penasaran
+0.45  gest phone 2.35 kanan
+0.5   look 8 16 0
+0.03  wz
+0.41  wz
+1.05  wz
+1.27  wz
+1.40  kaget
+1.40  startle
+1.40  photo 0.58 /home/user/proj4/src/herc_adult.jpg 730 560 540 5 q=hercules
+1.40  shake 1.4 0.35
+1.45  look -18 -4 8
+1.60  wzo
+1.98  photo 0.85 /home/user/proj4/src/herc_baby.jpg 730 560 540 -4 swap q=baby_hercules
+1.98  ngakak
+1.98  wz
+2.10  wz
+2.17  wz
+2.36  wz
+2.36  aha 0.5
+2.70  wzo
+2.8   flyout 0.36 kamera
+

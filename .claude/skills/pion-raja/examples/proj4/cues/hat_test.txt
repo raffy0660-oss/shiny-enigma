@@ -1,0 +1,6 @@
+bg castle
+frame 2.9,5.0,0
+0.0 detective
+0.0 licik
+0.0 gest magnify 2 kanan
+1.0 look -30 8 12

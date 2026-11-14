@@ -1,0 +1,76 @@
+# --- clip A: dragged forward, zapped, blasted left
+0.18  pop 0.4
+1.38  boing 0.5
+1.45  stretch 0.8
+1.98  zap 1.0
+2.04  woosh 1.0
+2.36  ting 0.8
+# --- clip B: falls on the plate, BONK, dizzy, gets up, launches
+3.43  fall 0.8
+3.87  bonk 1.0
+3.95  dizzy 0.7
+4.30  boing_lo 0.6
+4.45  tada 0.5
+4.75  woosh_long 1.0
+# --- white 1
+5.13  woosh_down 0.9
+5.83  boing 0.8
+5.92  think 0.7
+5.95  question 0.8
+6.08  woosh_down 0.35
+6.75  woosh 0.3
+# --- clip C: hops in, startled, claps
+7.40  hop 0.6
+7.57  hop 0.6
+7.73  hop 0.6
+7.90  land 0.7
+8.00  boing 0.5
+9.575 clap 0.7
+# --- clip D: hops onto the pink piece, lifted up, cheers
+12.30 hop 0.6
+12.52 hop 0.6
+12.75 land 0.7
+12.80 rumble 0.5
+12.95 boing 0.5
+13.40 tada 0.5
+# --- clip E: slides down the pole, egg startle, thinks, launches
+14.20 fall 0.7
+14.58 land 0.8
+14.80 boing 0.5
+15.85 think 0.6
+16.40 woosh_long 1.0
+# --- white 2: in, think, phone, turn, scan, money eyes
+17.10 woosh_down 0.9
+17.95 boing 0.8
+18.45 think 0.6
+18.50 question 0.8
+18.55 woosh_down 0.3
+19.45 pop 0.7
+19.70 woosh 0.45
+20.05 scan 0.9
+20.85 woosh 0.45
+21.05 kaching 1.0
+21.05 boing 0.6
+21.10 sparkle 0.6
+# --- clip F / G: hops, drops onto the card, launches
+23.00 hop 0.6
+23.22 hop 0.6
+23.45 land 0.6
+24.85 hop 0.6
+25.05 hop 0.6
+25.25 land 0.6
+25.95 hop 0.7
+26.55 fall 0.6
+26.85 land 0.7
+27.10 boing 0.5
+27.13 woosh_long 1.0
+# --- white 3: in, "ohhh i see", subscribe paper, throw the QR
+27.50 woosh_down 0.9
+28.25 boing 0.8
+28.35 think 0.6
+28.70 ohh 0.9
+29.70 paper 0.8
+29.72 pop 0.6
+30.80 woosh_down 0.4
+31.19 woosh_long 1.0
+32.10 pop 0.8

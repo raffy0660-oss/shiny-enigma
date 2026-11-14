@@ -1,0 +1,21 @@
+# cameo 2 (19.333 - 26.567)
+hurt 1
+frame 6.9,20,-3.7
+0.0   sakit
+0.0   fly 0.5 kanan
+0.3   look -28 4 0
+0.6   penasaran
+0.6   gest think 1.0
+1.8   sinis
+1.8   gest cross 0.9
+2.77  kaget
+2.77  startle
+3.3   marah
+3.3   anger 1.5
+3.4   gest fist 1.0
+3.77  shake 0.8 0.3
+4.9   curiga
+4.9   look -20 0 8
+5.6   sakit
+5.6   gest facepalm 0.9
+6.9   flyout 0.33 kamera

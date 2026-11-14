@@ -1,0 +1,26 @@
+# layar putih 2 (17.10 - 22.03 = 4.93 dtk): terbang masuk excited, mikir, keluarin HP, balik badan scan QR, mata dollar
+bg castle
+frame 2.45,8.6,-0.75
+0.0   board
+0.0   senang
+0.0   fly 0.85 kamera
+0.85  gest cheer 0.5
+0.85  boing 1
+1.35  penasaran
+1.35  gest think 1.0
+1.4   ask 0.95
+1.45  look -14 -4 6
+1.45  cam 2.85,6.0,-0.4,6 0.5
+2.1   cam 2.45,8.6,-0.75,0 0.45
+2.35  senang
+2.35  gest phone 1.6 kanan
+2.4   look 0
+2.6   turn 200 0.35
+2.95  scan 0.75
+3.75  turn 0 0.35
+3.95  duit
+3.95  boing 1
+3.95  money 1.0
+3.95  shake 1.2 0.4
+4.0   cam 2.95,5.8,-0.35,-6 0.55
+4.05  gest cheer 0.85

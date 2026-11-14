@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent;overflow:hidden}canvas{position:absolute;left:0;top:0}</style></head>
+<body><canvas id="bgc" width="1080" height="1920"></canvas><canvas id="trail" width="1080" height="1920"></canvas><canvas id="c" width="1080" height="1920"></canvas><canvas id="fx" width="1080" height="1920"></canvas>
+<script>const q=new URLSearchParams(location.search);const RW=+(q.get("w")||1080),RH=+(q.get("h")||1920);for(const id of ["bgc","trail","c","fx"]){const e=document.getElementById(id);e.width=RW;e.height=RH;e.style.width=RW+"px";e.style.height=RH+"px";}</script>
+<script>/* software 2D canvases: GPU-accelerated ones can hand back stale (uncleared) content when read every frame */
+for (const id of ["bgc", "trail", "fx"]) document.getElementById(id).getContext("2d", { willReadFrequently: true });</script>
+<script src="engine.js"></script>
+<script>/* reaction mode has no footage timeline: react.js fills TL from the cue file */
+const TL = { expr: [[0, 'datar']], gest: [], startle: [], fall: { hit: -99, up: -99, ang: 0, dirDeg: 0 }, ride: [], button: { x0: 0, y0: 0, x1: 0, y1: 0 }, fake: { t0: -99, t1: -99 } };
+const SHOTCAM = [];</script>
+<script src="render.js"></script><script src="castle.js"></script><script src="react.js"></script></body></html>

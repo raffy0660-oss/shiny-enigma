@@ -1,0 +1,26 @@
+# putih 2 (15.9 - 19.333): kecewa sekaligus lega. "Well, at least I'm not the last victim... hopefully"
+bg castle
+hurt 1
+frame 2.5,8.0,0
+0.0   sakit
+0.0   fly 0.55 kamera
+0.55  kecewa
+0.6   look 0 10 0
+0.9   gest shrug 1.0
+0.9   cam 2.75,6.0,0.3,5 0.9
+1.4   look 0 -4 4
+2.1   cam 2.5,8.0,0,0 0.5
+2.6   ragu
+2.6   gest think 0.6
+2.62  sweat 0.6
+2.65  ask 0.55
+2.65  look 14 -6 -8
+3.12  flyout 0.31 kamera
+0.03 word WELL...
+0.74 word AT
+0.86 word LEAST
+1.13 word I'M NOT
+1.25 word THE
+1.38 word LAST
+1.69 word VICTIM...
+2.65 word HOPEFULLY?

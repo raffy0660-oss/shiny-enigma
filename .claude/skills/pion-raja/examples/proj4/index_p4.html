@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:transparent;overflow:hidden}canvas{position:absolute;left:0;top:0;width:1078px;height:1920px}</style></head>
+<body><canvas id="c" width="1078" height="1920"></canvas><canvas id="fx" width="1078" height="1920"></canvas>
+<script>const q=new URLSearchParams(location.search);const RW=+(q.get("w")||1078),RH=+(q.get("h")||1920);for(const id of ["c","fx"]){const e=document.getElementById(id);e.width=RW;e.height=RH;e.style.width=RW+"px";e.style.height=RH+"px";}
+document.getElementById("fx").getContext("2d", { willReadFrequently: true });</script>
+<script src="../pion_raja/engine.js"></script><script src="timeline_p4.js"></script><script src="../pion_raja/render.js"></script></body></html>

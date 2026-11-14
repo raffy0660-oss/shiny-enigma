@@ -1,0 +1,84 @@
+---
+name: pion-raja
+description: >
+  Pion Raja: the user's own 3D cartoon mascot (an orange chess pawn with a gold crown, red robe and ermine
+  collar) for their semi-AI YouTube Shorts. Use whenever the user asks to put Pion Raja / "pion" into a video,
+  make Pion react or talk over a voice-over (green screen), render a castle/hospital commentary scene,
+  add Pion sound effects, or continue a Pion project (proj1/proj2/proj4 style). Renders locally with
+  WebGL2 + Playwright + ffmpeg; no AI image/video API needed.
+---
+
+# Pion Raja
+
+Pion Raja is the creator's own character, rendered procedurally (no external assets or libraries).
+Look: orange round head, gold five-point crown, red pawn body, white ermine collar and robe edges,
+thick dark toon outline, white-glove hands that appear only for gestures. See `reference.png`.
+
+**Read `ATURAN.md` before starting any new project.** It holds the creator's mandatory rules
+(4K output, frame-by-frame review, eye placement on the focus point, no teleport spam, maximal interaction,
+karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesian.
+
+## Files
+
+| Path | What |
+|---|---|
+| `engine/` | The renderer. `engine.js` (WebGL2 model + toon shading + spring physics), `render.js` (per-frame scene), `react.js` + `castle.js` (reaction mode, castle/hospital backgrounds), `timeline.js` (example in-video timeline) |
+| `engine/drive.js` | Renders an in-video plan to transparent PNG frames, in parallel |
+| `engine/react_render.js` | Reaction mode: voice-over + cue file -> talking Pion video |
+| `engine/preview.js` | Quick contact sheet of the character with no video |
+| `engine/sfx.py` | Procedural cartoon SFX (no samples) + mixer |
+| `engine/track.py`, `objtrack.py`, `verify.py`, `comp.py`, `plan.py` | Tools from the first project (tracking, plan, checks) |
+| `PANDUAN_REAKSI.md` | Full user-facing guide to reaction mode and the cue format (Indonesian) |
+| `PERUBAHAN.md` | Changelog of the engine |
+| `examples/proj1`, `proj2`, `proj4` | Finished projects: `plan_pN.py`, `cues/`, `sfx_events.txt`, `composite*.py`, helper grids. Copy one as a template |
+
+## Setup (once per machine/session)
+
+- Node + Playwright with Chromium, `ffmpeg`, Python 3 with `numpy pillow opencv-python-headless`
+  (`pip install numpy pillow opencv-python-headless`). Cloud sessions already have Playwright + ffmpeg.
+- Workspace layout the scripts expect: the engine folder named `pion_raja/` next to the project folder.
+  ```bash
+  mkdir -p ~/pion && cp -r .claude/skills/pion-raja/engine ~/pion/pion_raja
+  cp -r .claude/skills/pion-raja/examples/proj4 ~/pion/proj5   # template for a new project
+  ```
+  The example `*.sh` files contain absolute `/home/user/...` paths from earlier sessions: fix them before reuse.
+- Smoke test: `cd ~/pion/pion_raja && node react_render.js --audio test/vo_test.wav --cues test/cues_test.txt --out /tmp/t --preview 0.6,2.7,4.7`
+
+## Mode 1: Reaction (Pion talks over the creator's voice-over)
+
+1. User sends VO audio and tells what is said and when. Claude cannot hear audio; ask for the script/timing.
+2. Write a cue file (format in `PANDUAN_REAKSI.md`): `frame`, expressions, `gest`, `look`, `fly`/`flyout`,
+   `cam`, `shake`, `photo`, `say`, `word` (karaoke), effects (`aha`, `ask`, `sweat`, `anger`, `money`, `stamp`, `poof`...).
+   - Expressions: datar imut senang kaget penasaran curiga pusing sinis ngakak duit marah sakit kecewa ragu licik
+   - Gestures: up cheer present shrug wave point press clap lookout dance facepalm knock cross think phone paper throw hang fist write magnify
+   - `bg castle` / `bg hospital` puts Pion in a full commentary scene instead of green screen.
+3. Check first: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --preview 1,2.5,4` and look at the sheet.
+4. Render: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --size 2160x3840` (4K).
+   `--bg green,black`, `--alpha` (ProRes 4444 .mov), `--png`, `--start/--dur/--local` for a section.
+5. Deliver `*_green.mp4`; the CapCut chroma-key steps are in `PANDUAN_REAKSI.md`.
+
+## Mode 2: Pion inside the creator's video (overlay, tracked)
+
+Follow `examples/proj4` (newest). Per project folder with `src/input.mp4` (1080x1920, 30 fps):
+1. **Study every frame first**: `python3 grid.py sheet.jpg 0,15,30,... 8` and `zgrid.py` (zoomed region). Note shots,
+   focus points, solid surfaces, the white "commentary" screens and their frame ranges.
+2. **Track anchors** on surfaces/objects Pion stands on or touches: edit `JOBS` in `track_pts.py` -> `anchors.json`.
+3. **Plan**: edit `plan_pN.py` (helpers `stand`, `drop`, `launch`, `jump`... per frame; plus expression/gesture/fx
+   timeline and `SHOTCAM`) -> writes `plan.json` and `timeline_pN.js`. Keep Pion on the focus point and on solid ground.
+4. **Ambient light thumbs**: `ffmpeg -i src/input.mp4 -vf scale=36:64:flags=area -f rawvideo -pix_fmt rgb24 thumbs.raw`
+5. **Render Pion layer** (4K):
+   `PLAN=$PWD/plan.json THUMBS=$PWD/thumbs.raw PAGE=$PWD/index_pN.html RW=2156 RH=3840 node ../pion_raja/drive.js out4k/vframes <frames|a-b|all>`
+   (`index_pN.html` loads `../pion_raja/engine.js`, the project timeline, then `../pion_raja/render.js`.)
+6. **White screens -> castle scenes**: one cue file per white segment (`cues/whiteN.txt`, `bg castle`), rendered with
+   `react_render.js --audio src/input.mp4 --start S --dur D --local --size 2156x3840 --bg black --png`.
+7. **SFX**: `python3 ../pion_raja/sfx.py sfx_events.txt sfx_only.wav --mix src/input.mp4 mix.m4a`
+   (`--demo demo.wav` lists every sound). Always also deliver `sfx_only.wav`.
+8. **Composite**: set `WHITES`, `TRANS` (zoom-blur cuts) in `composite4k.py`, run it, then mux `mix.m4a`.
+9. **Review every frame of the result** (contact sheets, `compcheck.py`) and fix before delivering.
+
+## Rules of thumb
+
+- Size: not too small, not too big; bigger only for the hook and close-ups.
+- Entrances: jump, drop from above, slide, fly. Scene changes: fly to camera + zoom-blur.
+- Interact with people/objects in the shot; Pion never floats in empty space or sits in a corner.
+- When Pion speaks: karaoke subtitle + mouth/jelly driven by audio.

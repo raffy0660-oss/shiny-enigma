@@ -1,0 +1,12 @@
+bg castle
+hurt 1
+frame 2.6,6.5,0
+0.0 marah
+0.0 anger 1.2
+0.0 gest fist 1.2
+1.3 sakit
+1.6 kecewa
+1.9 ragu
+1.9 sweat 1
+2.4 datar
+2.4 gest hang 0.8
