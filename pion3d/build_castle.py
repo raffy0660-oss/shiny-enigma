@@ -365,6 +365,8 @@ def build_room(volume=True):
             coin.name = f"Coin_{k}_{c}"
             BP.assign(coin, M["gold"])
 
+    build_statues(M["stone"], mat_statue())
+
     # god-ray haze
     if volume:
         bpy.ops.mesh.primitive_cube_add(size=1, location=(0, (BACK_Y + FRONT_Y) / 2, CEIL_Z / 2))
@@ -384,6 +386,120 @@ def build_room(volume=True):
         vol.data.materials.append(vm)
     return M
 
+
+
+# ----------------------------------------------------------------- stone chess statues
+
+def mat_statue():
+    m, N, L, b = node_mat("StatueStone")
+    geo = N.new("ShaderNodeNewGeometry")
+    noise = N.new("ShaderNodeTexNoise"); noise.inputs["Scale"].default_value = 2.5; noise.inputs["Detail"].default_value = 12
+    L.new(geo.outputs["Position"], noise.inputs["Vector"])
+    fine = N.new("ShaderNodeTexNoise"); fine.inputs["Scale"].default_value = 40.0; fine.inputs["Detail"].default_value = 6
+    L.new(geo.outputs["Position"], fine.inputs["Vector"])
+    ramp = N.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = (*lin((.42, .4, .37)), 1)
+    ramp.color_ramp.elements[1].color = (*lin((.7, .67, .62)), 1)
+    L.new(noise.outputs["Fac"], ramp.inputs[0]); L.new(ramp.outputs[0], b.inputs["Base Color"])
+    b.inputs["Roughness"].default_value = 0.85
+    mix = N.new("ShaderNodeMath"); mix.operation = "ADD"
+    L.new(noise.outputs["Fac"], mix.inputs[0]); L.new(fine.outputs["Fac"], mix.inputs[1])
+    bump = N.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 0.25
+    L.new(mix.outputs[0], bump.inputs["Height"]); L.new(bump.outputs["Normal"], b.inputs["Normal"])
+    return m
+
+
+def _piece_base(name, mat, top=1.4):
+    prof = BP.catmull([[0, 0], [1.25, 0], [1.25, .18], [1.05, .3], [1.05, .42], [.8, .6], [.62, top]], 40)
+    o = BP.lathe(name, prof + [(0.0, top)], 64)
+    BP.subsurf(o, 1)
+    BP.assign(o, mat)
+    return o
+
+
+def _knight_head(name, mat, h=3.0, thick=1.05):
+    """Classic Staunton knight: side silhouette extruded, bevelled and smoothed. Faces +x."""
+    sil = [(-0.36, 0.0), (0.34, 0.0), (0.3, 0.14), (0.2, 0.26), (0.26, 0.38), (0.44, 0.5), (0.56, 0.58),
+           (0.58, 0.65), (0.52, 0.71), (0.36, 0.71), (0.28, 0.76), (0.24, 0.86), (0.17, 0.97), (0.1, 1.0),
+           (0.06, 0.93), (0.0, 0.99), (-0.06, 0.92), (-0.14, 0.86), (-0.3, 0.74), (-0.4, 0.55), (-0.4, 0.3)]
+    bm_ = bmesh.new()
+    vs = [bm_.verts.new((x * h, 0.0, z * h)) for x, z in sil]
+    f = bm_.faces.new(vs)
+    ext = bmesh.ops.extrude_face_region(bm_, geom=[f])
+    moved = [e for e in ext["geom"] if isinstance(e, bmesh.types.BMVert)]
+    bmesh.ops.translate(bm_, verts=moved, vec=(0, thick, 0))
+    bmesh.ops.translate(bm_, verts=bm_.verts, vec=(0, -thick / 2, 0))
+    bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces)
+    me = bpy.data.meshes.new(name); bm_.to_mesh(me); bm_.free()
+    o = BP.new_obj(name, me)
+    bev = o.modifiers.new("Bevel", "BEVEL"); bev.width = 0.09; bev.segments = 3; bev.limit_method = "ANGLE"
+    BP.subsurf(o, 1)
+    BP.smooth(o)
+    BP.assign(o, mat)
+    # eye + nostril carved as small dark-ish dents read through the bump; mane ridge
+    for sy in (-1, 1):
+        eye = BP.uv_sphere(f"{name}_eye{sy}", 0.11 * h / 3, 16, 8, loc=(0.24 * h, sy * thick * 0.5, 0.8 * h), scale=(1, 0.5, 1))
+        BP.assign(eye, mat); eye.parent = o
+    mane = BP.tube(f"{name}_mane", [Vector((x * h, 0, z * h)) for x, z in
+                                    [(-0.06, 0.95), (-0.2, 0.84), (-0.33, 0.7), (-0.42, 0.5), (-0.43, 0.28)]],
+                   lambda t: 0.16 * h / 3 * (1 - 0.4 * t), 12)
+    BP.assign(mane, mat); mane.parent = o
+    return o
+
+
+def _crown_spikes(parent, mat, z, r, n, h, ball):
+    for k in range(n):
+        a = k / n * 2 * math.pi
+        c = BP.cone(f"{parent.name}_spike{k}", 0.16, h, 16)
+        c.location = (r * math.cos(a), r * math.sin(a), z)
+        BP.assign(c, mat); c.parent = parent
+        b = BP.uv_sphere(f"{parent.name}_ball{k}", ball, 16, 8, loc=(r * math.cos(a), r * math.sin(a), z + h))
+        BP.assign(b, mat); b.parent = parent
+
+
+def chess_statue(kind, name, mat):
+    """Returns the root object of a stone chess piece (about 6 units tall at scale 1)."""
+    root = bpy.data.objects.new(name, None); BP.link(root)
+    if kind == "knight":
+        base = _piece_base(name + "_base", mat, top=1.2); base.parent = root
+        head = _knight_head(name + "_head", mat); head.parent = root; head.location = (0, 0, 1.05)
+    elif kind == "rook":
+        prof = BP.catmull([[0, 0], [1.3, 0], [1.3, .2], [1.1, .35], [1.0, .6], [0.85, 2.8], [1.05, 3.1], [1.1, 3.9]], 50)
+        body = BP.lathe(name + "_body", prof + [(0.0, 3.9)], 64); BP.subsurf(body, 1); BP.assign(body, mat); body.parent = root
+        for k in range(6):
+            a = k / 6 * 2 * math.pi
+            mer = box(f"{name}_merlon{k}", (0.55, 0.45, 0.55), (0.82 * math.cos(a), 0.82 * math.sin(a), 4.15), mat, bevel=0.06, rot=(0, 0, a))
+            mer.parent = root
+    elif kind == "bishop":
+        prof = BP.catmull([[0, 0], [1.2, 0], [1.2, .2], [1.0, .35], [.75, .7], [.5, 2.4], [.85, 2.6], [.5, 2.75],
+                           [.75, 3.4], [.7, 4.0], [.35, 4.5], [0.0, 4.65]], 60)
+        body = BP.lathe(name + "_body", prof, 64); BP.subsurf(body, 1); BP.assign(body, mat); body.parent = root
+        ball = BP.uv_sphere(name + "_ball", 0.22, 24, 12, loc=(0, 0, 4.8)); BP.assign(ball, mat); ball.parent = root
+    elif kind in ("king", "queen"):
+        prof = BP.catmull([[0, 0], [1.35, 0], [1.35, .22], [1.1, .4], [.8, .8], [.55, 3.0], [.95, 3.2], [.6, 3.4],
+                           [.85, 4.2], [.95, 4.45], [0.0, 4.5]], 60)
+        body = BP.lathe(name + "_body", prof, 64); BP.subsurf(body, 1); BP.assign(body, mat); body.parent = root
+        if kind == "king":
+            cv = box(name + "_crossV", (0.28, 0.28, 1.1), (0, 0, 5.05), mat, bevel=0.05); cv.parent = root
+            ch = box(name + "_crossH", (0.8, 0.28, 0.28), (0, 0, 5.2), mat, bevel=0.05); ch.parent = root
+        else:
+            _crown_spikes(root, mat, 4.35, 0.75, 8, 0.45, 0.13)
+            top = BP.uv_sphere(name + "_top", 0.3, 24, 12, loc=(0, 0, 4.7)); BP.assign(top, mat); top.parent = root
+    return root
+
+
+def build_statues(stone, statue):
+    """Stone chess pieces on plinths down both sides of the hall (faces toward the carpet)."""
+    spots = [("knight", -7.6, 2.5, -0.6), ("knight", 7.6, 2.5, math.pi + 0.6),   # turned toward camera
+             ("rook", -8.6, 11.0, 0.0), ("bishop", 8.6, 11.0, 0.0),
+             ("queen", -9.6, 19.5, 0.0), ("king", 9.6, 19.5, 0.0)]
+    for k, (kind, x, y, rz) in enumerate(spots):
+        box(f"Plinth_{k}", (3.2, 3.2, 1.4), (x, y, 0.7), stone, bevel=0.1)
+        box(f"PlinthCap_{k}", (3.5, 3.5, 0.25), (x, y, 1.52), stone, bevel=0.06)
+        root = chess_statue(kind, f"Statue_{kind}_{k}", statue)
+        root.location = (x, y, 1.65)
+        root.rotation_euler = (0, 0, rz)
+        root.scale = (1.15, 1.15, 1.15)
 
 # ----------------------------------------------------------------- pion
 
