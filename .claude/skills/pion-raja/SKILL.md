@@ -17,7 +17,7 @@ thick dark toon outline, white-glove hands that appear only for gestures. See `r
 
 **Read `ATURAN.md` before starting any new project.** It holds the creator's mandatory rules
 (4K output, frame-by-frame review, eye placement on the focus point, no teleport spam, maximal interaction,
-karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesian.
+no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesian.
 
 ## Files
 
@@ -55,7 +55,7 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
 
 1. User sends VO audio and tells what is said and when. Claude cannot hear audio; ask for the script/timing.
 2. Write a cue file (format in `PANDUAN_REAKSI.md`): `frame`, expressions, `gest`, `look`, `fly`/`flyout`,
-   `cam`, `shake`, `photo`, `say`, `word` (karaoke), effects (`aha`, `ask`, `sweat`, `anger`, `money`, `stamp`, `poof`...).
+   `cam`, `shake`, `photo`, `say`, `word` (word timing only, never drawn; drives `autozoom`), effects (`aha`, `ask`, `sweat`, `anger`, `money`, `stamp`, `poof`...).
    - Expressions: datar imut senang kaget penasaran curiga pusing sinis ngakak duit marah sakit kecewa ragu licik
      nangis tersedu girang bahagia cium lega gemas syok kesal ngiler merajuk memelas bosan cemas bangga ngamuk santai soktahu
      (`soktahu` = "well, actually" face: puts thick nerd glasses on and, unless another gesture covers it,
@@ -64,9 +64,9 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
    - `bg castle` / `bg hospital` puts Pion in a full commentary scene instead of green screen.
    - `light dir x y z key r g b amb r g b sky .. gnd .. rim .. exp v` overrides the toon light (to match a 3D plate).
    - `soktahu` also brings the "enlightenment" glow: the open book flares gold onto his face for ~1.5 s, then dims.
-   - `<t> autozoom [N] [strength]` / `<t> autozoom off`: micro zoom punch-ins every N karaoke words (default 3), level
-     cycling, a word with "!" punches harder; centred on the face, subtitles unaffected. For a finished video use
-     `engine/microzoom.py --in v.mp4 --out v_zoom.mp4 --cues cues.txt [--bbox castle.json]` (burned-in subs zoom too).
+   - `<t> autozoom [N] [strength]` / `<t> autozoom off`: micro zoom punch-ins every N `word` cues (default 3), level
+     cycling, a word with "!" punches harder; centred on the face. For a finished video use
+     `engine/microzoom.py --in v.mp4 --out v_zoom.mp4 --cues cues.txt [--bbox castle.json]`.
 3. Check first: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --preview 1,2.5,4` and look at the sheet.
 4. Render: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --size 2160x3840` (4K).
    `--bg green,black`, `--alpha` (ProRes 4444 .mov), `--png`, `--start/--dur/--local` for a section.
@@ -132,4 +132,4 @@ Full guide (Indonesian): `castle3d/PANDUAN_ISTANA3D.md`.
 - Size: not too small, not too big; bigger only for the hook and close-ups.
 - Entrances: jump, drop from above, slide, fly. Scene changes: fly to camera + zoom-blur.
 - Interact with people/objects in the shot; Pion never floats in empty space or sits in a corner.
-- When Pion speaks: karaoke subtitle + mouth/jelly driven by audio.
+- When Pion speaks: mouth/jelly driven by audio. The engine draws no subtitles (removed on the creator's request).

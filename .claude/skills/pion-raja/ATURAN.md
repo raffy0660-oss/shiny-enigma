@@ -7,7 +7,7 @@
 4. **Pion harus terasa di dalam video**: berdiri di permukaan solid yang ter-track, dekat orang/objek utama, tidak melayang.
 5. **Masuk tanpa spam teleport**: pakai lompat, jatuh dari atas, meluncur, terbang. Transisi antar scene harus halus (terbang ke kamera, zoom-blur).
 6. **Interaktif semaksimal mungkin dengan isi video**: berinteraksi dengan orang/objek (misal: menampar bokong, menginjak-injak, ikut terseret, menggantung di alat).
-7. **Saat pion bicara**: pakai subtitle karaoke yang bagus + mulut/jelly mengikuti audio.
+7. **Saat pion bicara**: mulut/jelly mengikuti audio. Tanpa subtitle (subtitle dibuat terpisah di editor kalau perlu).
 8. **Hook (clip awal)**: pion sedikit lebih besar dan masuk dengan dramatis.
 9. Layar putih = scene full commentary (istana / tempat sesuai cerita), latar penuh tanpa kekosongan, kamera bergerak (zoom pelan, miring/dutch angle, tidak terlalu dekat).
 10. Sound effect untuk setiap aksi pion (sfx.py), plus sfx_only.wav terpisah.

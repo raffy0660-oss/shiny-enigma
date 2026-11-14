@@ -128,7 +128,7 @@ function parseCues(txt) {
     else if (cmd === 'scan') C.fx.push({ type: 'scan', t0: t, t1: t + +(w[2] || .8) });
     else if (cmd === 'boing') C.boing.push([t, +(w[2] || .8)]);
     else if (cmd === 'say' || cmd === 'bilang') { const dur = +(w[2] || 1.2), text = w.slice(3).join(' ') || '...'; C.fx.push({ type: 'say', t0: t, t1: t + dur, text }); C.say = (C.say || []).concat([{ t, dur: Math.min(dur, .25 + text.length * .055), text }]); }
-    else if (cmd === 'word' || cmd === 'kata') (C.subs = C.subs || []).push([t, w.slice(2).join(' ')]);
+    else if (cmd === 'word' || cmd === 'kata') (C.subs = C.subs || []).push([t, w.slice(2).join(' ')]); // word timing only (no subtitles drawn): drives autozoom
     else if (cmd === 'autozoom' || cmd === 'zoomauto') { // <t> autozoom [every N words] [strength]  |  <t> autozoom off
       if (/^(off|mati)$/i.test(w[2] || '')) (C.az = C.az || []).push({ t, off: true });
       else (C.az = C.az || []).push({ t, every: Math.max(1, +(w[2] || 3)), amt: +(w[3] || 1) }); }

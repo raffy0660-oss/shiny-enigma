@@ -1,6 +1,6 @@
 # Pion Raja di istana 3D (gaya game AAA)
 
-Karakter Pion **tetap Pion asli dari engine** (outline, wajah flat, ekspresi, gesture, karaoke).
+Karakter Pion **tetap Pion asli dari engine** (outline, wajah flat, ekspresi, gesture).
 Blender hanya membuat **background 3D**, **bayangan**, dan **pencahayaan** yang menempel ke Pion.
 
 ```

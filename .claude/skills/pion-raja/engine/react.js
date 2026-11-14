@@ -281,27 +281,6 @@ function drawProps(t, PP, base, VP, L, cam) {
 }
 
 /* ---------- karaoke subtitle: groups of words, active word yellow + pop ---------- */
-function subLines(words) { // [[t, word], ...] -> [{t0, t1, words:[[t,w],...]}]
-  const L = []; let cur = [];
-  words.forEach((w, i) => { cur.push(w); const nx = words[i + 1]; if (!nx || /[.!?,…]$/.test(w[1]) || cur.length >= 3 || nx[0] - w[0] > .7) { L.push({ words: cur, t0: cur[0][0], t1: nx ? Math.min(nx[0], w[0] + 1.2) : w[0] + 1.2 }); cur = []; } });
-  return L;
-}
-function drawSub(g, t) {
-  if (!RX.subs || !RX.subs.length) return; if (!RX.subL) RX.subL = subLines(RX.subs);
-  const Ln = RX.subL.find(l => t >= l.t0 - .02 && t < l.t1); if (!Ln) return;
-  const fs = 92, y = 1430; g.save(); g.font = `900 ${fs}px Inter, Arial Black, sans-serif`; g.textBaseline = 'middle'; g.lineJoin = 'round';
-  const ws = Ln.words.map(w => w[1].toUpperCase()), sp = fs * .45, wid = ws.map(w => g.measureText(w).width), tot = wid.reduce((a, b) => a + b, 0) + sp * (ws.length - 1);
-  const k = Math.min(1, (W - 80) / tot); let x = W / 2 - tot * k / 2; const ein = springPop((t - Ln.t0) * 1.6);
-  for (let i = 0; i < ws.length; i++) {
-    const [wt] = Ln.words[i], act = t >= wt && (i === ws.length - 1 || t < Ln.words[i + 1][0]), said = t >= wt, e = t - wt;
-    const sc = k * (act ? 1 + .1 * Math.max(0, 1 - e * 5) + .04 : 1) * Math.min(1, ein), cx = x + wid[i] * k / 2;
-    g.save(); g.translate(cx, y - (act ? 10 * Math.max(0, 1 - e * 5) : 0)); g.scale(sc, sc); g.rotate(act ? -.03 : 0); g.textAlign = 'center';
-    g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowOffsetY = 8; g.shadowBlur = 14; g.lineWidth = fs * .2; g.strokeStyle = '#1a0a06'; g.strokeText(ws[i], 0, 0); g.shadowColor = 'transparent';
-    g.fillStyle = act ? '#ffd23a' : said ? '#ffffff' : 'rgba(255,255,255,.55)'; g.fillText(ws[i], 0, 0); g.restore();
-    x += (wid[i] + sp) * k;
-  }
-  g.restore();
-}
 
 /* ---------- photo shown on a big phone screen (pops in, swaps with a flip) ---------- */
 function drawPhoto(g, t, E) {
@@ -410,7 +389,7 @@ function drawReact(f, u) {
   }
   const hov = hoverAmt(t) * (.07 * Math.sin(t * 2.3) + .07);
   cv.style.opacity = String(hidden ? 0 : fl.op);
-  if (!fl.vis) { drawFX(f, t, { vis: false }); drawSub(fx, t); return; }
+  if (!fl.vis) { drawFX(f, t, { vis: false }); return; }
   const st = startleAt(t), bp = bodyPose(t);
   const a = J.sq.p + st.a * .55 + .014 * Math.sin(t * 2.4) + flyoutStretch(t), sy = 1 + a, sxz = 1 / Math.sqrt(1 + a); // + idle breathing
   const roll = J.wob.p * .5 + .022 * Math.sin(t * 1.3) + bp.roll;
@@ -442,7 +421,6 @@ function drawReact(f, u) {
   for (const E of fxActive('poof', t)) drawPoof(fx, head.p[0], head.p[1] + head.r * .9, head.r * 3.2, t, E);
   for (const E of fxActive('stamp', t)) drawStamp(fx, t, E, E.x || 539, E.y || 700, E.size || 110);
   for (const E of fxActive('ask', t)) drawQuestion(fx, t, head, E);
-  drawSub(fx, t);
   for (const E of fxActive('say', t)) drawBubble(fx, t, head, E);
   for (const E of fxActive('money', t)) drawMoney(trailCtx, fx, t, E, cam);
   for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw' || G.type === 'nerd') && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears

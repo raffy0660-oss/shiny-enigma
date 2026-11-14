@@ -82,12 +82,13 @@ node react_render.js --audio vo.m4a --cues cues.txt --out hasil/reaksi1
 - `--start 12 --dur 8` pakai sebagian audio saja · `--preview 1,2.5,4` cek cepat beberapa momen jadi satu gambar
 
 ## Micro zoom otomatis (zoom in / zoom out tiap beberapa kata)
-`0.0 autozoom` mengaktifkan micro zoom: setiap **3 kata** karaoke (`word`), kamera "snap" cepat ke level zoom
+`0.0 autozoom` mengaktifkan micro zoom: setiap **3 kata** (`word`), kamera "snap" cepat ke level zoom
 berikutnya (bergantian dekat, normal, lebih dekat, sedikit...), lalu pelan-pelan maju sampai ganti level.
 Kata yang mengandung **`!`** (misal `word SALAH!`) dapat punch zoom paling besar, lalu turun lagi.
-Pusat zoom di wajah Pion. **Subtitle tidak ikut membesar.**
+Pusat zoom di wajah Pion.
+`word` sekarang hanya penanda waktu kata (tidak ditampilkan; engine tidak lagi menggambar subtitle).
 - `0.0 autozoom 2` tiap 2 kata · `0.0 autozoom 4 0.6` tiap 4 kata, lebih halus · `0.0 autozoom 3 1.5` lebih kuat
 - `5.2 autozoom off` berhenti (balik pelan ke framing normal), bisa dinyalakan lagi di waktu lain.
 - Tanpa cue `word`, ritmenya diambil dari suku kata yang terdeteksi di audio.
 - Untuk video yang sudah jadi (misal hasil istana 3D): `python3 microzoom.py --in hasil.mp4 --out hasil_zoom.mp4 --cues cues.txt`
-  (`--every 3 --amt 1.0`, pusat `--focus x,y` atau `--bbox` dari castle3d). Di sini subtitle yang sudah tertanam ikut ter-zoom.
+  (`--every 3 --amt 1.0`, pusat `--focus x,y` atau `--bbox` dari castle3d).

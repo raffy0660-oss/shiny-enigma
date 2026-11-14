@@ -15,7 +15,8 @@
   patung batu catur, lampu gantung kap kuningan, garis tinta hitam di semua benda, framing Pion sekitar 60% frame.
   Panduan: `castle3d/PANDUAN_ISTANA3D.md`.
 - **Micro zoom otomatis**: cue `autozoom` (zoom snap tiap N kata, level bergantian, punch di kata dengan `!`, pusat di
-  wajah, subtitle tetap) dan `engine/microzoom.py` untuk video yang sudah jadi.
+  wajah) dan `engine/microzoom.py` untuk video yang sudah jadi.
+- **Subtitle karaoke dihapus** dari engine. Cue `word` tetap ada sebagai penanda waktu kata (untuk `autozoom`).
 
 ## v2: gerak lebih halus, bayangan lebih bagus, menyatu dengan video
 Lihat `PERBANDINGAN_V2.jpg` untuk sebelum/sesudah.
