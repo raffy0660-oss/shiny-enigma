@@ -255,9 +255,9 @@ def build_room(volume=True):
     for sx in (-1, 1):
         for k, y in enumerate((-2.0, 9.0, 20.0)):
             x = sx * (ROOM_X - 1.6)
-            cylinder(f"Pillar_{sx}_{k}", 0.9, SPRING_Z, (x, y, 0), M["stone"], 64)
-            box(f"PillarBase_{sx}_{k}", (2.3, 2.3, 0.7), (x, y, 0.35), M["stone"], bevel=0.08)
-            box(f"PillarCap_{sx}_{k}", (2.3, 2.3, 0.6), (x, y, SPRING_Z - 0.3), M["stone"], bevel=0.08)
+            fluted_column(f"Pillar_{sx}_{k}", 0.9, SPRING_Z - 2.0, (x, y, 0.9), M["marbleL"])
+            column_base(f"PillarBase_{sx}_{k}", 0.9, (x, y, 0.0), M["stone"])
+            column_capital(f"PillarCap_{sx}_{k}", 0.9 * 0.94, (x, y, SPRING_Z - 1.15), M["stone"])
             # torch sconce facing the room
             tx = x - sx * 1.05
             cylinder(f"TorchStick_{sx}_{k}", 0.09, 1.2, (tx, y, 6.2), M["iron"], 16)
@@ -271,6 +271,10 @@ def build_room(volume=True):
             plo = bpy.data.objects.new(f"TorchLight_{sx}_{k}", pl); BP.link(plo)
             plo.location = (tx - sx * 0.25, y, 8.0)
 
+    for sx in (-1, 1):   # skirting along the side walls and the back wall
+        box(f"Skirting_{sx}", (0.35, BACK_Y - FRONT_Y, 0.9), (sx * (ROOM_X - 0.1), (BACK_Y + FRONT_Y) / 2, 0.45), M["stone"], bevel=0.05)
+        box(f"SkirtingGold_{sx}", (0.4, BACK_Y - FRONT_Y, 0.1), (sx * (ROOM_X - 0.12), (BACK_Y + FRONT_Y) / 2, 0.92), M["gold"], bevel=0.02)
+    box("SkirtingBack", (ROOM_X * 2, 0.35, 0.9), (0, BACK_Y - 0.1, 0.45), M["stone"], bevel=0.05)
     build_throne(M)
 
     # stained-glass windows on the back wall, with lead frame + light shafts
@@ -279,7 +283,8 @@ def build_room(volume=True):
         pane = arch_window_mesh(f"Window_{k}", win_w, win_h)
         pane.location = (x, BACK_Y - 0.02, 5.0)
         BP.assign(pane, mat_stained_glass(k))
-        frame = box(f"WindowSill_{k}", (win_w + 0.6, 0.7, 0.35), (x, BACK_Y - 0.3, 4.85), M["stone"], bevel=0.05)
+        frame = box(f"WindowSill_{k}", (win_w + 0.9, 0.8, 0.4), (x, BACK_Y - 0.3, 4.85), M["stone"], bevel=0.06)
+        arch_frame(f"WindowFrame_{k}", x, BACK_Y - 0.12, 5.0, win_w, win_h, M["stone"])
         sp = bpy.data.lights.new(f"WindowSun_{k}", "SPOT")
         sp.energy = 60000
         sp.color = (1.0, 0.86, 0.66)
@@ -354,7 +359,7 @@ def build_room(volume=True):
             coin.name = f"Coin_{k}_{c}"
             BP.assign(coin, M["gold"])
 
-    build_statues(M["stone"], mat_statue())
+    build_statues(M["stone"], mat_statue(), M["gold"])
     build_vault(M["gold"])
 
     # god-ray haze
@@ -376,6 +381,60 @@ def build_room(volume=True):
         vol.data.materials.append(vm)
     return M
 
+
+
+
+# ----------------------------------------------------------------- architectural detail (blender-modeling recipes)
+
+def fluted_column(name, r, h, loc, mat, flutes=20, depth=0.07, seg=120, rows=48):
+    """Classical shaft: concave flutes that fade out near both ends (apophyge), smooth shaded."""
+    bm_ = bmesh.new(); ringsv = []
+    for j in range(rows + 1):
+        v = j / rows; z = v * h
+        fade = min(1.0, v / 0.06, (1 - v) / 0.06)
+        ent = 1.0 - 0.06 * v                     # slight entasis taper
+        row = []
+        for i in range(seg):
+            a = i / seg * 2 * math.pi
+            rr = r * ent * (1 - depth * fade * (0.5 + 0.5 * math.cos(flutes * a)) ** 2)
+            row.append(bm_.verts.new((loc[0] + rr * math.cos(a), loc[1] + rr * math.sin(a), loc[2] + z)))
+        ringsv.append(row)
+    for j in range(rows):
+        for i in range(seg):
+            bm_.faces.new((ringsv[j][i], ringsv[j][(i + 1) % seg], ringsv[j + 1][(i + 1) % seg], ringsv[j + 1][i]))
+    me = bpy.data.meshes.new(name); bm_.to_mesh(me); bm_.free()
+    o = BP.new_obj(name, me); BP.smooth(o); BP.assign(o, mat)
+    return o
+
+
+def column_base(name, r, loc, mat):
+    """Attic base: square plinth + torus + scotia + torus, overlapping the shaft foot (no seam)."""
+    box(name + "_plinth", (r * 2.6, r * 2.6, 0.45), (loc[0], loc[1], loc[2] + 0.225), mat, bevel=0.06)
+    prof = [(r * 1.22, 0.42), (r * 1.25, 0.55), (r * 1.18, 0.68), (r * 1.06, 0.72), (r * 1.02, 0.82),
+            (r * 1.1, 0.9), (r * 1.12, 0.98), (r * 1.04, 1.06), (r * 0.98, 1.12)]
+    o = BP.lathe(name + "_mould", BP.catmull(prof, 40), 96); o.location = loc; BP.assign(o, mat)
+    return o
+
+
+def column_capital(name, r, loc, mat):
+    """Doric-ish capital: necking ring, echinus, square abacus with a bevel, sitting on the shaft top."""
+    prof = [(r * 0.96, -0.1), (r * 1.0, 0.0), (r * 1.06, 0.06), (r * 1.0, 0.12), (r * 1.02, 0.3),
+            (r * 1.2, 0.48), (r * 1.38, 0.62), (r * 1.42, 0.7)]
+    o = BP.lathe(name + "_echinus", BP.catmull(prof, 40), 96); o.location = loc; BP.assign(o, mat)
+    box(name + "_abacus", (r * 3.0, r * 3.0, 0.42), (loc[0], loc[1], loc[2] + 0.88), mat, bevel=0.08)
+    return o
+
+
+def arch_frame(name, x, y, z, w, h, mat, t=0.22):
+    """Stone moulding around an arched window, with a keystone."""
+    pts = [Vector((x - w / 2 - t, y, z - 0.1)), Vector((x - w / 2 - t, y, z + h - w / 2))]
+    for i in range(1, 32):
+        a = math.pi - i / 32 * math.pi
+        pts.append(Vector((x + (w / 2 + t) * math.cos(a), y, z + h - w / 2 + (w / 2 + t) * math.sin(a))))
+    pts += [Vector((x + w / 2 + t, y, z + h - w / 2)), Vector((x + w / 2 + t, y, z - 0.1))]
+    o = BP.tube(name, pts, t, 12); BP.assign(o, mat)
+    box(name + "_key", (0.55, 0.45, 0.85), (x, y - 0.05, z + h + t * 0.6), mat, bevel=0.06)
+    return o
 
 
 # ----------------------------------------------------------------- stone chess statues
@@ -447,15 +506,23 @@ def _crown_spikes(parent, mat, z, r, n, h, ball):
         BP.assign(b, mat); b.parent = parent
 
 
+def _collar(root, name, r, z, t, mat):
+    """Crisp ring (overlaps the body a little so there is no seam)."""
+    c = BP.torus(name, r, t, 96, 16, loc=(0, 0, z)); BP.assign(c, mat); c.parent = root
+    return c
+
+
 def chess_statue(kind, name, mat):
     """Returns the root object of a stone chess piece (about 6 units tall at scale 1)."""
     root = bpy.data.objects.new(name, None); BP.link(root)
+    _collar(root, name + "_footring", 1.18, 0.22, 0.09, mat)          # every piece: a beaded foot ring
     if kind == "knight":
         base = _piece_base(name + "_base", mat, top=1.2); base.parent = root
         head = _knight_head(name + "_head", mat); head.parent = root; head.location = (0, 0, 1.05)
     elif kind == "rook":
         prof = BP.catmull([[0, 0], [1.3, 0], [1.3, .2], [1.1, .35], [1.0, .6], [0.85, 2.8], [1.05, 3.1], [1.1, 3.9]], 50)
-        body = BP.lathe(name + "_body", prof + [(0.0, 3.9)], 64); BP.subsurf(body, 1); BP.assign(body, mat); body.parent = root
+        body = BP.lathe(name + "_body", prof + [(0.0, 3.9)], 96); BP.subsurf(body, 1, 2); BP.assign(body, mat); body.parent = root
+        _collar(root, name + "_band", 1.02, 2.95, 0.08, mat); _collar(root, name + "_band2", 0.92, 0.62, 0.07, mat)
         for k in range(6):
             a = k / 6 * 2 * math.pi
             mer = box(f"{name}_merlon{k}", (0.55, 0.45, 0.55), (0.82 * math.cos(a), 0.82 * math.sin(a), 4.15), mat, bevel=0.06, rot=(0, 0, a))
@@ -463,12 +530,16 @@ def chess_statue(kind, name, mat):
     elif kind == "bishop":
         prof = BP.catmull([[0, 0], [1.2, 0], [1.2, .2], [1.0, .35], [.75, .7], [.5, 2.4], [.85, 2.6], [.5, 2.75],
                            [.75, 3.4], [.7, 4.0], [.35, 4.5], [0.0, 4.65]], 60)
-        body = BP.lathe(name + "_body", prof, 64); BP.subsurf(body, 1); BP.assign(body, mat); body.parent = root
+        body = BP.lathe(name + "_body", prof, 96); BP.subsurf(body, 1, 2); BP.assign(body, mat); body.parent = root
+        _collar(root, name + "_neck", 0.62, 2.6, 0.09, mat)
         ball = BP.uv_sphere(name + "_ball", 0.22, 24, 12, loc=(0, 0, 4.8)); BP.assign(ball, mat); ball.parent = root
+        # the mitre's slit: a thin dark wedge cut look via a slim box set into the head
+        sl = box(name + "_slit", (0.08, 0.9, 0.7), (0.36, 0, 3.95), mat, bevel=0.0, rot=(0, -0.55, 0)); sl.parent = root
     elif kind in ("king", "queen"):
         prof = BP.catmull([[0, 0], [1.35, 0], [1.35, .22], [1.1, .4], [.8, .8], [.55, 3.0], [.95, 3.2], [.6, 3.4],
                            [.85, 4.2], [.95, 4.45], [0.0, 4.5]], 60)
-        body = BP.lathe(name + "_body", prof, 64); BP.subsurf(body, 1); BP.assign(body, mat); body.parent = root
+        body = BP.lathe(name + "_body", prof, 96); BP.subsurf(body, 1, 2); BP.assign(body, mat); body.parent = root
+        _collar(root, name + "_neck", 0.8, 3.2, 0.1, mat); _collar(root, name + "_crownring", 0.92, 4.38, 0.07, mat)
         if kind == "king":
             cv = box(name + "_crossV", (0.28, 0.28, 1.1), (0, 0, 5.05), mat, bevel=0.05); cv.parent = root
             ch = box(name + "_crossH", (0.8, 0.28, 0.28), (0, 0, 5.2), mat, bevel=0.05); ch.parent = root
@@ -478,14 +549,22 @@ def chess_statue(kind, name, mat):
     return root
 
 
-def build_statues(stone, statue):
+PLAQUE_MAT = [None]
+
+
+def build_statues(stone, statue, gold=None):
     """Stone chess pieces on plinths down both sides of the hall (faces toward the carpet)."""
     spots = [("knight", -7.6, 2.5, -0.6), ("knight", 7.6, 2.5, math.pi + 0.6),   # turned toward camera
              ("rook", -8.6, 11.0, 0.0), ("bishop", 8.6, 11.0, 0.0),
              ("queen", -9.6, 19.5, 0.0), ("king", 9.6, 19.5, 0.0)]
+    PLAQUE_MAT[0] = gold or stone
     for k, (kind, x, y, rz) in enumerate(spots):
-        box(f"Plinth_{k}", (3.2, 3.2, 1.4), (x, y, 0.7), stone, bevel=0.1)
-        box(f"PlinthCap_{k}", (3.5, 3.5, 0.25), (x, y, 1.52), stone, bevel=0.06)
+        box(f"PlinthFoot_{k}", (3.6, 3.6, 0.3), (x, y, 0.15), stone, bevel=0.06)          # stepped mouldings
+        box(f"Plinth_{k}", (3.1, 3.1, 1.1), (x, y, 0.82), stone, bevel=0.1)
+        box(f"PlinthNeck_{k}", (3.3, 3.3, 0.14), (x, y, 1.42), stone, bevel=0.04)
+        box(f"PlinthCap_{k}", (3.6, 3.6, 0.22), (x, y, 1.56), stone, bevel=0.07)
+        fy = y - 1.56 if abs(rz) < 1.0 or abs(rz - math.pi) > 2.0 else y - 1.56
+        box(f"PlinthPlaque_{k}", (1.6, 0.06, 0.55), (x, y - 1.57, 0.85), PLAQUE_MAT[0], bevel=0.015)   # gold plaque toward camera
         root = chess_statue(kind, f"Statue_{kind}_{k}", statue)
         root.location = (x, y, 1.65)
         root.rotation_euler = (0, 0, rz)
@@ -530,6 +609,20 @@ def build_throne(M):
         return o
     half_disc("ThroneCrest", W * 0.41, 0.9, back_y, gold)
     half_disc("ThroneCrestPad", W * 0.31, 0.3, back_y - 0.5, velvet)
+    # gold piping round the crest and the velvet back, gold studs along the pad border
+    rc = W * 0.36
+    pipe = [Vector((rc * math.cos(math.pi * i / 40), back_y - 0.66, top - 0.05 + rc * math.sin(math.pi * i / 40))) for i in range(41)]
+    pp = BP.tube("ThronePiping", pipe, 0.09, 10); BP.assign(pp, gold)
+    pw, ph = W * 0.62 / 2, back_h * 0.82
+    zb = z0 + 2.4 + back_h * 0.45 - ph / 2
+    rect = [Vector((-pw, back_y - 0.66, zb)), Vector((pw, back_y - 0.66, zb)), Vector((pw, back_y - 0.66, zb + ph)), Vector((-pw, back_y - 0.66, zb + ph)), Vector((-pw, back_y - 0.66, zb))]
+    dense = []
+    for i in range(len(rect) - 1):
+        for k in range(12):
+            dense.append(rect[i].lerp(rect[i + 1], k / 12))
+    pr = BP.tube("ThronePadPiping", dense + [rect[-1]], 0.08, 10); BP.assign(pr, gold)
+    for k, pt in enumerate(dense[::3]):
+        st = BP.uv_sphere(f"ThroneStud_{k}", 0.11, 12, 8, loc=(pt.x, pt.y - 0.06, pt.z)); BP.assign(st, gold)
     # gold crown on the crest
     cz = top - 0.2 + W * 0.41
     band = BP.lathe("ThroneCrownBand", [(1.3, -0.45), (1.42, 0.0), (1.55, 0.45)], 64)
