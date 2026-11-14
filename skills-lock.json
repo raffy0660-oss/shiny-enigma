@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "skills": {
+    "blender-materials": {
+      "source": "RobLe3/cc-blender-skill",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/blender-materials/SKILL.md",
+      "computedHash": "0e2b8347d3b30222a90646c19930846ec1ae40082830c06da4c8924812ebe444"
+    },
+    "blender-modeling": {
+      "source": "RobLe3/cc-blender-skill",
+      "sourceType": "github",
+      "skillPath": "plugin/skills/blender-modeling/SKILL.md",
+      "computedHash": "f3586d7918fc2f3795aaec3b7e4bc2704df0a6a755dd0659104626dc7dd75cbd"
+    },
+    "scenario-blender-expert": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dcc/blender/scenario-blender-expert/SKILL.md",
+      "computedHash": "6e69ce70408a6afb13739d7a343c3afcd7faecc1819fc48271f0161d150d82ab"
+    },
+    "scenario-blender-lighting-rendering": {
+      "source": "scenario-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/dcc/blender/scenario-blender-lighting-rendering/SKILL.md",
+      "computedHash": "85afccb3effe44b3cdb6829a95b9bcefa03bb670eacf37d943efd45e9e51cf2d"
+    },
+    "threejs-aaa-graphics-builder": {
+      "source": "majidmanzarpour/threejs-game-skills",
+      "sourceType": "github",
+      "skillPath": "skills/threejs-aaa-graphics-builder/SKILL.md",
+      "computedHash": "87d316df3d64c7498d65af148c974de5e216e6ef5eee483dbd066ccf9e7ab58d"
+    }
+  }
+}
