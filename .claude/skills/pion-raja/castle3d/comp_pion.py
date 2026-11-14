@@ -38,6 +38,49 @@ def _blur(img, r):
     return out
 
 
+def _lift_islands(idx, inside, f=4, max_frac=0.25):
+    """Cel bands: a darker region fully enclosed by brighter bands (it touches neither the silhouette
+    edge nor a darker band) takes the band around it. A round head lit from the sides is a bit darker
+    in the middle; quantised, that dip becomes a lone dark blob on the face. Real cast shadows that
+    reach an edge or a darker area are kept. Works on a 1/f grid, then upsampled."""
+    from collections import deque
+    H, W = idx.shape
+    small = idx[::f, ::f].copy()
+    ins = inside[::f, ::f]
+    h, w = small.shape
+    total = max(1, int(ins.sum()))
+    for _ in range(4):
+        seen = np.zeros((h, w), bool)
+        changed = False
+        for y in range(h):
+            for x in range(w):
+                if seen[y, x] or not ins[y, x]:
+                    continue
+                k = small[y, x]
+                comp, nb, edge = [], set(), False
+                dq = deque([(y, x)]); seen[y, x] = True
+                while dq:
+                    cy, cx = dq.popleft(); comp.append((cy, cx))
+                    for ny, nx in ((cy - 1, cx), (cy + 1, cx), (cy, cx - 1), (cy, cx + 1)):
+                        if ny < 0 or nx < 0 or ny >= h or nx >= w or not ins[ny, nx]:
+                            edge = True; continue
+                        v = small[ny, nx]
+                        if v == k:
+                            if not seen[ny, nx]:
+                                seen[ny, nx] = True; dq.append((ny, nx))
+                        else:
+                            nb.add(int(v))
+                if not edge and nb and min(nb) > k and len(comp) < max_frac * total:
+                    up = min(nb)
+                    for cy, cx in comp:
+                        small[cy, cx] = up
+                    changed = True
+        if not changed:
+            break
+    big = np.repeat(np.repeat(small, f, 0), f, 1)[:H, :W]
+    return np.where(inside, np.maximum(idx, big), idx)
+
+
 def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5, top=1.4):
     """Multiply the room's light (Blender clay proxy) onto the engine Pion, cel-banded."""
     Lp = Image.open(light_png).convert("RGBA").resize(size, Image.LANCZOS)
@@ -70,6 +113,7 @@ def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5,
         R = max(6, size[0] // 30)
         votes = np.stack([_blur((idx[..., 0] == k).astype(np.float32)[..., None], R)[..., 0] for k in range(bands)], -1)
         idx = votes.argmax(-1)[..., None]
+        idx = _lift_islands(idx[..., 0], inside)[..., None]
         q = levels[idx]
         shade = _blur(q.astype(np.float32), max(2, size[0] // 360))
     factor = shade * tint

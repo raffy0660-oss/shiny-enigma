@@ -79,5 +79,6 @@ Peta cahaya mengikuti pose diam Pion. Gesture besar (tangan) tetap kena cahaya d
 ## Catatan
 - Render memakai CPU (tanpa GPU): 1080x1350 64 sampel sekitar 5 menit, peta cahaya sekitar 30 detik.
 - Model Blender `build_pion.py` hanya dipakai sebagai bayangan/peta cahaya. Proporsinya harus sama dengan
-  engine (mahkota tidak diperbesar) supaya tidak muncul titik gelap di wajah.
+  engine (mahkota tidak diperbesar). comp_pion.py juga menaikkan "pulau" gelap yang terkurung area terang
+  (tengah kepala yang sedikit lebih gelap), jadi tidak muncul titik gelap di wajah.
 - `build_pion.py` / `build_pion_toon.py` juga bisa dipakai sendiri: Pion versi Blender realistis / kartun.
