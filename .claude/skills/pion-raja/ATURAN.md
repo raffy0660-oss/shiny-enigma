@@ -14,3 +14,6 @@
 11. Ukuran pion jangan terlalu kecil maupun terlalu besar (kecuali hook / close-up).
 
 Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh lengkap: proj1/, proj2/ (plan_*.py, cues/, composite*.py).
+12. **Kamera jangan monoton**: micro zoom (punch-in cepat ke muka pion) tiap 2-3 kata, sedikit dutch angle yang
+    berganti arah, shake kecil saat kaget. Saat atmosfer/mood cahaya berganti: zoom in atau zoom out drastis
+    (dengan zoom-blur sesuai kecepatan zoom). Tanpa subtitle kalau user tidak minta.
