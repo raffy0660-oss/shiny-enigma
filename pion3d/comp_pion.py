@@ -16,7 +16,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 ENGINE_H = 4.65   # engine pion height (model units, crown tip to base)
-PROXY_H = 4.83    # Blender proxy height: its crown is scaled 1.18 in z
+PROXY_H = 4.65    # Blender proxy height: same proportions as the engine (crown not enlarged)
 
 
 def _box(a, r, axis):
@@ -58,12 +58,20 @@ def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5,
     # keep the room's warm cast (torches, candles): only take out half of the average tint
     if inside.any():
         tint = tint / (0.5 + 0.5 * tint[inside].mean(0))
-    if bands > 0:  # cel steps with a soft 1.5 px edge
+    if bands > 0:  # cel steps with a soft edge
+        # smooth first (scaled to the frame) so small dips in the light, like the slightly darker
+        # middle of a face lit from above, cannot become a lone dark island after quantising
+        shade = _blur(shade.astype(np.float32), max(4, size[0] // 55))
         levels = np.linspace(floor, top, bands)
         step = (top - floor) / max(bands - 1, 1)
         idx = np.clip(np.round((shade - floor) / step), 0, bands - 1).astype(int)
+        # majority vote per neighbourhood: islands smaller than ~3 % of the frame width (a dark dot
+        # in the middle of the face) take the band around them; big cel shapes keep their edges
+        R = max(6, size[0] // 30)
+        votes = np.stack([_blur((idx[..., 0] == k).astype(np.float32)[..., None], R)[..., 0] for k in range(bands)], -1)
+        idx = votes.argmax(-1)[..., None]
         q = levels[idx]
-        shade = _blur(q.astype(np.float32), 2)
+        shade = _blur(q.astype(np.float32), max(2, size[0] // 360))
     factor = shade * tint
     factor = 1 + (factor - 1) * strength
     # rim: the brightest light (window behind) adds a warm edge, not just a multiply

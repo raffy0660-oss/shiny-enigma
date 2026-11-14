@@ -658,6 +658,9 @@ def pion_mat(name, base=None, ramp_fn=None, spec=0.0, dots=False, floor=0.06, gi
 
 def build_pion(expr):
     rig, PM = BP.build(expr)
+    cr = bpy.data.objects.get("CrownRoot")
+    if cr:   # the proxy must match the engine's proportions exactly (build_pion enlarges the crown)
+        cr.scale = (1.0, 1.0, 1.0)
     for o in bpy.data.objects:
         for md in list(o.modifiers):
             if md.type == "PARTICLE_SYSTEM":
