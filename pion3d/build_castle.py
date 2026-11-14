@@ -37,6 +37,7 @@ ROOM_X = 15.0
 BACK_Y = 28.0
 FRONT_Y = -22.0
 CEIL_Z = 26.0
+SPRING_Z = 17.0            # where the barrel vault springs from the side walls (pillar tops)
 PION_SCALE = 1.6            # Pion relative to the hall (1.0 = engine proportions vs this room)
 HEAD_Z = 2.95 * PION_SCALE
 
@@ -253,9 +254,9 @@ def build_room(volume=True):
     for sx in (-1, 1):
         for k, y in enumerate((-2.0, 9.0, 20.0)):
             x = sx * (ROOM_X - 1.6)
-            cylinder(f"Pillar_{sx}_{k}", 0.9, CEIL_Z, (x, y, 0), M["stone"], 64)
+            cylinder(f"Pillar_{sx}_{k}", 0.9, SPRING_Z, (x, y, 0), M["stone"], 64)
             box(f"PillarBase_{sx}_{k}", (2.3, 2.3, 0.7), (x, y, 0.35), M["stone"], bevel=0.08)
-            box(f"PillarCap_{sx}_{k}", (2.3, 2.3, 0.6), (x, y, CEIL_Z - 0.3), M["stone"], bevel=0.08)
+            box(f"PillarCap_{sx}_{k}", (2.3, 2.3, 0.6), (x, y, SPRING_Z - 0.3), M["stone"], bevel=0.08)
             # torch sconce facing the room
             tx = x - sx * 1.05
             cylinder(f"TorchStick_{sx}_{k}", 0.09, 1.2, (tx, y, 6.2), M["iron"], 16)
@@ -366,6 +367,7 @@ def build_room(volume=True):
             BP.assign(coin, M["gold"])
 
     build_statues(M["stone"], mat_statue())
+    build_vault(M["gold"])
 
     # god-ray haze
     if volume:
@@ -502,105 +504,100 @@ def build_statues(stone, statue):
         root.scale = (1.15, 1.15, 1.15)
 
 
-# ----------------------------------------------------------------- red drapery (theatre framing)
 
-def mat_drape():
-    m, N, L, b = node_mat("Drape")
-    lw = N.new("ShaderNodeLayerWeight"); lw.inputs["Blend"].default_value = 0.35
+# ----------------------------------------------------------------- vaulted ceiling
+
+def mat_vault():
+    """Painted vault: deep royal blue with small gold stars (Sainte-Chapelle style)."""
+    m, N, L, b = node_mat("VaultPaint")
+    geo = N.new("ShaderNodeNewGeometry")
+    vor = N.new("ShaderNodeTexVoronoi"); vor.inputs["Scale"].default_value = 1.1; vor.inputs["Randomness"].default_value = 0.8
+    L.new(geo.outputs["Position"], vor.inputs["Vector"])
+    star = N.new("ShaderNodeMapRange"); star.inputs["From Min"].default_value = 0.06; star.inputs["From Max"].default_value = 0.09
+    star.inputs["To Min"].default_value = 1.0; star.inputs["To Max"].default_value = 0.0
+    L.new(vor.outputs["Distance"], star.inputs["Value"])
     mix = N.new("ShaderNodeMix"); mix.data_type = "RGBA"
-    mix.inputs[6].default_value = (*lin((.5, .02, .05)), 1)       # deep red in the folds facing us
-    mix.inputs[7].default_value = (*lin((.8, .1, .14)), 1)        # brighter at grazing angles (velvet)
-    L.new(lw.outputs["Facing"], mix.inputs["Factor"]); L.new(mix.outputs[2], b.inputs["Base Color"])
-    b.inputs["Roughness"].default_value = 0.8
-    b.inputs["Sheen Weight"].default_value = 0.35
-    b.inputs["Sheen Tint"].default_value = (1.0, 0.45, 0.45, 1)
+    mix.inputs[6].default_value = (*lin((.07, .11, .32)), 1)
+    mix.inputs[7].default_value = (*lin((1.0, .78, .3)), 1)
+    L.new(star.outputs[0], mix.inputs["Factor"]); L.new(mix.outputs[2], b.inputs["Base Color"])
+    L.new(star.outputs[0], b.inputs["Metallic"])
+    b.inputs["Roughness"].default_value = 0.55
     return m
 
 
-def swag(name, x0, x1, y, z_top, drop, scallops, mat, depth=0.35):
-    """Festoon of cloth hung from a straight top edge: each scallop sags in a soft U with folds."""
-    nx, nz = 24 * scallops, 18
-    bm_ = bmesh.new()
-    grid = []
-    for j in range(nz + 1):
-        v = j / nz
-        row = []
-        for i in range(nx + 1):
-            u = i / nx
-            us = (u * scallops) % 1.0
-            sag = drop * (0.35 + 0.65 * math.sin(math.pi * us))      # deeper in the middle of each scallop
-            x = x0 + (x1 - x0) * u
-            z = z_top - v * sag
-            fold = depth * v * math.sin(us * math.pi * 6) * math.sin(math.pi * us)
-            row.append(bm_.verts.new((x, y - 0.15 * v * math.sin(math.pi * us) + fold, z)))
-        grid.append(row)
-    for j in range(nz):
-        for i in range(nx):
-            bm_.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
-    me = bpy.data.meshes.new(name); bm_.to_mesh(me); bm_.free()
-    o = BP.new_obj(name, me); BP.smooth(o)
-    sol = o.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.05
-    BP.assign(o, mat)
-    # gold trim along the bottom edge + a tassel at every join
-    pts = [Vector(grid[nz][i].co) for i in range(0, nx + 1, 2)] if False else None
-    edge = []
-    for i in range(nx + 1):
-        u = i / nx; us = (u * scallops) % 1.0
-        sag = drop * (0.35 + 0.65 * math.sin(math.pi * us))
-        fold = depth * math.sin(us * math.pi * 6) * math.sin(math.pi * us)
-        edge.append(Vector((x0 + (x1 - x0) * u, y - 0.15 * math.sin(math.pi * us) + fold, z_top - sag)))
-    return o, edge
-
-
-def _hanging_drape(name, x_in, x_out, y, z_top, mat, folds=6):
-    """Floor-length curtain inside the hall between x_in and x_out, pinched by a tie-back."""
-    nx, nz = 50, 50
+def build_vault(gold):
+    """Barrel vault over the hall: painted shell, gold transverse ribs springing from every pillar,
+    longitudinal ribs, gold bosses where they cross."""
+    R, K, seg_t, y0, y1 = ROOM_X, 0.55, 48, FRONT_Y, BACK_Y
+    arc = lambda th: (R * math.cos(th), SPRING_Z + R * K * math.sin(th))
+    ny = 40
     bm_ = bmesh.new(); grid = []
-    for j in range(nz + 1):
-        v = j / nz
-        tb = math.exp(-((v - 0.4) / 0.11) ** 2)
-        row = []
-        for i in range(nx + 1):
-            u = i / nx
-            x = x_out + (x_in - x_out) * u * (1 - 0.45 * tb)          # gathered toward the wall side
-            fold = (0.25 + 0.15 * tb) * math.sin(u * folds * math.pi)
-            row.append(bm_.verts.new((x, y + fold, v * z_top)))
-        grid.append(row)
-    for j in range(nz):
-        for i in range(nx):
+    for j in range(ny + 1):
+        y = y0 + (y1 - y0) * j / ny
+        grid.append([bm_.verts.new((*(lambda p: (p[0], y, p[1]))(arc(math.pi * i / seg_t)),)) for i in range(seg_t + 1)])
+    for j in range(ny):
+        for i in range(seg_t):
             bm_.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
-    me = bpy.data.meshes.new(name); bm_.to_mesh(me); bm_.free()
-    o = BP.new_obj(name, me); BP.smooth(o)
-    sol = o.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.05
-    BP.assign(o, mat)
-    return o
+    bmesh.ops.recalc_face_normals(bm_, faces=bm_.faces)
+    me = bpy.data.meshes.new("Vault"); bm_.to_mesh(me); bm_.free()
+    v = BP.new_obj("Vault", me); BP.smooth(v)
+    for p in v.data.polygons:                    # normals must face down into the hall
+        pass
+    BP.assign(v, mat_vault())
+    inset = 0.12
+    def arc_pts(y, n=64):
+        return [Vector((arc(math.pi * i / n)[0] * (1 - inset / R), y, arc(math.pi * i / n)[1] - inset)) for i in range(n + 1)]
+    ys = [-2.0, 3.5, 9.0, 14.5, 20.0, 25.5]      # every pillar, and halfway between
+    for k, y in enumerate(ys):
+        rib = BP.tube(f"VaultRib_{k}", arc_pts(y), 0.22 if k % 2 == 0 else 0.14, 14)
+        BP.assign(rib, gold)
+    for k, th in enumerate((math.pi * 0.25, math.pi * 0.5, math.pi * 0.75)):
+        x, z = arc(th)
+        pts = [Vector((x * (1 - inset / R), yy, z - inset)) for yy in (y0, y1)]
+        rib = BP.tube(f"VaultSpine_{k}", pts, 0.14, 12)
+        BP.assign(rib, gold)
+        for j, y in enumerate(ys):
+            boss = BP.uv_sphere(f"VaultBoss_{k}_{j}", 0.38 if k == 1 else 0.28, 24, 12,
+                                loc=(x * (1 - (inset + 0.15) / R), y, z - inset - 0.15))
+            BP.assign(boss, gold)
 
 
-def build_drapes(res, gold):
-    """Red velvet inside the hall (never in front of the lens): two fabric arches across the room,
-    each a festoon under the ceiling with floor-length curtains at its ends, so the top of the shot
-    reads as a red cloth 'roof' and a little red shows at the left and right edges."""
-    drape = mat_drape()
-    coll = bpy.data.collections.new("Drapes"); bpy.context.scene.collection.children.link(coll)
-    for k, (yy, half, z_top) in enumerate(((6.5, 9.2, 16.5), (16.0, 11.0, 18.5))):
-        o, edge = swag(f"Swag_{k}", -half - 0.4, half + 0.4, yy, z_top, 2.4, 4, drape, depth=0.45)
-        t = BP.tube(f"SwagTrim_{k}", edge, 0.06, 10, cap=True); BP.assign(t, gold)
-        coll.objects.link(o)
-        for j in range(5):
-            x = -half - 0.4 + j * (2 * half + 0.8) / 4
-            c = BP.cone(f"Tassel_{k}_{j}", 0.13, 0.6, 16); c.location = (x, yy - 0.05, z_top - 2.4 * 0.35 - 0.62)
-            c.rotation_euler = (math.pi, 0, 0); BP.assign(c, gold)
-        for sx in (-1, 1):
-            d = _hanging_drape(f"HallDrape_{k}_{sx}", sx * (half - 1.4), sx * (half + 1.6), yy + 0.15, z_top, drape)
-            coll.objects.link(d)
-            rope = BP.torus(f"HallTie_{k}_{sx}", 0.45, 0.07, 32, 10, loc=(sx * (half + 0.9), yy, 0.4 * z_top))
-            rope.rotation_euler = (math.pi / 2, 0, 0); BP.assign(rope, gold)
-        rod = box(f"DrapeRod_{k}", (2 * half + 4.0, 0.22, 0.22), (0, yy, z_top + 0.1), gold, bevel=0.05)
-    # a soft warm light on the fabric only, so it stays red in the darker moods
-    L_ = bpy.data.lights.new("DrapeKey", "AREA"); L_.size = 10.0; L_.color = (1.0, 0.7, 0.5); L_.energy = 2500.0
-    lo = bpy.data.objects.new("DrapeKey", L_); BP.link(lo); lo.location = (0.0, -4.0, 9.0)
-    lo.rotation_euler = (Vector((0, 10.0, 12.0)) - lo.location).to_track_quat("-Z", "Y").to_euler()
-    lo.light_linking.receiver_collection = coll
+# ----------------------------------------------------------------- black outlines on the set
+
+SET_OUTLINE = [  # (name prefix, outline width in world units)
+    ("Coin_", 0.015), ("LampShade_", 0.03), ("LampRod_", 0.02), ("LampBulb_", 0.02), ("ChandelierRing", 0.04),
+    ("ChandelierChain", 0.025), ("TorchStick", 0.03), ("TorchCup", 0.03), ("Statue_", 0.05), ("Plinth", 0.06),
+    ("Pillar", 0.07), ("Throne", 0.06), ("Chest", 0.04), ("Dais", 0.06), ("Carpet", 0.04), ("Window", 0.04),
+    ("SideSill", 0.04), ("Damask", 0.04), ("CurtainRod", 0.04), ("Curtain_", 0.05), ("TieBack", 0.03),
+    ("Banner", 0.04), ("VaultRib", 0.05), ("VaultSpine", 0.04), ("VaultBoss", 0.04), ("Mullion", 0.02),
+]
+
+
+OUTLINE_K = 1.8   # global ink thickness multiplier
+
+
+def add_set_outlines():
+    """Inverted-hull black ink on every piece of furniture (not floor, walls or vault shell):
+    the far side of a slightly grown, flipped copy shows around each silhouette."""
+    ink = TT.outline_mat()
+    em = [n for n in ink.node_tree.nodes if n.type == "EMISSION"][0]
+    em.inputs["Color"].default_value = (0.008, 0.006, 0.006, 1)
+    ink.name = "SetInk"
+    from mathutils import Matrix
+    n = 0
+    for o in list(bpy.data.objects):
+        if o.type != "MESH" or o.name.startswith(("Tile_", "Floor_")):
+            continue
+        w = next((wd for pre, wd in SET_OUTLINE if o.name.startswith(pre)), None)
+        if w is None:
+            continue
+        if any(abs(c - 1.0) > 1e-4 for c in o.scale) and not o.children:
+            o.data.transform(Matrix.Diagonal((*o.scale, 1.0)))   # bake scale so the hull is even
+            o.scale = (1.0, 1.0, 1.0)
+        world_s = o.matrix_world.to_scale()
+        TT.add_outline(o, ink, OUTLINE_K * w / max(1e-4, (world_s.x + world_s.y + world_s.z) / 3))
+        n += 1
+    return n
 
 # ----------------------------------------------------------------- pion
 
@@ -850,7 +847,8 @@ def mood_emotion(name, volume):
     flame = bpy.data.materials.get("Flame")
     if flame:
         flame.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (*rc, 1)
-    _area("RoomBounce", (0.0, 6.0, CEIL_Z - 1.0), (0.0, 8.0, 0.0), rc, 9000.0 * lvl, size=22.0)
+    _area("RoomBounce", (0.0, 6.0, SPRING_Z - 1.0), (0.0, 8.0, 0.0), rc, 9000.0 * lvl, size=22.0)
+    _area("VaultFill", (0.0, 8.0, 9.0), (0.0, 8.0, CEIL_Z), (0.85, 0.85, 1.0), 14000.0 * lvl, size=16.0)   # up onto the painted vault
     for m in bpy.data.materials:
         if m.name.startswith("StainedGlass_"):
             for n in m.node_tree.nodes:
@@ -1018,6 +1016,7 @@ def main():
     ap.add_argument("--res", default="1080x1920")
     ap.add_argument("--expr", default="senang")
     ap.add_argument("--novolume", action="store_true")
+    ap.add_argument("--no-outline", action="store_true", help="no black ink outlines on the furniture")
     ap.add_argument("--proxy", action="store_true",
                     help="Pion invisible to camera/reflections, still casts shadows (for the engine Pion composite)")
     ap.add_argument("--bbox", default=None, help="write the proxy's screen bbox (px) to this JSON")
@@ -1044,7 +1043,6 @@ def main():
                 o.visible_diffuse = True
     build_room(volume=not a.novolume)
     camera_and_key(tuple(int(v) for v in a.res.split("x")))
-    build_drapes(tuple(int(v) for v in a.res.split("x")), BP.mat_gold())
     if a.mood == "window":
         mood_window(not a.novolume)
     elif a.mood == "chandelier":
@@ -1052,6 +1050,8 @@ def main():
     if a.emotion:
         mood_emotion(EXPR_TO_EMOTION.get(a.emotion, a.emotion), not a.novolume)
     render_settings(a.samples, not a.novolume)
+    if not a.no_outline:
+        print("RESULT outlines", add_set_outlines())
     sc = bpy.context.scene
     sys.path.append("/home/user/shiny-enigma/.claude/skills/scenario-blender-lighting-rendering/scripts")
     try:
