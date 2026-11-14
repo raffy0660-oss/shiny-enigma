@@ -511,6 +511,64 @@ def camera_and_key(res):
     w.node_tree.nodes["Background"].inputs["Color"].default_value = (0.01, 0.008, 0.006, 1)
 
 
+def mood_window(volume):
+    """Dark hall lit by one side window: a hard sunbeam through the haze lands on Pion.
+    Torches and candles stay as small glows (practicals), almost no light of their own."""
+    for o in bpy.data.objects:
+        if o.type != "LIGHT":
+            continue
+        n = o.name
+        if n.startswith("TorchLight"):
+            o.data.energy *= 0.06
+        elif n.startswith("ChandLight"):
+            o.data.energy *= 0.04
+        elif n.startswith("WindowSun"):
+            o.data.energy *= 0.08          # back windows: glow only
+        elif n in ("KeyTorch", "RimWindow"):
+            o.data.energy = 0.0
+        elif n == "FillRoom":
+            o.data.energy = 12.0
+    for o in bpy.data.objects:            # dim the emissive flames a little too
+        if o.name.startswith(("TorchFlame", "CandleFlame")):
+            pass
+    # side window on the left wall, between the first two pillars
+    wx, wy, wz = -ROOM_X + 0.03, 3.5, 4.2
+    pane = arch_window_mesh("SideWindow", 3.2, 9.0)
+    pane.location = (wx, wy, wz)
+    pane.rotation_euler = (0, 0, -math.pi / 2)       # faces +x, into the hall
+    glass = mat_emit("SideWindowGlass", (1.0, 0.9, 0.72), 18.0)
+    BP.assign(pane, glass)
+    # lead mullions so the window reads as a window, not a light panel
+    lead = BP.mat_simple("Lead", (.05, .05, .05), rough=0.6, metal=0.6)
+    for k in range(-1, 2):
+        box(f"Mullion_V{k}", (0.08, 0.1, 9.0), (wx + 0.05, wy + k * 1.05, wz + 4.5), lead, bevel=0, rot=(0, 0, 0))
+    for zz in (2.0, 4.0, 6.0):
+        box(f"Mullion_H{zz}", (0.08, 3.2, 0.1), (wx + 0.05, wy, wz + zz), lead, bevel=0)
+    box("SideSill", (0.8, 3.8, 0.35), (wx + 0.3, wy, wz - 0.15), BP.mat_simple("SillStone", (.5, .42, .33), rough=0.8), bevel=0.05)
+    # the sun: a narrow, hard spot just inside the glass, aimed at Pion
+    sp = bpy.data.lights.new("SunBeam", "SPOT")
+    sp.energy = 240000.0
+    sp.color = (1.0, 0.88, 0.68)
+    sp.spot_size = math.radians(22)
+    sp.spot_blend = 0.25
+    sp.shadow_soft_size = 0.25
+    so = bpy.data.objects.new("SunBeam", sp)
+    BP.link(so)
+    so.location = (wx + 0.4, wy, wz + 5.5)
+    tgt = Vector((0.4, -0.3, 1.8))
+    so.rotation_euler = (tgt - so.location).to_track_quat("-Z", "Y").to_euler()
+    so.visible_volume_scatter = True
+    bpy.context.scene.world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.002, 0.002, 0.003, 1)
+    hz = bpy.data.objects.get("Haze")
+    if hz and volume:
+        hz.data.materials[0].node_tree.nodes["Principled Volume"].inputs["Density"].default_value = 0.011
+    for m in bpy.data.materials:          # back stained glass: a dim glow so the eye goes to the sunbeam
+        if m.name.startswith("StainedGlass_"):
+            for n in m.node_tree.nodes:
+                if n.type == "MATH" and n.operation == "MULTIPLY":
+                    n.inputs[1].default_value = 2.5
+
+
 def render_settings(samples, volume):
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
@@ -556,6 +614,8 @@ def main():
     ap.add_argument("--lightpass", default=None,
                     help="also render the proxy alone in white clay, lit by the room (RGBA PNG) for relighting the engine Pion")
     ap.add_argument("--lightpass-only", action="store_true", help="skip the beauty render")
+    ap.add_argument("--mood", default="warm", choices=["warm", "window"],
+                    help="warm = torch-lit hall; window = dark hall, one sunbeam from a side window onto Pion")
     a = ap.parse_args(argv)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     rig, pion_objs = build_pion(a.expr)
@@ -570,6 +630,8 @@ def main():
                 o.visible_diffuse = True
     build_room(volume=not a.novolume)
     camera_and_key(tuple(int(v) for v in a.res.split("x")))
+    if a.mood == "window":
+        mood_window(not a.novolume)
     render_settings(a.samples, not a.novolume)
     sc = bpy.context.scene
     sys.path.append("/home/user/shiny-enigma/.claude/skills/scenario-blender-lighting-rendering/scripts")
@@ -600,7 +662,7 @@ def main():
         print("RESULT bbox", info)
     # god rays only from the windows: other lights stay out of the haze
     for o in bpy.data.objects:
-        if o.type == "LIGHT" and not o.name.startswith("WindowSun"):
+        if o.type == "LIGHT" and not o.name.startswith(("WindowSun", "SunBeam")):
             o.visible_volume_scatter = False
     bpy.ops.wm.save_as_mainfile(filepath=a.out)
     print("RESULT built", a.out)

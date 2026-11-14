@@ -38,7 +38,7 @@ def _blur(img, r):
     return out
 
 
-def relight(rgb, alpha, light_png, size, strength, bands):
+def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5, top=1.4):
     """Multiply the room's light (Blender clay proxy) onto the engine Pion, cel-banded."""
     Lp = Image.open(light_png).convert("RGBA").resize(size, Image.LANCZOS)
     Lf = np.asarray(Lp).astype(np.float32) / 255.0
@@ -52,15 +52,16 @@ def relight(rgb, alpha, light_png, size, strength, bands):
     lc = lc * la + filled * (1 - la)
     lum = lc.mean(-1, keepdims=True)
     inside = (la[..., 0] > 0.5)
-    ref = np.percentile(lum[inside], 55) if inside.any() else lum.mean()
+    ref = np.percentile(lum[inside], ref_pct) if inside.any() else lum.mean()
     shade = lum / max(ref, 1e-4)
     tint = lc / np.maximum(lum, 1e-4)
     # keep the room's warm cast (torches, candles): only take out half of the average tint
     if inside.any():
         tint = tint / (0.5 + 0.5 * tint[inside].mean(0))
     if bands > 0:  # cel steps with a soft 1.5 px edge
-        levels = np.linspace(0.5, 1.4, bands)
-        idx = np.clip(np.round((shade - 0.55) / (0.8 / max(bands - 1, 1))), 0, bands - 1).astype(int)
+        levels = np.linspace(floor, top, bands)
+        step = (top - floor) / max(bands - 1, 1)
+        idx = np.clip(np.round((shade - floor) / step), 0, bands - 1).astype(int)
         q = levels[idx]
         shade = _blur(q.astype(np.float32), 2)
     factor = shade * tint
@@ -86,6 +87,9 @@ def main():
     ap.add_argument("--light", default=None, help="light pass PNG from build_castle.py --lightpass")
     ap.add_argument("--relight", type=float, default=1.0, help="how much of the room light goes onto Pion")
     ap.add_argument("--bands", type=int, default=4, help="cel bands for the room light (0 = smooth)")
+    ap.add_argument("--ref", type=float, default=55, help="light-pass percentile mapped to 1.0 (high = dramatic, lit side only)")
+    ap.add_argument("--floor", type=float, default=0.5, help="darkest cel band")
+    ap.add_argument("--top", type=float, default=1.4, help="brightest cel band")
     a = ap.parse_args()
 
     bg = Image.open(a.bg).convert("RGB")
@@ -113,7 +117,7 @@ def main():
     B = np.asarray(bg).astype(np.float32) / 255.0
 
     if a.light:
-        rgb = relight(rgb, alpha, a.light, (W, H), a.relight, a.bands)
+        rgb = relight(rgb, alpha, a.light, (W, H), a.relight, a.bands, a.ref, a.floor, a.top)
     # light wrap: blurred plate bleeding over the inner edge of the character
     r = max(2, round(W / 90))
     blur_bg = np.asarray(bg.filter(ImageFilter.GaussianBlur(r))).astype(np.float32) / 255.0
