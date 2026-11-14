@@ -90,6 +90,9 @@ def main():
     ap.add_argument("--ref", type=float, default=55, help="light-pass percentile mapped to 1.0 (high = dramatic, lit side only)")
     ap.add_argument("--floor", type=float, default=0.5, help="darkest cel band")
     ap.add_argument("--top", type=float, default=1.4, help="brightest cel band")
+    ap.add_argument("--sat", type=float, default=1.0, help="final grade: saturation")
+    ap.add_argument("--tint", default="1,1,1", help="final grade: r,g,b multipliers")
+    ap.add_argument("--contrast", type=float, default=1.0, help="final grade: contrast around mid grey")
     a = ap.parse_args()
 
     bg = Image.open(a.bg).convert("RGB")
@@ -137,6 +140,12 @@ def main():
     contact = np.clip(1 - d, 0, 1) ** 1.6 * a.contact
     B = B * (1 - contact[..., None] * np.array([0.92, 0.95, 0.97]))
     out = B * (1 - alpha) + np.clip(rgb, 0, 1) * alpha
+    # emotion grade over the whole frame (plate + Pion together, so they stay matched)
+    tint = np.array([float(v) for v in a.tint.split(",")], dtype=np.float32)
+    g = out.mean(-1, keepdims=True)
+    out = g + (out - g) * a.sat
+    out = out * tint
+    out = 0.5 + (out - 0.5) * a.contrast
     # matching grain over the whole frame
     rng = np.random.default_rng(3)
     out = out + rng.normal(0, a.grain, out.shape[:2])[..., None]

@@ -516,6 +516,120 @@ def camera_and_key(res):
     w.node_tree.nodes["Background"].inputs["Color"].default_value = (0.01, 0.008, 0.006, 1)
 
 
+def add_side_window(glass_col, beam_col, energy):
+    """Arched window on the left wall with lead mullions and a hard spot through it onto Pion."""
+    # side window on the left wall, between the first two pillars
+    wx, wy, wz = -ROOM_X + 0.03, 3.5, 4.2
+    pane = arch_window_mesh("SideWindow", 3.2, 9.0)
+    pane.location = (wx, wy, wz)
+    pane.rotation_euler = (0, 0, -math.pi / 2)       # faces +x, into the hall
+    glass = mat_emit("SideWindowGlass", glass_col, 18.0)
+    BP.assign(pane, glass)
+    # lead mullions so the window reads as a window, not a light panel
+    lead = BP.mat_simple("Lead", (.05, .05, .05), rough=0.6, metal=0.6)
+    for k in range(-1, 2):
+        box(f"Mullion_V{k}", (0.08, 0.1, 9.0), (wx + 0.05, wy + k * 1.05, wz + 4.5), lead, bevel=0, rot=(0, 0, 0))
+    for zz in (2.0, 4.0, 6.0):
+        box(f"Mullion_H{zz}", (0.08, 3.2, 0.1), (wx + 0.05, wy, wz + zz), lead, bevel=0)
+    box("SideSill", (0.8, 3.8, 0.35), (wx + 0.3, wy, wz - 0.15), BP.mat_simple("SillStone", (.5, .42, .33), rough=0.8), bevel=0.05)
+    # the sun: a narrow, hard spot just inside the glass, aimed at Pion
+    sp = bpy.data.lights.new("SunBeam", "SPOT")
+    sp.energy = energy
+    sp.color = beam_col
+    sp.spot_size = math.radians(22)
+    sp.spot_blend = 0.25
+    sp.shadow_soft_size = 0.25
+    so = bpy.data.objects.new("SunBeam", sp)
+    BP.link(so)
+    so.location = (wx + 0.4, wy, wz + 5.5)
+    tgt = Vector((0.4, -0.3, 1.8))
+    so.rotation_euler = (tgt - so.location).to_track_quat("-Z", "Y").to_euler()
+    so.visible_volume_scatter = True
+    return so
+
+
+EMOTIONS = {
+    # chandelier colour/scale, hub, extra lights, haze, comp grade, engine light cue
+    "hangat": dict(chand=(1.0, 0.52, 0.2), k=1.0, hub=3500, haze=(0.006, (1.0, 0.85, 0.7))),
+    "marah": dict(chand=(1.0, 0.22, 0.08), k=0.45, hub=1200, haze=(0.005, (1.0, 0.7, 0.65)),
+                  under=((1.0, 0.32, 0.1), 900), rim=((1.0, 0.15, 0.05), 2200)),
+    "sedih": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.009, (0.7, 0.8, 1.0)),
+                  window=((0.55, 0.7, 1.0), (0.45, 0.6, 1.0), 110000.0)),
+    "kaget": dict(chand=(1.0, 0.96, 0.9), k=2.0, hub=11000, haze=(0.004, (1.0, 1.0, 1.0)),
+                  rim=((0.9, 0.95, 1.0), 2500)),
+    "licik": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.008, (0.75, 0.6, 1.0)),
+                  under=((0.25, 1.0, 0.45), 1300), rim=((0.6, 0.15, 1.0), 3200)),
+    "duit": dict(chand=(1.0, 0.72, 0.28), k=1.3, hub=4500, haze=(0.006, (1.0, 0.85, 0.5)),
+                 chests=((1.0, 0.7, 0.2), 900), top=((1.0, 0.78, 0.35), 2500)),
+    "misteri": dict(chand=(0.65, 0.45, 1.0), k=0.5, hub=1500, haze=(0.009, (0.7, 0.65, 1.0)),
+                    rim=((0.35, 0.5, 1.0), 1800)),
+}
+EXPR_TO_EMOTION = {
+    "senang": "hangat", "imut": "hangat", "ngakak": "hangat", "datar": "hangat",
+    "marah": "marah", "kecewa": "sedih", "sakit": "sedih", "kaget": "kaget",
+    "licik": "licik", "curiga": "licik", "sinis": "licik", "duit": "duit",
+    "penasaran": "misteri", "ragu": "misteri", "pusing": "misteri",
+}
+
+
+def _area(name, loc, target, color, energy, size=1.0, size_y=None):
+    d = bpy.data.lights.new(name, "AREA")
+    d.energy, d.color, d.size = energy, color, size
+    if size_y:
+        d.shape, d.size_y = "RECTANGLE", size_y
+    o = bpy.data.objects.new(name, d)
+    BP.link(o)
+    o.location = loc
+    o.rotation_euler = (Vector(target) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
+    return o
+
+
+def mood_emotion(name, volume):
+    """Lighting per feeling, built on the chandelier night hall (everything else off)."""
+    E = EMOTIONS[name]
+    mood_chandelier(volume, color=E["chand"])
+    for o in bpy.data.objects:
+        if o.type == "LIGHT" and o.name.startswith("ChandLight_"):
+            o.data.energy *= E["k"]
+        if o.name == "ChandHub":
+            o.data.energy = E["hub"]
+    for m in bpy.data.materials:   # candle flames follow the chandelier (off when it is off)
+        if m.name == "CandleFlame":
+            b = m.node_tree.nodes["Principled BSDF"]
+            b.inputs["Emission Color"].default_value = (*E["chand"], 1)
+            b.inputs["Emission Strength"].default_value = 60.0 * min(1.0, E["k"]) if E["k"] > 0 else 0.0
+    head = (0.0, 0.0, 3.0)
+    if "under" in E:   # uplight from the floor in front: menace
+        col, en = E["under"]
+        _area("UnderLight", (0.0, -3.2, 0.25), head, col, en, size=0.9)
+    if "rim" in E:     # hard edge from behind
+        col, en = E["rim"]
+        _area("RimMood", (1.5, 3.2, 5.5), head, col, en, size=1.2, size_y=4.0)
+    if "top" in E:     # narrow spot from above
+        col, en = E["top"]
+        sp = bpy.data.lights.new("TopSpot", "SPOT"); sp.energy = en * 10; sp.color = col
+        sp.spot_size = math.radians(28); sp.spot_blend = 0.4; sp.shadow_soft_size = 0.3
+        so = bpy.data.objects.new("TopSpot", sp); BP.link(so); so.location = (0.0, -1.5, 12.0)
+        so.rotation_euler = (Vector(head) - so.location).to_track_quat("-Z", "Y").to_euler()
+    if "chests" in E:  # treasure glows
+        col, en = E["chests"]
+        for k in range(2):
+            ch = bpy.data.objects.get(f"ChestGold_{k}")
+            if ch:
+                pl = bpy.data.lights.new(f"ChestGlow_{k}", "POINT"); pl.energy = en; pl.color = col
+                pl.shadow_soft_size = 0.5
+                po = bpy.data.objects.new(f"ChestGlow_{k}", pl); BP.link(po)
+                po.location = ch.location + Vector((0, -0.6, 0.9))
+    if "window" in E:
+        g, b, en = E["window"]
+        add_side_window(g, b, en)
+    hz = bpy.data.objects.get("Haze")
+    if hz and volume:
+        pv = hz.data.materials[0].node_tree.nodes["Principled Volume"]
+        pv.inputs["Density"].default_value = E["haze"][0]
+        pv.inputs["Color"].default_value = (*E["haze"][1], 1)
+
+
 def mood_window(volume):
     """Dark hall lit by one side window: a hard sunbeam through the haze lands on Pion.
     Torches and candles stay as small glows (practicals), almost no light of their own."""
@@ -536,32 +650,7 @@ def mood_window(volume):
     for o in bpy.data.objects:            # dim the emissive flames a little too
         if o.name.startswith(("TorchFlame", "CandleFlame")):
             pass
-    # side window on the left wall, between the first two pillars
-    wx, wy, wz = -ROOM_X + 0.03, 3.5, 4.2
-    pane = arch_window_mesh("SideWindow", 3.2, 9.0)
-    pane.location = (wx, wy, wz)
-    pane.rotation_euler = (0, 0, -math.pi / 2)       # faces +x, into the hall
-    glass = mat_emit("SideWindowGlass", (1.0, 0.9, 0.72), 18.0)
-    BP.assign(pane, glass)
-    # lead mullions so the window reads as a window, not a light panel
-    lead = BP.mat_simple("Lead", (.05, .05, .05), rough=0.6, metal=0.6)
-    for k in range(-1, 2):
-        box(f"Mullion_V{k}", (0.08, 0.1, 9.0), (wx + 0.05, wy + k * 1.05, wz + 4.5), lead, bevel=0, rot=(0, 0, 0))
-    for zz in (2.0, 4.0, 6.0):
-        box(f"Mullion_H{zz}", (0.08, 3.2, 0.1), (wx + 0.05, wy, wz + zz), lead, bevel=0)
-    box("SideSill", (0.8, 3.8, 0.35), (wx + 0.3, wy, wz - 0.15), BP.mat_simple("SillStone", (.5, .42, .33), rough=0.8), bevel=0.05)
-    # the sun: a narrow, hard spot just inside the glass, aimed at Pion
-    sp = bpy.data.lights.new("SunBeam", "SPOT")
-    sp.energy = 240000.0
-    sp.color = (1.0, 0.88, 0.68)
-    sp.spot_size = math.radians(22)
-    sp.spot_blend = 0.25
-    sp.shadow_soft_size = 0.25
-    so = bpy.data.objects.new("SunBeam", sp)
-    BP.link(so)
-    so.location = (wx + 0.4, wy, wz + 5.5)
-    tgt = Vector((0.4, -0.3, 1.8))
-    so.rotation_euler = (tgt - so.location).to_track_quat("-Z", "Y").to_euler()
+    so = add_side_window((1.0, 0.9, 0.72), (1.0, 0.88, 0.68), 240000.0)
     so.visible_volume_scatter = True
     bpy.context.scene.world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.002, 0.002, 0.003, 1)
     hz = bpy.data.objects.get("Haze")
@@ -577,7 +666,8 @@ def mood_window(volume):
 def mood_chandelier(volume, pos=(0.0, -1.0, 9.0), color=(1.0, 0.52, 0.2)):
     """Night hall: the orange chandelier above Pion is the only light. Everything else is off:
     torches (flames hidden), window suns, stained glass dark."""
-    old = Vector((0.0, 8.0, 17.0))           # where build_room hangs it
+    ring = bpy.data.objects.get("ChandelierRing")
+    old = ring.location.copy() if ring else Vector((0.0, 8.0, 17.0))   # idempotent: move from where it is
     new = Vector(pos)
     d = new - old
     for o in bpy.data.objects:
@@ -667,6 +757,8 @@ def main():
     ap.add_argument("--lightpass", default=None,
                     help="also render the proxy alone in white clay, lit by the room (RGBA PNG) for relighting the engine Pion")
     ap.add_argument("--lightpass-only", action="store_true", help="skip the beauty render")
+    ap.add_argument("--emotion", default=None, help="lighting per feeling: an emotion preset "
+                    "(hangat marah sedih kaget licik duit misteri) or a Pion expression (marah, kecewa, licik...)")
     ap.add_argument("--mood", default="warm", choices=["warm", "window", "chandelier"],
                     help="warm = torch-lit hall; window = dark hall, one sunbeam from a side window onto Pion")
     a = ap.parse_args(argv)
@@ -687,6 +779,8 @@ def main():
         mood_window(not a.novolume)
     elif a.mood == "chandelier":
         mood_chandelier(not a.novolume)
+    if a.emotion:
+        mood_emotion(EXPR_TO_EMOTION.get(a.emotion, a.emotion), not a.novolume)
     render_settings(a.samples, not a.novolume)
     sc = bpy.context.scene
     sys.path.append("/home/user/shiny-enigma/.claude/skills/scenario-blender-lighting-rendering/scripts")
@@ -717,7 +811,7 @@ def main():
         print("RESULT bbox", info)
     # god rays only from the windows: other lights stay out of the haze
     for o in bpy.data.objects:
-        if o.type == "LIGHT" and not o.name.startswith(("WindowSun", "SunBeam", "ChandLight", "ChandHub")):
+        if o.type == "LIGHT" and not o.name.startswith(("WindowSun", "SunBeam", "ChandLight", "ChandHub", "TopSpot")):
             o.visible_volume_scatter = False
     bpy.ops.wm.save_as_mainfile(filepath=a.out)
     print("RESULT built", a.out)
