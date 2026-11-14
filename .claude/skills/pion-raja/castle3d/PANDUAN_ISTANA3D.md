@@ -43,6 +43,24 @@ Waktu kira-kira: plate Blender sekitar 5-6 menit per mood di 1080x1350, composit
 (4 core), Remotion dengan motion blur kamera 6 sampel beberapa menit per 10 detik video. `--camblur 1` mematikan blur kamera,
 `--blur 1` mematikan motion blur engine, `--novolume` tanpa kabut (lebih cepat).
 
+## Studio preview 3D di browser (`studio/`)
+```bash
+cd .claude/skills/pion-raja/castle3d/studio
+python3 make_studio.py --cues cues.txt --audio vo.wav      # lalu buka http://localhost:8765/castle3d/studio/
+```
+- **Istana 3D real-time (three.js):** geometri sama dengan render Blender (`castle.glb`, diekspor sekali oleh
+  `export_studio.py`). Bata, langit-langit kotak-kotak, dan kaca patri dibuat ulang sebagai tekstur.
+- **Pion tetap 2D:** video Pion transparan dari engine di bidang yang selalu menghadap kamera, dan bayangannya
+  jatuh ke lantai.
+- **Cahaya per mood** dari data yang sama (`EMOTIONS`), dengan crossfade antar mood.
+- **Kamera "Shot cam"** memakai rencana kamera yang sama (`camplan.js`: zoom, sudut, miring, getaran). Dengan
+  "Free cam" kamu bisa memutar kamera bebas mengelilingi aula.
+- **Kontrol:** timeline bisa digeser, Play/Pause dengan audio, tombol garis tinta, mood bisa dipaksa, exposure.
+  Klik sebuah benda untuk melihat namanya.
+- **Performa:** koin, ubin, dan paku digabung (satu draw call per material), matriks benda statis dibekukan,
+  dan shader dikompilasi di awal.
+- Studio untuk draft dan cek cepat (detik, bukan menit). Hasil final tetap dari `castle_video.py` (Cycles + Remotion).
+
 ## Cara tercepat: satu frame per mood
 ```bash
 cd .claude/skills/pion-raja/castle3d

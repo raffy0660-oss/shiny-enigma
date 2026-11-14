@@ -37,6 +37,7 @@ no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesia
 | `PERUBAHAN.md` | Changelog of the engine |
 | `examples/proj1`, `proj2`, `proj4` | Finished projects: `plan_pN.py`, `cues/`, `sfx_events.txt`, `composite*.py`, helper grids. Copy one as a template |
 | `PERBANDINGAN_V2.jpg` | Before/after of the v2 motion & shading upgrade |
+| `castle3d/studio/` | Browser studio (three.js): live 3D castle + 2D Pion video plane, mood lights, the camera plan, timeline scrub, free orbit cam (`make_studio.py`) |
 | `castle3d/` | Mode 3: 3D throne room in Blender + relight of the engine Pion (`build_castle.py`, `comp_pion.py`, `emotion_sheet.py`, `setup.sh`, guide `PANDUAN_ISTANA3D.md`, examples in `contoh/`) |
 | `EKSPRESI.jpg`, `SOKTAHU.jpg` | All 33 expressions; the soktahu pose (glasses, finger up, open book) |
 

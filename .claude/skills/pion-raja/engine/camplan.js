@@ -14,9 +14,11 @@
 
    CLI:  node camplan.js cues.txt [--every 3] [--max 1.5]   -> JSON keys on stdout
 */
-const fs = require('fs'), path = require('path');
-
-const MOODS = JSON.parse(fs.readFileSync(path.join(__dirname, 'moods.json'), 'utf8')).expr_to_mood;
+const IN_NODE = typeof module !== 'undefined' && typeof require === 'function';
+const fs = IN_NODE ? require('fs') : null, path = IN_NODE ? require('path') : null;
+// node reads moods.json next to this file; a browser page sets window.PION_MOODS (the parsed moods.json) first
+const MOODS = IN_NODE ? JSON.parse(fs.readFileSync(path.join(__dirname, 'moods.json'), 'utf8')).expr_to_mood
+                      : ((typeof window !== 'undefined' && window.PION_MOODS) || {}).expr_to_mood || {};
 const moodOf = e => MOODS[e] || 'hangat';
 const CORNERS = [ // one per atmosphere, cycling: camera drifts to a corner and tilts a little
   { ox: .085, oy: -.045, roll: -3.2 },
@@ -114,9 +116,10 @@ function sampleCam(keys, t, shake = 1) {
   return s ? { z: c.z + s.z, ox: c.ox + s.ox, oy: c.oy + s.oy, roll: c.roll + s.roll } : c;
 }
 
-module.exports = { parseCues, planCamera, camAtPlan, sampleCam, moodOf, MOODS, CORNERS };
+const API = { parseCues, planCamera, camAtPlan, sampleCam, moodOf, MOODS, CORNERS };
+if (IN_NODE) module.exports = API; else window.CamPlan = API;   // the studio loads this file with a plain <script>
 
-if (require.main === module) {
+if (IN_NODE && require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf('--' + k); return i < 0 ? null : a[i + 1]; };
   const P = parseCues(fs.readFileSync(a[0], 'utf8'));
   if (opt('every')) P.az = P.az.length ? P.az.map(x => x.off ? x : Object.assign(x, { every: +opt('every') })) : [{ t: 0, every: +opt('every'), amt: 1 }];
