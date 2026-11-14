@@ -69,13 +69,17 @@ void main(){
   vec3 base=uColor; if(uUseVC>.5) base*=vCol; if(uUseTex>.5) base*=texture(uTex,vUv).rgb;
   vec3 Ld=normalize(uLDir); float att=1.;
   if(uLPos.w>.5){ vec3 tl=uLPos.xyz-vW; Ld=normalize(mix(uLDir, normalize(tl), uLPos.w-.5)); att=clamp(uLAtt/max(dot(tl,tl),.01),.4,2.2); }
-  float d=dot(n,Ld); float r=texture(uRamp,vec2(d*.5+.5,.5)).r;
+  float d=dot(n,Ld), x=d*.5+.5, aw=max(fwidth(x)*.75,.002); // analytic cel bands, anti-aliased (crisp at any zoom)
+  float r=.549+.137*smoothstep(.2-aw,.2+aw,x)+.157*smoothstep(.4-aw,.4+aw,x)+.118*smoothstep(.6-aw,.6+aw,x)+.039*smoothstep(.8-aw,.8+aw,x);
   float hemi=n.y*.5+.5;
   vec3 light=uAmb+mix(uGnd,uSky,hemi)+uKey*r*att;
   if(uAOs>0.){ vec2 q=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q=q*q*(3.-2.*q); float occ=q.x+q.y; /* edges may be reversed (GLSL smoothstep may not) */ light*=1.-uAOs*clamp(occ,0.,1.)*(.55+.45*(1.-max(n.y,0.))); }
+  vec3 Vd=normalize(uEye-vW); float fres=1.-max(dot(n,Vd),0.);
   float rim=pow(1.-clamp(n.z,0.,1.),3.)*clamp(n.x*-.6+n.y*.5+.5,0.,1.);
+  float rimCel=smoothstep(.6-aw*4.,.6+aw*4.,fres)*smoothstep(-.15,.2,d);   // crisp lit-side rim band, coloured by the room light
   if(uSoot>0.){ vec3 q=vO*uSootK; float nz=vn(q*2.3)*.65+vn(q*5.1)*.35; base*=mix(1.,.28,uSoot*smoothstep(.52,.72,nz)); }
-  vec3 col=base*light*uExp+uRim*rim;
+  float shadeAmt=1.-smoothstep(.62,.9,r);                                    // painted shadows: cooler, a touch more saturated
+  vec3 col=base*light*uExp*mix(vec3(1.),vec3(.88,.86,1.06),shadeAmt*.6)+uRim*rim*.6+uRim*rimCel*1.4;
   if(uSpec>0.){ vec3 V=normalize(uEye-vW); vec3 R=reflect(-Ld,n); float sp=pow(max(dot(R,V),0.),18.); col+=uSpec*(smoothstep(.45,.55,sp)*vec3(1.,.97,.86)+.35*smoothstep(.08,.3,sp)*vec3(1.,.85,.5)); float fr=pow(1.-max(dot(n,V),0.),2.5); col+=uSpec*.25*fr*vec3(1.,.8,.4); }
   col=mix(col,vec3(1.,.97,.9),uFlash);
   o=vec4(clamp(col,0.,1.),1.);

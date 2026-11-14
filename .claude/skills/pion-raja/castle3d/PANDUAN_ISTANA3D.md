@@ -39,6 +39,9 @@ Satu file cue mengatur semuanya:
   Scene dirender 1,5x lebih besar dari output, jadi zoom 1,5x tetap tajam.
 
 Hasil per mood di-cache di folder `--work`, jadi render ulang (misal ganti cue) hanya mengulang engine dan compositing.
+Cache-nya otomatis tidak dipakai kalau `build_castle.py`/`build_pion.py`, resolusi, sampel, atau kabut berubah.
+Compositing hanya menghitung ulang area sekitar Pion dan bayangannya. Sisa frame diambil dari plate yang sudah
+di-grade (plus grain) dan disiapkan sekali: sekitar 1,5x lebih cepat dari versi sebelumnya.
 Waktu kira-kira: plate Blender sekitar 5-6 menit per mood di 1080x1350, compositing sekitar 0,3 detik per frame
 (4 core), Remotion dengan motion blur kamera 6 sampel beberapa menit per 10 detik video. `--camblur 1` mematikan blur kamera,
 `--blur 1` mematikan motion blur engine, `--novolume` tanpa kabut (lebih cepat).

@@ -21,6 +21,14 @@
 - **Gerakan otomatis (`acting`)**: goyang, condong, memantul, lompat di "!", "take" saat ganti ekspresi, melirik saat diam.
 - **Video istana `castle_video.py` + Remotion**: plate bersih per mood, bayangan Pion dan cahaya di badannya ikut
   bergerak bersama Pion, crossfade antar mood, kamera halus + motion blur kamera, audio.
+- **Model istana lebih detail** (blender-modeling): kolom marmer beralur dengan alas dan kepala pilar, bingkai jendela
+  berbatu kunci, list dinding, alas patung bertingkat dengan plakat emas, cincin di patung catur, list dan paku emas di tahta.
+- **Studio preview 3D di browser** (`castle3d/studio`, three.js): istana real-time, Pion 2D, cahaya per mood,
+  rencana kamera, timeline, kamera bebas, klik benda untuk melihat namanya.
+- **Shading kartun Pion**: pita cel analitik yang halus di semua zoom, bayangan bernuansa sejuk seperti cat tangan,
+  rim light tegas berwarna cahaya ruangan.
+- **Render lebih cepat**: compositing hanya di area Pion dan bayangannya dengan plate yang di-cache (sekitar 1,5x),
+  engine memakai semua core, dan cache plate otomatis dibuat ulang kalau script berubah.
 - **Subtitle karaoke dihapus** dari engine. Cue `word` tetap ada sebagai penanda waktu kata (untuk `autozoom`).
 
 ## v2: gerak lebih halus, bayangan lebih bagus, menyatu dengan video

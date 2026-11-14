@@ -115,46 +115,79 @@ def shift(a, dx, dy):
 G = {}   # per-process globals (filled before the Pool forks)
 
 
+def shifted_crop(a, dx, dy, x0, y0, x1, y1):
+    """The crop [y0:y1, x0:x1] of `a` shifted by (dx, dy) px, edge-filled, without touching the rest of `a`."""
+    H, W = a.shape[:2]
+    ys = np.clip(np.arange(y0, y1) - int(round(dy)), 0, H - 1)
+    xs = np.clip(np.arange(x0, x1) - int(round(dx)), 0, W - 1)
+    return a[ys[:, None], xs[None, :]]
+
+
+def grade(c, M):
+    sat, tint, con = M["grade"]
+    g = c.mean(-1, keepdims=True)
+    return 0.5 + ((g + (c - g) * sat) * tint - 0.5) * con
+
+
 def comp_frame(f):
+    """Only the region around Pion and his shadow is recomputed; the rest of the frame is the mood's graded
+    plate, prepared once (threejs-performance: do the expensive work once, not per frame)."""
     S = G
     SW, SH = S["size"]
-    eng = Image.open(os.path.join(S["eng_dir"], f"{f:05d}.png")).convert("RGBA")
+    src = Image.open(os.path.join(S["eng_dir"], f"{f:05d}.png")).convert("RGBA")
     k, ecx, eb, pcx, py1 = S["xf"]
-    eng = eng.transform((SW, SH), Image.AFFINE, (1 / k, 0, ecx - pcx / k, 0, 1 / k, eb - py1 / k), resample=Image.BICUBIC)
-    F = np.asarray(eng).astype(np.float32) / 255.0
-    rgb, alpha = F[..., :3], F[..., 3:4]
+    sb0 = src.getchannel("A").getbbox() or (0, 0, 1, 1)          # Pion's box in the engine frame -> scene pixels
     tr, t0r = S["track"][f] or S["track"][0], S["track"][0]
     dgx = (tr["ground"][0] - t0r["ground"][0]) * k
     dbx, dby = (tr["base"][0] - t0r["base"][0]) * k, (tr["base"][1] - t0r["base"][1]) * k
     air = max(0.0, ((tr["ground"][1] - tr["base"][1]) - (t0r["ground"][1] - t0r["base"][1])) * k)
     fade = 1.0 / (1.0 + air / (0.18 * S["pion_h"]))
     r = max(2, SW // 90)
+    # region of interest: Pion (+ light-wrap margin), his moved floor shadow, the contact shadow
+    ab = ((sb0[0] - ecx) * k + pcx, (sb0[1] - eb) * k + py1, (sb0[2] - ecx) * k + pcx, (sb0[3] - eb) * k + py1)
+    boxes = [(ab[0] - 3 * r - 2, ab[1] - 3 * r - 2, ab[2] + 3 * r + 2, ab[3] + 3 * r + 2)]
+    sb = S["shadow_box"]
+    if sb:
+        boxes.append((sb[0] + int(dgx) - 2, sb[1], sb[2] + int(dgx) + 2, sb[3]))
+    bw = S["pion_w"] * 0.48
+    gx, gy = S["pcx"] + dgx, S["py1"] - S["pion_h"] * 0.012
+    boxes.append((gx - bw - 2, gy - bw * 0.16 - 2, gx + bw + 2, gy + bw * 0.16 + 2))
+    x0 = int(max(0, min(b[0] for b in boxes))); y0 = int(max(0, min(b[1] for b in boxes)))
+    x1 = int(min(SW, max(b[2] for b in boxes))); y1 = int(min(SH, max(b[3] for b in boxes)))
+    t = f / S["fps"]
+    W = mood_weights(S["segs"], t)
+    ws = tuple((m, round(w, 3)) for m, w in sorted(W.items()))   # the plate mix only changes during a crossfade
+    gi = f % len(S["grain"])
+    cache = S.setdefault("_mix8", {})
+    if (ws, gi) not in cache:                                    # graded plate + grain, ready to write
+        if len(cache) > 12:
+            cache.clear()
+        mix = sum(w * S["moods"][m]["graded"] for m, w in W.items())
+        cache[(ws, gi)] = (np.clip(mix + S["grain"][gi][..., None], 0, 1) * 255 + 0.5).astype(np.uint8)
+    out = cache[(ws, gi)].copy()
+    eng = src.transform((x1 - x0, y1 - y0), Image.AFFINE,                    # resample only the crop
+                        (1 / k, 0, ecx + (x0 - pcx) / k, 0, 1 / k, eb + (y0 - py1) / k), resample=Image.BICUBIC)
+    F = np.asarray(eng).astype(np.float32) / 255.0
+    rgb, alpha = F[..., :3], F[..., 3:4]
     a_img = Image.fromarray((alpha[..., 0] * 255).astype(np.uint8))
     inner = np.asarray(a_img.filter(ImageFilter.GaussianBlur(r))).astype(np.float32)[..., None] / 255.0
     edge = np.clip(alpha - inner, 0, 1) * 2.0
-    yy, xx = S["grid"]
-    bw = S["pion_w"] * 0.48
-    d = ((xx - (S["pcx"] + dgx)) / bw) ** 2 + ((yy - (S["py1"] - S["pion_h"] * 0.012)) / (bw * 0.16)) ** 2
+    yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32)
+    d = ((xx - gx) / bw) ** 2 + ((yy - gy) / (bw * 0.16)) ** 2
     contact = (np.clip(1 - d, 0, 1) ** 1.6 * 0.75 * fade)[..., None] * np.array([0.92, 0.95, 0.97], np.float32)
-    out = np.zeros((SH, SW, 3), np.float32)
-    t = f / S["fps"]
-    for m, w in mood_weights(S["segs"], t).items():
+    crop = np.zeros((y1 - y0, x1 - x0, 3), np.float32)
+    sl = (slice(y0, y1), slice(x0, x1))
+    for m, w in W.items():
         M = S["moods"][m]
-        sh = 1.0 - (1.0 - shift(M["shadow"], dgx, 0)) * fade
-        plate = M["plate"] * sh[..., None] * (1 - contact)
-        p = rgb * shift(M["factor"], dbx, dby) + shift(M["add"], dbx, dby)
-        p = p + M["blur"] * edge * 0.35
+        sh = 1.0 - (1.0 - shifted_crop(M["shadow"], dgx, 0, x0, y0, x1, y1)) * fade
+        plate = M["plate"][sl] * sh[..., None] * (1 - contact)
+        p = rgb * shifted_crop(M["factor"], dbx, dby, x0, y0, x1, y1) + shifted_crop(M["add"], dbx, dby, x0, y0, x1, y1)
+        p = p + M["blur"][sl] * edge * 0.35
         lum = p.mean(-1, keepdims=True)
         p = p + (M["room"] - 0.5 * M["room"].mean()) * 0.10 * (1 - lum)
-        c = plate * (1 - alpha) + np.clip(p, 0, 1) * alpha
-        sat, tint, con = M["grade"]
-        g = c.mean(-1, keepdims=True)
-        c = (g + (c - g) * sat) * tint
-        c = 0.5 + (c - 0.5) * con
-        out += w * c
-    rng = np.random.default_rng(1000 + f)
-    out = out + rng.normal(0, 0.012, out.shape[:2])[..., None]
-    Image.fromarray((np.clip(out, 0, 1) * 255 + 0.5).astype(np.uint8)).save(os.path.join(S["out_dir"], f"{f:05d}.jpg"), quality=93)
+        crop += w * grade(plate * (1 - alpha) + np.clip(p, 0, 1) * alpha, M)
+    out[sl] = (np.clip(crop + S["grain"][gi][sl][..., None], 0, 1) * 255 + 0.5).astype(np.uint8)
+    Image.fromarray(out).save(os.path.join(S["out_dir"], f"{f:05d}.jpg"), quality=93)
     return f
 
 
@@ -169,8 +202,10 @@ def load_mood(work, m, size):
     _, light, (ref, fl, top), (sat, tint, con) = ES.PRESETS[m]
     factor, add = CP.relight_maps(base + "_lp.png", size, 1.0, 4, ref, fl, top)
     blur = np.asarray(Image.fromarray((plate * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(max(2, SW // 90)))).astype(np.float32) / 255.0
-    return {"plate": plate, "shadow": shadow, "factor": factor, "add": add, "blur": blur,
-            "room": blur.reshape(-1, 3).mean(0), "grade": (sat, np.array([float(v) for v in tint.split(",")], np.float32), con)}
+    M = {"plate": plate, "shadow": shadow, "factor": factor, "add": add, "blur": blur,
+         "room": blur.reshape(-1, 3).mean(0), "grade": (sat, np.array([float(v) for v in tint.split(",")], np.float32), con)}
+    M["graded"] = grade(plate, M).astype(np.float32)           # everything outside Pion's region, once per mood
+    return M
 
 
 def main():
@@ -198,10 +233,15 @@ def main():
     moods = sorted({m for _, m in segs})
     print("moods:", segs, flush=True)
 
-    # 1. Blender plates per mood (cached)
+    # 1. Blender plates per mood (cached; re-rendered when the castle scripts or the settings change)
+    import hashlib
+    src_key = hashlib.sha1(b"".join(open(os.path.join(HERE, n), "rb").read() for n in ("build_castle.py", "build_pion.py"))
+                           + f"{SW}x{SH}|{a.samples}|{a.novolume}".encode()).hexdigest()[:16]
     for m in moods:
         base = os.path.join(work, f"mood_{m}")
-        if all(os.path.isfile(base + s) for s in ("_bg.png", "_lp.png", "_sh_with.png", ".json")) and json.load(open(base + ".json")).get("W") == SW:
+        stamp = base + ".key"
+        if all(os.path.isfile(base + s) for s in ("_bg.png", "_lp.png", "_sh_with.png", ".json")) and \
+                os.path.isfile(stamp) and open(stamp).read() == src_key:
             continue
         print("blender:", m, flush=True)
         cmd = [BPY, os.path.join(HERE, "build_castle.py"), "--", "--out", base + ".blend", "--render", base + "_bg.png",
@@ -210,6 +250,7 @@ def main():
         if a.novolume:
             cmd.append("--novolume")
         run(cmd)
+        open(stamp, "w").write(src_key)
 
     # 2. engine Pion frames + track
     ecue = os.path.join(work, "engine_cues.txt")
@@ -217,7 +258,7 @@ def main():
     eng = os.path.join(work, "eng")
     print("engine...", flush=True)
     run(["node", "react_render.js", "--audio", os.path.abspath(a.audio), "--cues", ecue, "--out", eng,
-         "--png", "--blur", str(a.blur), "--bg", "black"], cwd=ENGINE)
+         "--png", "--blur", str(a.blur), "--bg", "black", "--jobs", str(a.jobs)], cwd=ENGINE)
     track = json.load(open(eng + "_track.json"))
     n, fps = len(track["frames"]), track["fps"]
 
@@ -234,8 +275,20 @@ def main():
     print("loading mood maps...", flush=True)
     G.update(size=(SW, SH), eng_dir=eng + "_frames", xf=(k, ecx, eb, pcx, y1), track=track["frames"], segs=segs, fps=fps,
              moods={m: load_mood(work, m, (SW, SH)) for m in moods}, pion_h=(ys.max() - ys.min()) * k,
-             pion_w=(xs.max() - xs.min()) * k, pcx=pcx, py1=y1, out_dir=out_dir,
-             grid=tuple(np.mgrid[0:SH, 0:SW].astype(np.float32)))
+             pion_w=(xs.max() - xs.min()) * k, pcx=pcx, py1=y1, out_dir=out_dir)
+    # Pion's floor shadow lives around his feet: keep it there (the clay passes carry faint noise elsewhere)
+    yy0, xx0 = np.mgrid[0:SH, 0:SW]
+    near = (np.abs(xx0 - pcx) < 1.6 * G["pion_w"]) & (yy0 > y1 - 0.45 * G["pion_h"])
+    sh_any = np.zeros((SH, SW), bool)
+    for m in moods:
+        Mm = G["moods"][m]
+        Mm["shadow"] = np.where(near, Mm["shadow"], 1.0).astype(np.float32)
+        sh_any |= Mm["shadow"] < 0.985
+    del yy0, xx0
+    ys2, xs2 = np.nonzero(sh_any)
+    G["shadow_box"] = (int(xs2.min()), int(ys2.min()), int(xs2.max()) + 1, int(ys2.max()) + 1) if len(xs2) else None
+    rng = np.random.default_rng(7)                           # film grain: a few precomputed frames, cycled
+    G["grain"] = [rng.normal(0, 0.012, (SH, SW)).astype(np.float32) for _ in range(6)]
     print(f"compositing {n} frames...", flush=True)
     with Pool(a.jobs) as pool:
         for i, _ in enumerate(pool.imap(comp_frame, range(n), chunksize=4)):
