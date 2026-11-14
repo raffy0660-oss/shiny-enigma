@@ -59,7 +59,8 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
      nangis tersedu girang bahagia cium lega gemas syok kesal ngiler merajuk memelas bosan cemas bangga ngamuk santai soktahu
      (`soktahu` = "well, actually" face: puts thick nerd glasses on and, unless another gesture covers it,
      takes the `nerd` pose by itself: right index finger up, an open "THE BOOK OF LARP" in the left hand, as if reading it)
-   - Gestures: up cheer present shrug wave point press clap lookout dance facepalm knock cross think phone paper throw hang fist write magnify nerd
+   - Gestures: up cheer present shrug wave point press clap lookout dance facepalm knock cross think phone paper throw hang fist write magnify nerd crownlift
+     (`crownlift`: one hand lifts the crown off, the bald head glints, the other hand points at it, then the crown goes back on)
    - `bg castle` / `bg hospital` puts Pion in a full commentary scene instead of green screen.
    - `light dir x y z key r g b amb r g b sky .. gnd .. rim .. exp v` overrides the toon light (to match a 3D plate).
    - `soktahu` also brings the "enlightenment" glow: the open book flares gold onto his face for ~1.5 s, then dims.

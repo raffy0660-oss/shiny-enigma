@@ -49,6 +49,12 @@ def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5,
     num = _blur((lc * la).astype(np.float32), r)
     den = _blur(la.astype(np.float32), r)
     filled = num / np.maximum(den, 1e-4)
+    # far outside the proxy (a lifted crown, a raised arm) the convolution has no samples: fall back to the
+    # average light on the body instead of black
+    ins = la[..., 0] > 0.5
+    avg = lc[ins].mean(0) if ins.any() else np.full(3, 0.5, np.float32)
+    cover = np.clip(den / 0.25, 0, 1)
+    filled = filled * cover + avg * (1 - cover)
     lc = lc * la + filled * (1 - la)
     lum = lc.mean(-1, keepdims=True)
     inside = (la[..., 0] > 0.5)

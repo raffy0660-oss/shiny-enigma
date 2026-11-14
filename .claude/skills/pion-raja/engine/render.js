@@ -159,6 +159,21 @@ function simulate(f) {
   lastF = f; for (const k of [...SNAP.keys()]) if (k < f - 4) SNAP.delete(k);
 }
 
+/* ---------- crown lift: a hand takes the crown off (shows the bald head) and puts it back ---------- */
+// timeline inside the gesture: reach .28 s (hand to the rim), lift .32 s, hold, lower over the last .45 s, hand leaves .2 s
+function crownLiftAt(t) {
+  for (const G of TL.gest) { if (G.type !== 'crownlift' || t < G.t0 || t > G.t1) continue;
+    const a = G.t0 + .28, b = a + .32, d = G.t1 - .2, c = d - .45;
+    const up = t < a ? 0 : t < b ? easeOutBack(clamp((t - a) / (b - a), 0, 1)) : t < c ? 1 : t < d ? 1 - easeIO((t - c) / (d - c)) : 0;
+    return { u: up, side: G.side || 1, G }; }
+  return { u: 0, side: 1, G: null };
+}
+// crown offset in the body frame: up and out to the hand's side, tipped toward that hand
+function crownLiftM(u, sd) { return mat.chain(mat.T(sd * .55 * u, 1.15 * u, .25 * u), mat.T(0, 3.55, 0), mat.RZ(-sd * .5 * u), mat.T(0, -3.55, 0)); }
+function crownRimPt(u, sd) { // where the hand holds the crown: just outside its band on the hand's side
+  const th = -sd * .5 * u, x = sd * 1.02, y = .12, c = Math.cos(th), s = Math.sin(th);
+  return [x * c - y * s + sd * .55 * u, 3.55 + x * s + y * c + 1.15 * u, .3 + .25 * u];
+}
 /* ---------- arms ---------- */
 function gEnv(G, t) { const r = Math.min(.16, (G.t1 - G.t0) / 3); return smooth(G.t0, G.t0 + r, t) * (1 - smooth(G.t1 - r, G.t1, t)); }
 const SHOULDER = side => [side * .27, 1.6, .1]; // ball (r .15) stays inside the body, caps the arm tube
@@ -205,6 +220,13 @@ function gestureState(t, o) {
       res[0] = { env, h: [-1.0, 2.95 + tap, .75], point: true, dir: d.map(v => v / dl) };
       res[1] = { env, h: [.62, 1.45 + .02 * Math.sin(ph * 2.3), 1.12] };
     }
+    else if (G.type === 'crownlift') { // one hand lifts the crown off, the other points at the bald head
+      const CL = crownLiftAt(t), h = crownRimPt(CL.u, sd0); h[1] += .02 * Math.sin(ph * 6) * CL.u;
+      res[k0] = { env, h };
+      const show = smooth(G.t0 + .45, G.t0 + .75, t) * (1 - smooth(G.t1 - .65, G.t1 - .4, t));
+      if (show > .02) { const hp = [-sd0 * 1.42, 3.3, .75], tg = [-sd0 * .1, 4.05, .3], dd = tg.map((v, i) => v - hp[i]), dl = Math.hypot(...dd);
+        res[1 - k0] = { env: env * show, h: hp, point: true, dir: dd.map(v => v / dl) }; }
+    }
     else if (G.type === 'phone') { res[k0] = { env, h: [sd0 * .95, 2.95 + .03 * Math.sin(ph * 5), .85] }; }      // holding a phone up beside the head (visible from front and back)
     else if (G.type === 'paper') { const b = .03 * Math.sin(ph * 4); res[0] = { env, h: [-.92, 2.0 + b, 1.0] }; res[1] = { env, h: [.92, 2.0 + b, 1.0] }; } // showing a sheet with both hands
     else if (G.type === 'throw') { // wind up behind the head, fling forward, follow through
@@ -248,6 +270,7 @@ function bodyPose(t) { // extra sway from gestures
     if (G.type === 'spank') { const u = ((t - G.t0) % .24) / .24; roll += -(G.side || 1) * (.1 + .08 * Math.sin(u * Math.PI * 2)) * env; }
     if (G.type === 'throw') { const u = (t - G.t0) / (G.t1 - G.t0); lean += (u < .45 ? -.12 * Math.sin(u / .45 * Math.PI / 2) : .16 * Math.sin(clamp((u - .45) / .4, 0, 1) * Math.PI)) * env; }
     if (G.type === 'cross') roll += -.05 * env;
+    if (G.type === 'crownlift') { roll += -(G.side || 1) * .05 * env; lean += -.05 * env; }
     if (G.type === 'knock') lean += .06 * env * Math.max(0, Math.sin((t - G.t0) * Math.PI * 2 * 3.5));
     if (G.type === 'shrug' || G.type === 'facepalm') roll += .07 * env; }
   return { roll, lean, yaw };
@@ -266,7 +289,8 @@ function posePion(base, t, gs, look, hurt) {
   const hb = HR ? mat.mul(base, HR) : base;
   const headM = mat.chain(hb, mat.T(hx * .8, 2.95 + hy * .9, hz * .8), mat.RX(hz * .7), mat.RZ(-hx * .7 + .03 * Math.sin(t * 2.1)), mat.S(1 / Math.sqrt(hs), .96 * hs, 1 / Math.sqrt(hs)));
   const cw = PH.cx ? [PH.cx.p, PH.cz.p, PH.cy.p] : [0, 0, 0]; // crown lags behind the head and wobbles on it (follow-through)
-  const crownM = mat.chain(hb, mat.T(hx * .9, 3.55 + hy * .9 + .96 * (hs - 1) + cw[2], hz * .9), mat.RX(hz * .7), mat.RZ(-.1 - hx * .7 + .03 * Math.sin(t * 2.1)), mat.T(0, -.35, 0), mat.RZ(cw[0] + .7 * hx), mat.RX(cw[1] - .7 * hz), mat.T(0, .35, 0));
+  const CLf = crownLiftAt(t), hbC = CLf.u ? mat.mul(hb, crownLiftM(CLf.u, CLf.side)) : hb;
+  const crownM = mat.chain(hbC, mat.T(hx * .9, 3.55 + hy * .9 + .96 * (hs - 1) + cw[2], hz * .9), mat.RX(hz * .7), mat.RZ(-.1 - hx * .7 + .03 * Math.sin(t * 2.1)), mat.T(0, -.35, 0), mat.RZ(cw[0] + .7 * hx), mat.RX(cw[1] - .7 * hz), mat.T(0, .35, 0));
   const crownH = hurt ? mat.chain(crownM, mat.T(.2 * hurt, -.12 * hurt, .05), mat.RZ(-.42 * hurt), mat.RX(.12 * hurt)) : crownM; // knocked askew
   const collarM = mat.chain(base, mat.T(0, 2.05, 0), mat.S(1, 1, .8));
   deformCape(t);
@@ -285,7 +309,7 @@ function posePion(base, t, gs, look, hurt) {
     const shM = mat.chain(base, mat.T(...S), mat.S(g.env, g.env, g.env));
     arms.push({ mesh: M.arm[k], handM, fing, tip, shM }); hands[k] = { M: handM, env: g.env, p: Hh };
   }
-  return { headM, crownM: crownH, collarM, arms, hands };
+  return { headM, crownM: crownH, collarM, arms, hands, crownLift: CLf.u };
 }
 // face: {ex: exprAt(), blink, talk: 0..3, exp, tint}
 function drawPion(PP, base, VP, L, face) {
@@ -313,7 +337,7 @@ function drawPion(PP, base, VP, L, face) {
   drawToon(M.body, base, VP, L, { vc: true, ao: [1.55, 2.02, 9, 10, .32] });     // body darkens under the fur collar
   for (const r of M.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: RINGC });
   drawToon(M.collar, collarM, VP, L, { vc: true });
-  drawToon(M.head, headM, VP, L, { vc: true, ao: [-.5, -.86, .36, .64, .26] }); // chin over the collar, forehead under the crown
+  drawToon(M.head, headM, VP, L, { vc: true, ao: [-.5, -.86, .36, .64, .26 * (1 - clamp(PP.crownLift || 0, 0, 1))] }); // chin over the collar, forehead under the crown
   const GS = .85; // toon specular + fresnel glint on gold
   if (det) { drawToon(M.hatDome, hatM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBrim, brimM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBow, bowM, VP, L, { color: [.3, .18, .09], noSoot: true }); }
   if (!det) drawToon(M.crownBand, crownM, VP, L, { color: GOLD, dbl: true, spec: GS });

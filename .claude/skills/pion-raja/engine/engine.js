@@ -632,8 +632,12 @@ function buildArm(mesh, S, E, Hh, rad0, rad1) { // quadratic bezier S->Hh with c
   for (let i = 0; i < ARM_N; i++) {
     const p = pts[i], a = pts[Math.max(i - 1, 0)], b = pts[Math.min(i + 1, ARM_N - 1)];
     let t = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]; const tl = Math.hypot(...t) || 1; t = t.map(v => v / tl);
-    let ref = Math.abs(t[1]) > .9 ? [1, 0, 0] : [0, 1, 0];
-    let s = [t[1] * ref[2] - t[2] * ref[1], t[2] * ref[0] - t[0] * ref[2], t[0] * ref[1] - t[1] * ref[0]]; const sl = Math.hypot(...s) || 1; s = s.map(v => v / sl);
+    // rotation-minimising frame: carry the previous ring's side vector along the arm (a fixed reference
+    // vector flips when the arm passes vertical, which twists the tube and spikes its outline)
+    let s;
+    if (i && buildArm.ps) { const q = buildArm.ps, dq = q[0] * t[0] + q[1] * t[1] + q[2] * t[2]; s = [q[0] - dq * t[0], q[1] - dq * t[1], q[2] - dq * t[2]]; }
+    if (!s || Math.hypot(...s) < 1e-4) { const ref = Math.abs(t[1]) > .9 ? [1, 0, 0] : [0, 1, 0]; s = [t[1] * ref[2] - t[2] * ref[1], t[2] * ref[0] - t[0] * ref[2], t[0] * ref[1] - t[1] * ref[0]]; }
+    const sl = Math.hypot(...s) || 1; s = s.map(v => v / sl); buildArm.ps = s;
     const u = [t[1] * s[2] - t[2] * s[1], t[2] * s[0] - t[0] * s[2], t[0] * s[1] - t[1] * s[0]];
     const rad = lerp(rad0, rad1, i / (ARM_N - 1));
     for (let j = 0; j <= ARM_R; j++) { const ang = j / ARM_R * Math.PI * 2, c = Math.cos(ang), sn = Math.sin(ang); P[vi * 3] = p[0] + (s[0] * c + u[0] * sn) * rad; P[vi * 3 + 1] = p[1] + (s[1] * c + u[1] * sn) * rad; P[vi * 3 + 2] = p[2] + (s[2] * c + u[2] * sn) * rad; vi++; }

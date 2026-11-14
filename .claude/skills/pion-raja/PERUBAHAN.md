@@ -1,5 +1,13 @@
 # Pion Raja: catatan perubahan
 
+## v3.1: gesture crownlift, lengan tidak terpuntir, relight castle3d tidak menghitam
+- **`gest crownlift [dur] [kiri|kanan]`**: tangan meraih mahkota (.28 s), mengangkatnya (.32 s), tahan, lalu memasang
+  lagi (.45 s terakhir). Kepala botak berkilau "ting", tangan lain menunjuk kepala, AO dahi dari mahkota ikut hilang.
+- **Lengan**: tabung lengan memakai frame rotation-minimising. Sebelumnya frame berbalik saat lengan melewati
+  vertikal, tabung terpuntir dan muncul duri gelap di outline (terlihat di gesture tangan ke atas).
+- **castle3d `comp_pion.relight`**: bagian Pion di luar siluet proxy (mahkota diangkat, lengan tinggi) dulu dikali
+  cahaya 0 jadi hitam; sekarang memakai rata-rata cahaya di badan.
+
 ## v3: 33 ekspresi, pose soktahu, istana 3D dengan cahaya per emosi
 - **18 ekspresi baru** (dari desain Pion 2D lama, digambar ulang dengan gaya wajah engine): `nangis` `tersedu`
   `girang` `bahagia` `cium` `lega` `gemas` `syok` `kesal` `ngiler` `merajuk` `memelas` `bosan` `cemas` `bangga`

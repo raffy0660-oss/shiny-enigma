@@ -347,6 +347,12 @@ function drawMoney(gB, gF, t, E, cam) { // bills orbiting the pion (behind / in 
     const r = cam.ppu * .18 * tw * inA, gr = gF.createRadialGradient(q[0], q[1], 0, q[0], q[1], r); gr.addColorStop(0, 'rgba(255,250,200,1)'); gr.addColorStop(.3, 'rgba(255,215,80,.7)'); gr.addColorStop(1, 'rgba(255,200,60,0)'); gF.fillStyle = gr; gF.beginPath(); gF.arc(q[0], q[1], r, 0, 7); gF.fill(); }
   gF.restore();
 }
+function drawGlint(g, x, y, R, e) { // 4-point star 'ting' on a shiny bald head
+  if (e < 0 || e > .55) return; const q = e / .55, s = R * Math.sin(Math.min(1, q * 1.6) * Math.PI) ; if (s <= 0) return;
+  g.save(); g.translate(x, y); g.rotate(q * .9); g.fillStyle = '#ffffff'; g.shadowColor = 'rgba(255,250,215,.95)'; g.shadowBlur = R * .5;
+  for (const [k, w] of [[1, .16], [.55, .1]]) { g.beginPath(); for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, r = i % 2 ? s * w : s * k; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); } g.closePath(); g.fill(); g.rotate(Math.PI / 4); }
+  g.restore();
+}
 function drawSparkle(g, x, y, R, e) { // little star burst (prop appears)
   if (e < 0 || e > .5) return; const q = e / .5; g.save(); g.globalAlpha = 1 - q; g.strokeStyle = '#fff6b0'; g.lineWidth = Math.max(3, R * .06); g.lineCap = 'round';
   for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, r0 = R * (.3 + .6 * q), r1 = r0 + R * .35 * (1 - q); g.beginPath(); g.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0); g.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1); g.stroke(); }
@@ -432,6 +438,8 @@ function drawReact(f, u) {
   drawSub(fx, t);
   for (const E of fxActive('say', t)) drawBubble(fx, t, head, E);
   for (const E of fxActive('money', t)) drawMoney(trailCtx, fx, t, E, cam);
+  for (const G of TL.gest) if (G.type === 'crownlift' && t >= G.t0 + .5 && t < G.t0 + 1.2) { // crown is up: shine on the bald scalp
+    const q = pix(PP.headM, [.32, .82, .45]); drawGlint(fx, q[0], q[1], cam.ppu * .55, t - G.t0 - .55); }
   for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw' || G.type === 'nerd') && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears
     const Hd = PP.hands[(G.side || 1) > 0 ? 1 : 0] || PP.hands[0]; if (!Hd) continue; const w = mat.xform(Hd.M, [0, 0, 0, 1]), q = cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]);
     drawSparkle(fx, q[0], q[1], cam.ppu * 1.1, t - G.t0 - .1); }

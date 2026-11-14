@@ -65,7 +65,7 @@ function analyse(file) {
 //   <t> hover off|on                 gentle floating (on by default)
 const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
   'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu'];
-const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd'];
+const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift'];
 function parseCues(txt) {
   const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], bg: null, frame: null, frameOverride: null }, warn = [];
   const time = s => { const m = s.split(':').map(Number); return m.length > 1 ? m[0] * 60 + m[1] : m[0]; };

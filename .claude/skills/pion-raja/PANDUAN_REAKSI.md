@@ -52,7 +52,7 @@ sudah ada gesture lain).
 ## Gesture
 `shrug` (angkat bahu) · `facepalm` · `point` (nunjuk, bisa ke titik layar) · `clap` · `cross` (tangan bersilang)
 · `lookout` (tangan di dahi, celingukan) · `up` / `cheer` (tangan ke atas) · `wave` · `dance` · `present`
-· `knock` · `press` · `nerd` (telunjuk ke atas + baca buku terbuka)
+· `knock` · `press` · `nerd` (telunjuk ke atas + baca buku terbuka) · `crownlift` (satu tangan mengangkat mahkota, kepala botak berkilau "ting", tangan lain menunjuk kepala, lalu mahkota dipasang lagi; contoh `0.6 gest crownlift 1.75 kanan`)
 
 ## Contoh file cue
 ```
