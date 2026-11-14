@@ -442,7 +442,7 @@ function faceCanvas(kind, closed, talk) { // talk: 0 = expression's own mouth, 1
   } else if (kind === 'soktahu') { // "well, actually": big round eyes looking up, brows raised, buck teeth, freckles (+ nerd glasses)
     line(-ex - 30, -94, -ex + 26, -102); line(ex + 30, -100, ex - 26, -108);
     if (closed) shut(6, 30); else for (const s of [-1, 1]) { g.save(); g.lineWidth = 12; g.fillStyle = WH; g.beginPath(); g.arc(s * ex, 4, 34, 0, 7); g.fill(); g.stroke();
-      g.fillStyle = BR; g.beginPath(); g.arc(s * ex + 4, -4, 16, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(s * ex - 2, -10, 6, 0, 7); g.fill(); g.restore(); }
+      g.fillStyle = BR; g.beginPath(); g.arc(s * ex + 13, 15, 16, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(s * ex + 8, 9, 6, 0, 7); g.fill(); g.restore(); } // looking down at the book
     g.save(); g.fillStyle = '#b8481f'; for (const s of [-1, 1]) for (const [dx, dy] of [[-12, 0], [8, 8], [0, -10], [18, -4]]) { g.beginPath(); g.arc(s * 138 + dx, 52 + dy, 4.5, 0, 7); g.fill(); } g.restore();
     if (mouth) { g.beginPath(); g.moveTo(-28, 64); g.quadraticCurveTo(0, 72, 28, 64); g.stroke(); g.save(); g.fillStyle = TEETH; g.lineWidth = 7; for (const x of [-16, 1]) { g.beginPath(); g.rect(x, 67, 15, 22); g.fill(); g.stroke(); } g.restore(); }
   }
