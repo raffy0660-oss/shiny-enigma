@@ -42,6 +42,16 @@ def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5,
     """Multiply the room's light (Blender clay proxy) onto the engine Pion, cel-banded."""
     Lp = Image.open(light_png).convert("RGBA").resize(size, Image.LANCZOS)
     Lf = np.asarray(Lp).astype(np.float32) / 255.0
+    # closing (dilate then erode) on the light colour: removes thin dark grooves of the proxy (cape edges, crown
+    # band seam) that would otherwise print as dark / red lines across the engine Pion's ermine and face
+    n = max(3, (size[0] // 70) | 1)
+    try:
+        import cv2
+        ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
+        Lf[..., :3] = cv2.morphologyEx(np.ascontiguousarray(Lf[..., :3]), cv2.MORPH_CLOSE, ker)
+    except ImportError:
+        rgb8 = Image.fromarray((Lf[..., :3] * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(n)).filter(ImageFilter.MinFilter(n))
+        Lf[..., :3] = np.asarray(rgb8).astype(np.float32) / 255.0
     lc, la = Lf[..., :3], Lf[..., 3:4]
     # fill outside the proxy silhouette (engine and proxy outlines differ a little):
     # normalised convolution of the premultiplied light
