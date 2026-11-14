@@ -78,6 +78,10 @@ function parseCues(txt) {
       C.light = C.light || {}; for (let i = 1; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; C.light[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
       return; }
     if (w[0] === 'face') { C.faceCy = +w[1]; return; }
+    if (w[0] === 'acting' || w[0] === 'gerak') { C.acting = +(w[1] ?? 1); return; }  // automatic acting layer strength (0 = off, default 1)
+    if (w[1] === 'light' && !isNaN(+w[0])) { // timed light: <t> light dir .. key .. -> crossfades (0.4 s) from the previous light
+      const L = {}; for (let i = 2; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; L[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
+      (C.lights = C.lights || []).push({ t: +w[0], L }); return; }
     if (w[0] === 'hurt') { C.hurt = +(w[1] ?? 1); return; }
     if (w[0] === 'frame') { const v = w[1] || 'close'; if (v.includes(',')) { const [cy, vh, cx] = v.split(',').map(Number); C.frameOverride = { cy, vh, cx: cx || 0 }; } else C.frame = v; return; }
     const t = time(w[0]) - (arg('local') ? 0 : START), cmd = (w[1] || '').toLowerCase();
@@ -171,22 +175,20 @@ async function openPage(data) {
     ex.forEach(([t0, k], i) => { if (k !== 'soktahu') return; const t1 = i + 1 < ex.length ? ex[i + 1][0] : tEnd;
       if (!cues.gest.some(G => G.t0 < t1 && G.t1 > t0)) cues.gest.push({ t0, t1, type: 'nerd', side: 1, auto: true }); });
   }
-  // autozoom: micro punch-ins every N words (from `word` cues, else every 2N syllables), level cycling, '!' words punch
-  const zooms = [];
+  // autozoom -> camera plan (engine/camplan.js): sampled per frame here, read by react.js camAt()
+  let camz = null;
   if (cues.az && cues.az.length) {
-    const az = cues.az.slice().sort((p, q) => p.t - q.t), seg = t => { let S = null; for (const A of az) if (A.t <= t + 1e-6) S = A.off ? null : A; return S; };
-    const LV = [1.07, 1.0, 1.11, 1.035, 1.09, 1.0];
-    let marks = (cues.subs || []).slice().sort((p, q) => p[0] - q[0]).map(([t, txt]) => ({ t, bang: /!/.test(txt) }));
-    if (!marks.length) for (let f = 0; f < au.n; f++) if (au.onset[f] > 0) marks.push({ t: f / FPS + (arg('local') ? 0 : START), bang: false });
-    const per = cues.subs && cues.subs.length ? 1 : 2; let cnt = {}, li = 0;
-    for (const M of marks) { const S = seg(M.t); if (!S) continue; const k = az.indexOf(S); cnt[k] = (cnt[k] || 0) + 1;
-      if (M.bang) { zooms.push({ t: M.t, z: 1 + .16 * S.amt, punch: true }); continue; }
-      if ((cnt[k] - 1) % (S.every * per)) continue;
-      zooms.push({ t: M.t, z: 1 + (LV[li++ % LV.length] - 1) * S.amt }); }
-    for (const A of az) if (A.off) zooms.push({ t: A.t, z: 1, slow: true });
-    zooms.sort((p, q) => p.t - q.t);
+    const CP = require('./camplan.js'), off = arg('local') ? 0 : START;
+    const onsets = []; for (let f = 0; f < au.n; f++) if (au.onset[f] > 0) onsets.push(f / FPS + off);
+    const keys = CP.planCamera({ words: (cues.subs || []).map(([t, text]) => ({ t, text })), exprs: cues.expr, az: cues.az, onsets });
+    camz = []; for (let f = 0; f < au.n; f++) { const c = CP.camAtPlan(keys, f / FPS + off); camz.push([c.z, c.ox, c.oy, c.roll].map(v => +v.toFixed(5))); }
+    if (arg('camplan')) fs.writeFileSync(String(arg('camplan')), JSON.stringify(keys, null, 1));
   }
-  const data = { fps: FPS, n: au.n, zooms, env: au.env, onset: au.onset, jelly: JELLY, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
+  // acting layer events: '!' words (emphasis hop) and expression changes (a little "take")
+  const off0 = arg('local') ? 0 : START, fr0 = t => Math.round((t - off0) * FPS);
+  const bangF = (cues.subs || []).filter(([, txt]) => /!/.test(txt)).map(([t]) => fr0(t));
+  const ex = cues.expr.slice().sort((p, q) => p[0] - q[0]), takeF = ex.filter((e, i) => i > 0 && e[1] !== ex[i - 1][1]).map(([t]) => fr0(t));
+  const data = { fps: FPS, n: au.n, camz, acting: cues.acting ?? 1, bangF, takeF, lights: (cues.lights || []).sort((p, q) => p.t - q.t), env: au.env, onset: au.onset, jelly: JELLY, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
   for (const [bt, s] of cues.boing) { const f = Math.round(bt * FPS); if (f >= 0 && f < data.n) data.onset[f] = Math.max(data.onset[f], s); }
   for (const S of cues.say || []) { // speech bubble: fake syllables drive the mouth + jelly
     const syl = Math.max(2, Math.round(S.text.replace(/[^a-z]/gi, '').length / 2.2)), f0 = Math.round(S.t * FPS), f1 = Math.round((S.t + S.dur) * FPS);
@@ -212,12 +214,13 @@ async function openPage(data) {
 
   const dir = OUT + '_frames'; fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
   const frames = Array.from({ length: au.n }, (_, i) => i), JOBS = Math.max(1, Math.min(+arg('jobs', Math.min(6, Math.max(1, os.cpus().length - 1))), frames.length));
-  const per = Math.ceil(frames.length / JOBS), t0 = Date.now(); let done = 0;
+  const per = Math.ceil(frames.length / JOBS), t0 = Date.now(); let done = 0; const track = new Array(frames.length).fill(null);
   await Promise.all(Array.from({ length: JOBS }, (_, j) => frames.slice(j * per, (j + 1) * per)).filter(c => c.length).map(async list => {
     const { b, p } = await openPage(data);
     for (const f of list) {
       const png = await p.evaluate(([f, mb]) => mb ? window.grabReactMB(f, null) : (window.renderReact(f), window.grabReact(null)), [f, BLUR > 1]);
       fs.writeFileSync(path.join(dir, String(f).padStart(5, '0') + '.png'), Buffer.from(png, 'base64'));
+      track[f] = await p.evaluate(() => window.__track || null);
       if (++done % 60 === 0 || done === frames.length) console.log(`frame ${done}/${frames.length}  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
     }
     await b.close();
@@ -235,6 +238,7 @@ async function openPage(data) {
     execFileSync('ffmpeg', ['-y', '-v', 'error', ...pngs, ...aud, '-map', '0:v', ...(AUDIO ? ['-map', '1:a', '-c:a', 'pcm_s16le'] : []), '-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le', '-shortest', mov]);
     console.log('->', mov);
   }
+  fs.writeFileSync(OUT + '_track.json', JSON.stringify({ fps: FPS, W: RW, H: RH, frames: track })); // Pion's screen position per frame (castle3d follows it)
   if (!arg('png')) fs.rmSync(dir, { recursive: true, force: true }); else console.log('-> PNG transparan:', dir);
   console.log('selesai dalam', ((Date.now() - t0) / 1000).toFixed(0) + 's');
 })();

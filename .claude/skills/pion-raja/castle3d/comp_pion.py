@@ -83,6 +83,13 @@ def _lift_islands(idx, inside, f=4, max_frac=0.25):
 
 def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5, top=1.4):
     """Multiply the room's light (Blender clay proxy) onto the engine Pion, cel-banded."""
+    factor, add = relight_maps(light_png, size, strength, bands, ref_pct, floor, top)
+    out = rgb * factor + add
+    return out * alpha + rgb * (1 - alpha)
+
+
+def relight_maps(light_png, size, strength, bands, ref_pct=55, floor=0.5, top=1.4):
+    """The relight as two screen maps (computed once per mood): out = pion_rgb * factor + add."""
     Lp = Image.open(light_png).convert("RGBA").resize(size, Image.LANCZOS)
     Lf = np.asarray(Lp).astype(np.float32) / 255.0
     lc, la = Lf[..., :3], Lf[..., 3:4]
@@ -92,6 +99,15 @@ def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5,
     num = _blur((lc * la).astype(np.float32), r)
     den = _blur(la.astype(np.float32), r)
     filled = num / np.maximum(den, 1e-4)
+    # far from the proxy (arms out in a gesture, a hop) the small fill has no data: fall back to a wide
+    # fill, then to the body's average light, so hands never go black
+    R2 = max(8, size[0] // 8)
+    num2 = _blur((lc * la).astype(np.float32), R2); den2 = _blur(la.astype(np.float32), R2)
+    wide = num2 / np.maximum(den2, 1e-4)
+    ins = la[..., 0] > 0.5
+    avg = lc[ins].mean(0) if ins.any() else lc.reshape(-1, 3).mean(0)
+    wide = wide * np.clip(den2 / 0.05, 0, 1) + avg * (1 - np.clip(den2 / 0.05, 0, 1))
+    filled = filled * np.clip(den / 0.2, 0, 1) + wide * (1 - np.clip(den / 0.2, 0, 1))
     lc = lc * la + filled * (1 - la)
     lum = lc.mean(-1, keepdims=True)
     inside = (la[..., 0] > 0.5)
@@ -120,8 +136,7 @@ def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5,
     factor = 1 + (factor - 1) * strength
     # rim: the brightest light (window behind) adds a warm edge, not just a multiply
     rim = np.clip(lum / max(ref, 1e-4) - 1.45, 0, 1) * 0.35 * strength
-    out = rgb * factor + rim * tint * 0.6
-    return out * alpha + rgb * (1 - alpha)
+    return factor.astype(np.float32), (rim * tint * 0.6).astype(np.float32)
 
 
 def main():

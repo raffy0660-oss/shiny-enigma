@@ -1,0 +1,21 @@
+{
+  "name": "pion-castle-remotion",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Remotion finisher for Pion castle videos: smooth camera plan (zoom, corner, dutch angle), camera motion blur, vignette, audio.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render PionCastle out/pion.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.543",
+    "@remotion/motion-blur": "4.0.543",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.543"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.8",
+    "typescript": "5.8.3"
+  }
+}

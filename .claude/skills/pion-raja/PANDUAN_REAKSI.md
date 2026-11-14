@@ -81,14 +81,29 @@ node react_render.js --audio vo.m4a --cues cues.txt --out hasil/reaksi1
 - `--alpha` tambah `.mov` transparan ProRes 4444 (besar, ~30 MB/detik) · `--png` simpan PNG transparan
 - `--start 12 --dur 8` pakai sebagian audio saja · `--preview 1,2.5,4` cek cepat beberapa momen jadi satu gambar
 
-## Micro zoom otomatis (zoom in / zoom out tiap beberapa kata)
-`0.0 autozoom` mengaktifkan micro zoom: setiap **3 kata** (`word`), kamera "snap" cepat ke level zoom
-berikutnya (bergantian dekat, normal, lebih dekat, sedikit...), lalu pelan-pelan maju sampai ganti level.
-Kata yang mengandung **`!`** (misal `word SALAH!`) dapat punch zoom paling besar, lalu turun lagi.
-Pusat zoom di wajah Pion.
-`word` sekarang hanya penanda waktu kata (tidak ditampilkan; engine tidak lagi menggambar subtitle).
-- `0.0 autozoom 2` tiap 2 kata · `0.0 autozoom 4 0.6` tiap 4 kata, lebih halus · `0.0 autozoom 3 1.5` lebih kuat
-- `5.2 autozoom off` berhenti (balik pelan ke framing normal), bisa dinyalakan lagi di waktu lain.
-- Tanpa cue `word`, ritmenya diambil dari suku kata yang terdeteksi di audio.
-- Untuk video yang sudah jadi (misal hasil istana 3D): `python3 microzoom.py --in hasil.mp4 --out hasil_zoom.mp4 --cues cues.txt`
-  (`--every 3 --amt 1.0`, pusat `--focus x,y` atau `--bbox` dari castle3d).
+## Kamera otomatis (zoom tiap beberapa kata)
+`0.0 autozoom` mengaktifkan rencana kamera (`engine/camplan.js`):
+- Setiap **3 kata** (`word`), kamera zoom halus (0,55 detik, tanpa momentum/getar) ke level berikutnya:
+  **1,18x → 1,34x → 1,5x**, lalu bergantian 1,38x/1,5x. Level itu **ditahan** sampai titik zoom berikutnya.
+- Kata dengan **`!`** (misal `word SALAH!`) langsung ke **1,5x** dan ditahan.
+- Tiap **atmosfer** (mood cahaya dari ekspresi, `engine/moods.json`) punya sudut sendiri: kamera **bergeser ke pojok
+  dan sedikit miring**. Sudut itu ditahan sampai mood berganti.
+- Saat **mood berganti**: zoom out ke normal (0,7 detik), lalu zoom lagi dengan sudut berikutnya.
+- `0.0 autozoom 2` tiap 2 kata · `0.0 autozoom 4 0.6` tiap 4 kata, lebih halus · `5.2 autozoom off` berhenti.
+- `word` hanya penanda waktu kata (tidak ditampilkan). Tanpa `word`, ritmenya dari suku kata di audio.
+- Video yang sudah jadi: `python3 microzoom.py --in hasil.mp4 --out hasil_zoom.mp4 --cues cues.txt` (zoom tanpa sudut).
+- Video istana 3D: `castle3d/castle_video.py` memakai rencana kamera yang sama lewat Remotion.
+
+## Gerakan otomatis (`acting`)
+Pion bergerak sendiri mengikuti suara (default nyala):
+- goyang berat badan pelan dan condong ke depan saat bicara;
+- memantul kecil dan mengangguk di suku kata yang ditekan;
+- **lompat kecil** di kata dengan `!`;
+- "take" (memiringkan kepala sambil memantul) setiap ganti ekspresi;
+- melirik kiri-kanan saat diam.
+
+`acting 0` mematikan, `acting 0.5` lebih halus, `acting 1.5` lebih heboh.
+
+## Cahaya per waktu
+`3.2 light dir .. key .. amb .. rim .. exp 1` mengganti cahaya Pion mulai detik 3,2 (crossfade 0,4 detik).
+`light ...` tanpa waktu tetap berlaku untuk seluruh video.

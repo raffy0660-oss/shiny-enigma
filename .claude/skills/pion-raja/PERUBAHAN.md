@@ -16,6 +16,11 @@
   Panduan: `castle3d/PANDUAN_ISTANA3D.md`.
 - **Micro zoom otomatis**: cue `autozoom` (zoom snap tiap N kata, level bergantian, punch di kata dengan `!`, pusat di
   wajah) dan `engine/microzoom.py` untuk video yang sudah jadi.
+- **Kamera baru (`camplan.js`)**: zoom bertahap sampai 1,5x yang halus tanpa momentum/getar dan ditahan sampai kata
+  berikutnya, sudut + kemiringan per atmosfer, zoom out tiap ganti mood. Dipakai engine dan Remotion.
+- **Gerakan otomatis (`acting`)**: goyang, condong, memantul, lompat di "!", "take" saat ganti ekspresi, melirik saat diam.
+- **Video istana `castle_video.py` + Remotion**: plate bersih per mood, bayangan Pion dan cahaya di badannya ikut
+  bergerak bersama Pion, crossfade antar mood, kamera halus + motion blur kamera, audio.
 - **Subtitle karaoke dihapus** dari engine. Cue `word` tetap ada sebagai penanda waktu kata (untuk `autozoom`).
 
 ## v2: gerak lebih halus, bayangan lebih bagus, menyatu dengan video

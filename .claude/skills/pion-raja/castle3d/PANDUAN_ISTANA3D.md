@@ -17,6 +17,28 @@ Memasang lib EGL/GL, Blender 5.2 sebagai modul Python (`/opt/bpyenv`), numpy/pil
 engine ke `~/pion/pion_raja`. Butuh Python 3.13, ffmpeg, Node + Playwright (sudah ada di sesi cloud).
 Opsional: pasang skill `scenario-blender-lighting-rendering` untuk bloom + vignette halus (kalau tidak ada, dilewati).
 
+## Video jadi (paling lengkap): `castle_video.py`
+```bash
+cd .claude/skills/pion-raja/castle3d
+python3 castle_video.py --cues cues.txt --audio vo.wav --out pion.mp4 --res 1080x1350
+```
+Satu file cue mengatur semuanya:
+- **Ekspresi** menentukan mood cahaya. Saat mood berganti, ruangan dan cahaya di Pion crossfade 0,5 detik.
+- **`word` + `autozoom`** menentukan kamera (`engine/camplan.js`):
+  - zoom bertahap 1,18x → 1,34x → 1,5x, transisi halus 0,55 detik tanpa momentum atau getar;
+  - level zoom **ditahan** sampai titik zoom berikutnya, dan kata dengan `!` langsung ke 1,5x;
+  - tiap mood punya **sudut sendiri**: kamera bergeser ke pojok dan sedikit miring, ditahan selama mood itu;
+  - saat mood berganti, kamera **zoom out ke normal** lalu mulai zoom lagi dengan sudut berikutnya.
+- **Gerakan Pion** (gesture, `acting`, terbang) membuat **bayangan di lantai dan cahaya di badannya ikut bergerak**.
+  Bayangan ikut bergeser dan menipis saat Pion melompat. Tidak ada bekas bayangan yang diam.
+- **Remotion** (`castle3d/remotion`) merakit hasil akhir: kamera, motion blur kamera, vignette, audio.
+  Scene dirender 1,5x lebih besar dari output, jadi zoom 1,5x tetap tajam.
+
+Hasil per mood di-cache di folder `--work`, jadi render ulang (misal ganti cue) hanya mengulang engine dan compositing.
+Waktu kira-kira: plate Blender sekitar 5-6 menit per mood di 1080x1350, compositing sekitar 0,3 detik per frame
+(4 core), Remotion dengan motion blur kamera 6 sampel beberapa menit per 10 detik video. `--camblur 1` mematikan blur kamera,
+`--blur 1` mematikan motion blur engine, `--novolume` tanpa kabut (lebih cepat).
+
 ## Cara tercepat: satu frame per mood
 ```bash
 cd .claude/skills/pion-raja/castle3d
