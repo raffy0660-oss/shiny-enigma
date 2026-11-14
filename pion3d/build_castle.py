@@ -552,68 +552,55 @@ def swag(name, x0, x1, y, z_top, drop, scallops, mat, depth=0.35):
     return o, edge
 
 
+def _hanging_drape(name, x_in, x_out, y, z_top, mat, folds=6):
+    """Floor-length curtain inside the hall between x_in and x_out, pinched by a tie-back."""
+    nx, nz = 50, 50
+    bm_ = bmesh.new(); grid = []
+    for j in range(nz + 1):
+        v = j / nz
+        tb = math.exp(-((v - 0.4) / 0.11) ** 2)
+        row = []
+        for i in range(nx + 1):
+            u = i / nx
+            x = x_out + (x_in - x_out) * u * (1 - 0.45 * tb)          # gathered toward the wall side
+            fold = (0.25 + 0.15 * tb) * math.sin(u * folds * math.pi)
+            row.append(bm_.verts.new((x, y + fold, v * z_top)))
+        grid.append(row)
+    for j in range(nz):
+        for i in range(nx):
+            bm_.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+    me = bpy.data.meshes.new(name); bm_.to_mesh(me); bm_.free()
+    o = BP.new_obj(name, me); BP.smooth(o)
+    sol = o.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.05
+    BP.assign(o, mat)
+    return o
+
+
 def build_drapes(res, gold):
-    """Red velvet framing like a stage: a festoon valance across the top of the shot, curtains
-    peeking in at the left and right edges (close to camera, a little soft), and deeper swags
-    across the hall's ceiling."""
+    """Red velvet inside the hall (never in front of the lens): two fabric arches across the room,
+    each a festoon under the ceiling with floor-length curtains at its ends, so the top of the shot
+    reads as a red cloth 'roof' and a little red shows at the left and right edges."""
     drape = mat_drape()
-    cam = bpy.context.scene.camera
-    W, H = res
-    d = 5.6                                            # depth of the foreground drapery in front of the lens
-    y = cam.location.y + d
-    half_w = d * (cam.data.sensor_width / 2) / cam.data.lens * (W / max(W, H))
-    top = cam.location.z + d * ((cam.data.sensor_width / 2) / cam.data.lens * (H / max(W, H)) + cam.data.shift_y * cam.data.sensor_width / cam.data.lens)
-    # valance: its lowest point reaches ~12 % into the frame
-    o, edge = swag("Valance", -half_w * 1.3, half_w * 1.3, y, top + 0.3, 1.8, 4, drape)
-    trim = BP.tube("ValanceTrim", edge, 0.05, 10, cap=True); BP.assign(trim, gold)
-    for k in range(5):
-        x = -half_w * 1.3 + k * (2.6 * half_w / 4)
-        tz = top + 0.3 - 1.8 * 0.35
-        c = BP.cone(f"Tassel_{k}", 0.12, 0.55, 16); c.location = (x, y - 0.05, tz - 0.6); c.rotation_euler = (math.pi, 0, 0)
-        BP.assign(c, gold)
-        b = BP.uv_sphere(f"TasselKnot_{k}", 0.1, 16, 8, loc=(x, y - 0.05, tz - 0.02)); BP.assign(b, gold)
-    # side curtains: only their inner ~10 % of the frame shows, gathered with a gold tie-back
-    for sx in (-1, 1):
-        inner = sx * half_w * 0.84
-        nx, nz = 60, 50
-        bm_ = bmesh.new(); grid = []
-        hgt = top + 1.0
-        for j in range(nz + 1):
-            v = j / nz
-            tb = math.exp(-((v - 0.42) / 0.12) ** 2)           # tie-back pinch
-            row = []
-            for i in range(nx + 1):
-                u = i / nx
-                xw = 3.2 * (1 - 0.35 * tb)
-                x = inner + sx * u * xw
-                fold = (0.22 + 0.15 * tb) * math.sin(u * 7 * math.pi)
-                row.append(bm_.verts.new((x, y + 0.2 + fold, v * hgt)))
-            grid.append(row)
-        for j in range(nz):
-            for i in range(nx):
-                bm_.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
-        me = bpy.data.meshes.new(f"SideDrape_{sx}"); bm_.to_mesh(me); bm_.free()
-        o = BP.new_obj(f"SideDrape_{sx}", me); BP.smooth(o)
-        sol = o.modifiers.new("Solid", "SOLIDIFY"); sol.thickness = 0.05
-        BP.assign(o, drape)
-        rope = BP.torus(f"SideTie_{sx}", 0.5, 0.07, 32, 10, loc=(inner + sx * 0.9, y + 0.1, 0.42 * hgt))
-        rope.rotation_euler = (math.pi / 2, 0, 0); BP.assign(rope, gold)
-    # the foreground drapes sit outside the room's light: give them their own warm key, linked to them only
     coll = bpy.data.collections.new("Drapes"); bpy.context.scene.collection.children.link(coll)
-    for o in list(bpy.data.objects):
-        if o.name.startswith(("Valance", "SideDrape", "SideTie", "Tassel")):
-            coll.objects.link(o)
-    for nm, loc in (("DrapeKey", (-2.5, cam.location.y - 1.5, top + 1.0)), ("DrapeFill", (2.5, cam.location.y - 1.0, 1.5))):
-        L_ = bpy.data.lights.new(nm, "AREA"); L_.size = 4.0; L_.color = (1.0, 0.72, 0.5)
-        L_.energy = 900.0 if nm == "DrapeKey" else 350.0
-        lo = bpy.data.objects.new(nm, L_); BP.link(lo); lo.location = loc
-        lo.rotation_euler = (Vector((0, y, top * 0.6)) - Vector(loc)).to_track_quat("-Z", "Y").to_euler()
-        lo.light_linking.receiver_collection = coll
-        lo.light_linking.blocker_collection = coll
-    # deeper swags across the hall ceiling, for a red 'roof' above the chandelier
-    for k, yy in enumerate((4.0, 12.0, 20.0)):
-        o, edge = swag(f"CeilingSwag_{k}", -ROOM_X + 0.6, ROOM_X - 0.6, yy, CEIL_Z - 2.5, 3.2, 3, drape, depth=0.5)
-        t = BP.tube(f"CeilingTrim_{k}", edge, 0.06, 10, cap=True); BP.assign(t, gold)
+    for k, (yy, half, z_top) in enumerate(((6.5, 9.2, 16.5), (16.0, 11.0, 18.5))):
+        o, edge = swag(f"Swag_{k}", -half - 0.4, half + 0.4, yy, z_top, 2.4, 4, drape, depth=0.45)
+        t = BP.tube(f"SwagTrim_{k}", edge, 0.06, 10, cap=True); BP.assign(t, gold)
+        coll.objects.link(o)
+        for j in range(5):
+            x = -half - 0.4 + j * (2 * half + 0.8) / 4
+            c = BP.cone(f"Tassel_{k}_{j}", 0.13, 0.6, 16); c.location = (x, yy - 0.05, z_top - 2.4 * 0.35 - 0.62)
+            c.rotation_euler = (math.pi, 0, 0); BP.assign(c, gold)
+        for sx in (-1, 1):
+            d = _hanging_drape(f"HallDrape_{k}_{sx}", sx * (half - 1.4), sx * (half + 1.6), yy + 0.15, z_top, drape)
+            coll.objects.link(d)
+            rope = BP.torus(f"HallTie_{k}_{sx}", 0.45, 0.07, 32, 10, loc=(sx * (half + 0.9), yy, 0.4 * z_top))
+            rope.rotation_euler = (math.pi / 2, 0, 0); BP.assign(rope, gold)
+        rod = box(f"DrapeRod_{k}", (2 * half + 4.0, 0.22, 0.22), (0, yy, z_top + 0.1), gold, bevel=0.05)
+    # a soft warm light on the fabric only, so it stays red in the darker moods
+    L_ = bpy.data.lights.new("DrapeKey", "AREA"); L_.size = 10.0; L_.color = (1.0, 0.7, 0.5); L_.energy = 2500.0
+    lo = bpy.data.objects.new("DrapeKey", L_); BP.link(lo); lo.location = (0.0, -4.0, 9.0)
+    lo.rotation_euler = (Vector((0, 10.0, 12.0)) - lo.location).to_track_quat("-Z", "Y").to_euler()
+    lo.light_linking.receiver_collection = coll
 
 # ----------------------------------------------------------------- pion
 
