@@ -125,13 +125,16 @@ function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.w
 function initProps() {
   if (PROP.ok) return; PROP.ok = true;
   PROP.phone = new Mesh(boxGeo(.36, .66, .07)); PROP.plane = new Mesh(planeGeo(1, 1));
-  PROP.bookCover = new Mesh(boxGeo(.62, .82, .13)); PROP.bookPages = new Mesh(boxGeo(.58, .77, .1));
-  PROP.bookTex = canvasTex(310, 410, (g, w, h) => { // hardcover: navy cloth, gold frame, gold title + pawn emblem
-    g.fillStyle = '#16244f'; g.fillRect(0, 0, w, h); g.strokeStyle = '#e6b84a'; g.lineWidth = 10; g.strokeRect(18, 18, w - 36, h - 36); g.lineWidth = 3; g.strokeRect(32, 32, w - 64, h - 64);
-    g.fillStyle = '#f2c95a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '900 68px Inter, Arial Black, sans-serif'; g.fillText('FAKTA', w / 2, 120);
-    g.font = '900 46px Inter, Arial Black, sans-serif'; g.fillText('UNIK', w / 2, 178);
-    g.beginPath(); g.arc(w / 2, 248, 22, 0, 7); g.fill(); g.beginPath(); g.moveTo(w / 2 - 16, 266); g.lineTo(w / 2 + 16, 266); g.lineTo(w / 2 + 34, 330); g.lineTo(w / 2 - 34, 330); g.closePath(); g.fill();
-    g.fillRect(w / 2 - 44, 330, 88, 16); });
+  PROP.bookCover = new Mesh(boxGeo(.62, .84, .035)); PROP.bookPages = new Mesh(boxGeo(.56, .78, .06)); PROP.bookSpine = new Mesh(boxGeo(.08, .84, .1));
+  const goldFrame = (g, w, h) => { g.fillStyle = '#4a1530'; g.fillRect(0, 0, w, h); g.strokeStyle = '#e6b84a'; g.lineWidth = 10; g.strokeRect(18, 18, w - 36, h - 36); g.lineWidth = 3; g.strokeRect(32, 32, w - 64, h - 64);
+    g.fillStyle = '#f2c95a'; g.textAlign = 'center'; g.textBaseline = 'middle'; };
+  PROP.bookFront = canvasTex(310, 420, (g, w, h) => { // front cover of the open book (faces the camera)
+    goldFrame(g, w, h); g.font = '800 34px Georgia, serif'; g.fillText('THE BOOK', w / 2, 88); g.font = 'italic 700 28px Georgia, serif'; g.fillText('of', w / 2, 128);
+    g.font = '900 88px Inter, Arial Black, sans-serif'; g.fillText('LARP', w / 2, 196);
+    g.beginPath(); g.arc(w / 2, 270, 18, 0, 7); g.fill(); g.beginPath(); g.moveTo(w / 2 - 13, 285); g.lineTo(w / 2 + 13, 285); g.lineTo(w / 2 + 28, 338); g.lineTo(w / 2 - 28, 338); g.closePath(); g.fill(); g.fillRect(w / 2 - 36, 338, 72, 13);
+    g.font = '700 18px Georgia, serif'; g.fillText('~ for true believers ~', w / 2, 378); });
+  PROP.bookBack = canvasTex(310, 420, (g, w, h) => { goldFrame(g, w, h); g.font = '700 22px Georgia, serif'; g.fillText('vol. I', w / 2, h - 70);
+    g.beginPath(); g.arc(w / 2, h / 2 - 10, 34, 0, 7); g.lineWidth = 6; g.strokeStyle = '#e6b84a'; g.stroke(); g.font = '900 34px Georgia, serif'; g.fillText('L', w / 2, h / 2 - 8); });
   PROP.screenScan = canvasTex(256, 470, (g, w, h) => { g.fillStyle = '#0d1b2a'; g.fillRect(0, 0, w, h); g.fillStyle = '#16314d'; g.fillRect(14, 60, w - 28, h - 130);
     g.strokeStyle = '#3dff8c'; g.lineWidth = 10; const L = 46, x0 = 50, y0 = 130, s = w - 100; for (const [cx, cy, sx, sy] of [[x0, y0, 1, 1], [x0 + s, y0, -1, 1], [x0, y0 + s, 1, -1], [x0 + s, y0 + s, -1, -1]]) { g.beginPath(); g.moveTo(cx, cy + sy * L); g.lineTo(cx, cy); g.lineTo(cx + sx * L, cy); g.stroke(); }
     g.fillStyle = 'rgba(61,255,140,.8)'; g.fillRect(x0, y0 + s / 2 - 4, s, 8); g.fillStyle = '#fff'; g.font = '700 30px Inter, sans-serif'; g.textAlign = 'center'; g.fillText('SCANNING...', w / 2, h - 40); });
@@ -177,11 +180,15 @@ function drawProps(t, PP, base, VP, L, cam) {
       tex(mat.chain(M0, mat.T(0, 0, -.037), mat.RY(Math.PI), mat.S(.31, .6, 1)), scanned ? PROP.screenOK : PROP.screenScan, { color: [1.15, 1.15, 1.15] });
       drawToon(PROP.phone, mat.chain(M0, mat.T(-.1, .24, .04), mat.S(.18, .1, .3)), VP, L, { color: [.3, .3, .34] }); // camera bump
     }
-    if (G.type === 'nerd' && hands[1]) { // book in his left hand: cover to the camera, cream page block showing on the open side
-      const sc = clamp(env * 1.3, 0, 1), B = mat.chain(hands[1].M, mat.T(-.1, .34, .2), mat.RZ(.16), mat.RX(-.2), mat.RY(-.25), mat.S(sc, sc, sc));
-      drawOutline(PROP.bookCover, mat.mul(B, mat.S(1.08, 1.06, 1.35)), VP, 0); drawToon(PROP.bookCover, B, VP, L, { color: [.09, .14, .31], spec: .15 });
-      const P = mat.chain(B, mat.T(.05, 0, 0)); drawToon(PROP.bookPages, P, VP, L, { color: [.98, .93, .8] });
-      tex(mat.chain(B, mat.T(0, 0, .067), mat.S(.6, .8, 1)), PROP.bookTex, { color: [1.1, 1.1, 1.1] });
+    if (G.type === 'nerd' && hands[1]) { // open book in his left hand, pages toward his face, covers (a V) toward the camera
+      const sc = clamp(env * 1.3, 0, 1), B = mat.chain(hands[1].M, mat.T(-.1, .36, .28), mat.RX(-.2), mat.RY(-.12), mat.S(sc, sc, sc));
+      drawToon(PROP.bookSpine, mat.chain(B, mat.T(0, 0, .02)), VP, L, { color: [.22, .06, .13] });
+      for (const sd of [-1, 1]) { // sd 1 = front cover on the camera's right (he reads it left-to-right)
+        const H = mat.chain(B, mat.RY(sd * .7)), C = mat.chain(H, mat.T(sd * .33, 0, 0));
+        drawOutline(PROP.bookCover, mat.mul(C, mat.S(1.06, 1.05, 1.6)), VP, 0); drawToon(PROP.bookCover, C, VP, L, { color: [.29, .08, .19], spec: .12 });
+        drawToon(PROP.bookPages, mat.chain(H, mat.T(sd * .31, 0, -.045)), VP, L, { color: [.98, .93, .8] });
+        tex(mat.chain(C, mat.T(0, 0, .019), mat.S(.58, .8, 1)), sd > 0 ? PROP.bookFront : PROP.bookBack, { color: [1.1, 1.1, 1.1] });
+      }
     }
     if (G.type === 'write') { // sheet held at the chest, pen in the right hand
       const u = clamp((t - G.t0) / Math.max(.1, (G.t1 - G.t0) * .8), 0, 1), sc = clamp(env * 1.2, 0, 1);
