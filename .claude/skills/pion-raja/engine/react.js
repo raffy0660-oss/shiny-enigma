@@ -100,12 +100,12 @@ function rStep(f) {
   const A = RX.acting ?? 1;
   if (A > 0) {
     if (on > .7) { J.hop.v += (on - .5) * 1.1 * A; J.nod.v += on * .45 * A; }                       // stressed syllable: tiny bounce + nod
-    if (RX.bangS && RX.bangS.has(f)) { J.sq.v -= 1.4 * A; J.hop.v += 2.4 * A; J.tilt.v += wobSign * 1.3 * A; } // "!" word: hop
-    if (RX.takeS && RX.takeS.has(f)) { J.hop.v += 1.3 * A; J.tilt.v -= wobSign * 1.8 * A; J.sway.v += wobSign * 1.6 * A; } // new expression: a "take"
+    if (RX.bangS && RX.bangS.has(f)) { J.sq.v += .9 * A; J.hop.v += 2.4 * A; J.tilt.v += wobSign * 1.3 * A; } // "!" word: stretch up into a hop
+    if (RX.takeS && RX.takeS.has(f)) { J.sq.v += .5 * A; J.hop.v += 1.3 * A; J.tilt.v -= wobSign * 1.8 * A; J.sway.v += wobSign * 1.6 * A; } // new expression: a "take"
   }
   const quiet = J.lean.p < .06, swayT = A * ((.05 + .9 * J.lean.p * .12) * Math.sin(t * 1.9) + .03 * Math.sin(t * .73 + 1.3));
   const glance = A && quiet ? .2 * Math.sin(t * .8) * smooth(.06, .02, J.lean.p) : 0;      // idle: looks around when silent
-  const lk = lookAt(t), n = 4, h = dt / n;
+  const lk = lookAt(t), n = 4, h = dt / n, hop0 = J.hop.p, hopV0 = J.hop.v;
   for (let i = 0; i < n; i++) {
     stepSpring(J.sq, e * .035 * J0, 230, 8.5, h);   // loud = stretched a bit taller
     stepSpring(J.wob, 0, 140, 6.5, h);
@@ -113,8 +113,11 @@ function rStep(f) {
     stepSpring(J.rx, lk[1], 70, 11, h); stepSpring(J.ry, lk[0] + glance, 70, 11, h); stepSpring(J.rz, lk[2], 70, 11, h);
     stepSpring(J.sway, swayT, 28, 8, h); stepSpring(J.hop, 0, 90, 7.5, h); stepSpring(J.tilt, 0, 55, 6.5, h); stepSpring(J.lean, e * A, 6, 5, h);
   }
+  if (hop0 > .004 && J.hop.p <= .004 && hopV0 < 0) { // landing from an acting hop: jelly squash, the crown pops up and settles
+    const imp = Math.min(2.2, -hopV0);
+    J.sq.v -= imp * .75; PH.hy.v -= imp * .45; PH.cy.v += imp * .32; J.wob.v += wobSign * imp * .25; }
   const fv = flyVel(t), fp = flyPos(t), fpPrev = flyPos(t - dt);
-  physStep(fv[0] * .25, J.sq.v * 5 + fv[1] * .25, -J.nod.v * 3 + Math.min(fv[2] * .12, 7), dt); // jelly + flight wind on head and cape
+  physStep(fv[0] * .25, J.sq.v * 5 + fv[1] * .25 + J.hop.v * .9, -J.nod.v * 3 + Math.min(fv[2] * .12, 7), dt); // jelly + flight wind on head and cape
   if (fpPrev.flying && !fp.flying && fp.vis) { J.sq.v -= 1.1; J.wob.v += .6; PH.hy.v -= 1; } // arrival: jelly "boing"
   // mouth level from loudness, with a 2-frame hold so it never flickers
   const want = e < .1 ? 0 : e < .32 ? 1 : e < .62 ? 2 : 3;
@@ -403,7 +406,7 @@ function drawReact(f, u) {
   cv.style.opacity = String(hidden ? 0 : fl.op);
   if (!fl.vis) { drawFX(f, t, { vis: false }); return; }
   const st = startleAt(t), bp = bodyPose(t);
-  const a = J.sq.p + st.a * .55 + .014 * Math.sin(t * 2.4) + flyoutStretch(t), sy = 1 + a, sxz = 1 / Math.sqrt(1 + a); // + idle breathing
+  const a = J.sq.p + st.a * .55 + .014 * Math.sin(t * 2.4) + flyoutStretch(t) + (J.hop.p > 0 ? clamp(J.hop.v * .025, -.04, .06) : 0), sy = 1 + a, sxz = 1 / Math.sqrt(1 + a); // + idle breathing, + stretch while rising in a hop
   const roll = J.wob.p * .5 + .022 * Math.sin(t * 1.3) + bp.roll;
   const lean = clamp(fv[2] * .012, -.2, .45) - clamp(fv[1] * .01, -.25, .25), bank = clamp(-fv[0] * .02, -.5, .5), fyaw = clamp(fv[0] * .012, -.4, .4);
   const hopY = Math.max(0, J.hop.p) * .5; // acting hop never sinks below the floor

@@ -612,7 +612,7 @@ function physStep(vx, vy, vz, dt) { // velocities in "skill units" (pion height 
     // (cx / cz = the crown's own roll / pitch in the world; it chases the head's roll -.7 hx / pitch .7 hz)
     stepSpring(PH.cx, -.7 * PH.hx.p + clamp(vx * .025, -.14, .14), 95, 5.5, h);
     stepSpring(PH.cz, .7 * PH.hz.p + clamp(-vz * .025, -.12, .12), 95, 5.5, h);
-    stepSpring(PH.cy, clamp(-vy * .012, -.03, .05), 160, 9, h);
+    stepSpring(PH.cy, clamp(-vy * .014, -.035, .06), 150, 7.5, h);   // crown height: lags and lifts a little on landings
   }
 }
 function deformCape(time) {
