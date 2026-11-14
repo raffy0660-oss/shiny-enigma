@@ -893,16 +893,16 @@ EMOTIONS = {
     "misteri": dict(chand=(0.65, 0.45, 1.0), k=0.5, hub=1500, haze=(0.007, (0.7, 0.65, 1.0)), room=(0.35, (0.6, 0.55, 1.0)),
                     rim=((0.35, 0.5, 1.0), 1800)),
 }
-EXPR_TO_EMOTION = {
-    "senang": "hangat", "imut": "hangat", "ngakak": "hangat", "datar": "hangat",
-    "marah": "marah", "kecewa": "sedih", "sakit": "sedih", "kaget": "kaget",
-    "licik": "licik", "curiga": "licik", "sinis": "licik", "duit": "duit",
-    "penasaran": "misteri", "ragu": "misteri", "pusing": "misteri",
-    "girang": "hangat", "bahagia": "hangat", "cium": "hangat", "lega": "hangat", "gemas": "hangat",
-    "santai": "hangat", "ngiler": "hangat", "nangis": "sedih", "tersedu": "sedih", "merajuk": "sedih",
-    "memelas": "sedih", "syok": "kaget", "kesal": "marah", "ngamuk": "marah", "bangga": "duit",
-    "bosan": "misteri", "cemas": "misteri", "soktahu": "pencerahan",
-}
+def _load_moods():
+    import json
+    for cand in (os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "engine", "moods.json"),
+                 os.path.expanduser("~/pion/pion_raja/moods.json")):
+        if os.path.isfile(cand):
+            return json.load(open(cand))["expr_to_mood"]
+    return {}
+
+
+EXPR_TO_EMOTION = _load_moods()   # expression -> lighting mood, shared with engine/camplan.js (engine/moods.json)
 
 
 def _area(name, loc, target, color, energy, size=1.0, size_y=None):
@@ -1123,6 +1123,10 @@ def main():
     ap.add_argument("--lightpass", default=None,
                     help="also render the proxy alone in white clay, lit by the room (RGBA PNG) for relighting the engine Pion")
     ap.add_argument("--lightpass-only", action="store_true", help="skip the beauty render")
+    ap.add_argument("--clean", action="store_true", help="beauty without the proxy's shadow/bounce (a clean plate for video)")
+    ap.add_argument("--shadowpass", default=None,
+                    help="base path: writes <base>_with.png / <base>_without.png (clay, proxy shadow on/off) at half res; "
+                         "their ratio is Pion's floor shadow, which castle_video.py moves with him")
     ap.add_argument("--emotion", default=None, help="lighting per feeling: an emotion preset "
                     "(hangat marah sedih kaget licik duit misteri) or a Pion expression (marah, kecewa, licik...)")
     ap.add_argument("--mood", default="warm", choices=["warm", "window", "chandelier"],
@@ -1139,8 +1143,8 @@ def main():
                 o.visible_glossy = False
                 o.visible_transmission = False
                 o.visible_volume_scatter = False
-                o.visible_shadow = True
-                o.visible_diffuse = True
+                o.visible_shadow = not a.clean
+                o.visible_diffuse = not a.clean
     build_room(volume=not a.novolume)
     camera_and_key(tuple(int(v) for v in a.res.split("x")))
     if a.mood == "window":
@@ -1200,8 +1204,43 @@ def main():
         sc.render.filepath = a.render
         bpy.ops.render.render(write_still=True)
         print("RESULT rendered", a.render, f"{time.time() - t0:.1f}s")
+    if a.shadowpass:
+        render_shadowpass(sc, pion_objs, a.shadowpass, min(a.samples, 32))
     if a.lightpass:
         render_lightpass(sc, pion_objs, a.lightpass, min(a.samples, 48))
+
+
+def render_shadowpass(sc, pion_objs, base, samples):
+    """Pion's floor shadow alone: the room in white clay rendered twice (proxy casting / not casting).
+    with / without = how much light the proxy takes away from each pixel. Half resolution (soft shadows)."""
+    clay = bpy.data.materials.new("ShadowClay"); clay.use_nodes = True
+    clay.node_tree.nodes.get("Principled BSDF").inputs["Roughness"].default_value = 1.0
+    vl = sc.view_layers[0]
+    vl.material_override = clay
+    hz = bpy.data.objects.get("Haze")
+    if hz:
+        hz.hide_render = True
+    sc.render.use_freestyle = False
+    sc.render.use_compositing = False
+    sc.render.film_transparent = False
+    sc.view_settings.view_transform = "Standard"; sc.view_settings.look = "None"; sc.view_settings.exposure = 0.0
+    sc.render.image_settings.color_mode = "RGB"; sc.render.image_settings.color_depth = "16"
+    pct = sc.render.resolution_percentage
+    sc.render.resolution_percentage = 50
+    sc.cycles.samples = samples
+    meshes = [o for o in pion_objs if o.type == "MESH"]
+    for tag, cast in (("with", True), ("without", False)):
+        for o in meshes:
+            o.visible_camera = False
+            o.visible_shadow = cast
+            o.visible_diffuse = False
+        sc.render.filepath = f"{base}_{tag}.png"
+        bpy.ops.render.render(write_still=True)
+    sc.render.resolution_percentage = pct
+    vl.material_override = None
+    if hz:
+        hz.hide_render = False
+    print("RESULT shadowpass", base)
 
 
 def render_lightpass(sc, pion_objs, path, samples):
@@ -1217,8 +1256,6 @@ def render_lightpass(sc, pion_objs, path, samples):
     for o in bpy.data.objects:
         if o.type != "MESH":
             continue
-        if o.name in names and o.name.startswith(("Spike", "SpikeBall", "CrownRim")):
-            o.visible_shadow = False  # crown spikes over a top light print a dark 'nose' on the face
         if o.name in names and o.name.startswith(("EyeWhite", "Pupil", "Brow", "Mouth", "Ruby")):
             o.hide_render = True      # the engine draws its own face: keep only the head's form
             continue
@@ -1230,6 +1267,8 @@ def render_lightpass(sc, pion_objs, path, samples):
                 o.material_slots[i].material = clay
             o.visible_camera = True
             o.visible_glossy = True
+            o.visible_shadow = not o.name.startswith(("Spike", "SpikeBall", "CrownRim"))  # self-shadow (clean/shadowpass turned it off)
+            o.visible_diffuse = True
         else:
             o.visible_camera = False
         if o.name == "Haze":
