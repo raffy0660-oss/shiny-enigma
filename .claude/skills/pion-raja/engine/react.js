@@ -311,7 +311,8 @@ function drawReact(f, u) {
   for (const g of [fx, trailCtx, bgCtx]) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, g.canvas.width, g.canvas.height); }
   fx.setTransform(fx.canvas.width / W, 0, 0, fx.canvas.height / H, 0, 0); trailCtx.setTransform(trailCtx.canvas.width / W, 0, 0, trailCtx.canvas.height / H, 0, 0);
   const fr = camAt(t), cam = reactCam(fr), VP = cam.VP; window.EYE = cam.eye;
-  const castle = RX.bg === 'castle' || RX.bg === 'hospital', L = RX.bg === 'castle' ? LIGHT_CASTLE : LIGHT;
+  const castle = RX.bg === 'castle' || RX.bg === 'hospital', L0 = RX.bg === 'castle' ? LIGHT_CASTLE : LIGHT;
+  const L = RX.light ? Object.assign({}, L0, RX.light) : L0; // cue `light ...`: match a 3D background's key/rim
   const fl = flyPos(t), fv = flyVel(t);
   const hidden = RX.fxl.some(e => e.type === 'hide' && t >= e.t0);   // after 'hide': only fx + subtitles (transparent), e.g. over an inserted clip
   if (castle && !hidden) { // background zooms with the camera (a bit less: parallax), anchored on the pion
