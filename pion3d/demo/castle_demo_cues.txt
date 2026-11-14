@@ -1,0 +1,25 @@
+frame mid
+0.0 senang
+0.0 autozoom 3
+0.30 word KAMU
+0.72 word PIKIR
+1.14 word AKU
+1.56 word BIDAK
+1.98 word PALING
+2.40 word LEMAH?
+2.82 word SALAH!
+3.24 word AKU
+3.66 word SATU
+4.08 word SATUNYA
+4.50 word YANG
+4.92 word BISA
+5.34 word JADI
+5.76 word RATU
+6.18 word KARENA
+6.60 word AKU
+7.02 word TIDAK
+7.44 word PERNAH
+7.86 word MUNDUR
+3.2 marah
+6.0 soktahu
+4.6 gest shrug 1.2
