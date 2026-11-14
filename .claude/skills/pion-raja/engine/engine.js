@@ -61,6 +61,7 @@ float vn(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(m
 uniform vec3 uColor; uniform float uUseVC; uniform sampler2D uTex; uniform float uUseTex; uniform sampler2D uRamp;
 uniform vec3 uLDir; uniform vec3 uKey; uniform vec3 uAmb; uniform vec3 uSky; uniform vec3 uGnd; uniform float uDouble; uniform float uExp;
 uniform vec3 uRim; uniform float uFlash; uniform float uCut;
+uniform vec4 uAO; uniform float uAOs; // soft contact occlusion bands in object space (under the collar, under the crown)
 void main(){
   if(uCut>.5 && uUseTex>.5 && texture(uTex,vUv).a<.5) discard;
   vec3 n=normalize(vN); if(uDouble>.5 && !gl_FrontFacing) n=-n;
@@ -68,6 +69,7 @@ void main(){
   float d=dot(n,normalize(uLDir)); float r=texture(uRamp,vec2(d*.5+.5,.5)).r;
   float hemi=n.y*.5+.5;
   vec3 light=uAmb+mix(uGnd,uSky,hemi)+uKey*r;
+  if(uAOs>0.){ vec2 q=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q=q*q*(3.-2.*q); float occ=q.x+q.y; /* edges may be reversed (GLSL smoothstep may not) */ light*=1.-uAOs*clamp(occ,0.,1.)*(.55+.45*(1.-max(n.y,0.))); }
   float rim=pow(1.-clamp(n.z,0.,1.),3.)*clamp(n.x*-.6+n.y*.5+.5,0.,1.);
   if(uSoot>0.){ vec3 q=vO*uSootK; float nz=vn(q*2.3)*.65+vn(q*5.1)*.35; base*=mix(1.,.28,uSoot*smoothstep(.52,.72,nz)); }
   vec3 col=base*light*uExp+uRim*rim;
@@ -98,10 +100,11 @@ void main(){
   vec4 gs=texture(uGloss,vUv); c=gs+c*(1.-gs.a);   // gloss is not squashed; all premultiplied
   vec3 rgb=c.rgb*uExp*uTint; rgb=mix(rgb,vec3(c.a),uFlash); o=vec4(rgb,c.a); }`);
 const shadP = prog(HEAD + `
-uniform mat4 uVP; uniform mat4 uM; uniform vec3 uLRay; uniform vec2 uJit;
-void main(){ vec4 w=uM*vec4(aPos,1.); vec3 L=normalize(uLRay+vec3(uJit.x,0.,uJit.y)); vec3 p=w.xyz-L*(w.y/L.y); p.y=0.002; gl_Position=uVP*vec4(p,1.); }`,
+uniform mat4 uVP; uniform mat4 uM; uniform vec3 uLRay; uniform vec2 uJit; uniform float uFadeH; out float vH;
+void main(){ vec4 w=uM*vec4(aPos,1.); vec3 L=normalize(uLRay+vec3(uJit.x,0.,uJit.y)); vec3 p=w.xyz-L*(w.y/L.y); p.y=0.002; vH=w.y/max(uFadeH,1e-4); gl_Position=uVP*vec4(p,1.); }`,
   `#version 300 es
-precision highp float; out vec4 o; uniform vec4 uCol; void main(){ o=vec4(uCol.rgb*uCol.a,uCol.a); }`);
+precision highp float; in float vH; out vec4 o; uniform vec4 uCol;
+void main(){ float a=uCol.a*(1.-.55*smoothstep(0.,1.,vH)); o=vec4(uCol.rgb*a,a); }`); // parts high above the ground cast a lighter shadow
 const blobP = prog(HEAD + `
 uniform mat4 uVP; uniform mat4 uM; out vec2 vP;
 void main(){ vP=aPos.xz; gl_Position=uVP*uM*vec4(aPos,1.); }`,
@@ -463,7 +466,7 @@ const blobMesh = new Mesh((() => { const g = G(); g.pos.push(-1, 0, -1, 1, 0, -1
 /* ---------------- physics state ---------------- */
 function mkSpring() { return { p: 0, v: 0 }; }
 function stepSpring(s, target, k, c, dt) { s.v += (k * (target - s.p) - c * s.v) * dt; s.p += s.v * dt; }
-const PH = { hy: mkSpring(), hz: mkSpring(), hx: mkSpring(), fl: mkSpring(), lf: mkSpring(), trx: mkSpring(), trz: mkSpring() };
+const PH = { hy: mkSpring(), hz: mkSpring(), hx: mkSpring(), fl: mkSpring(), lf: mkSpring(), trx: mkSpring(), trz: mkSpring(), cx: mkSpring(), cz: mkSpring(), cy: mkSpring() };
 function resetPhysics() { for (const k in PH) { PH[k].p = 0; PH[k].v = 0; } }
 function physStep(vx, vy, vz, dt) { // velocities in "skill units" (pion height = 2)
   const n = 4, h = dt / n;
@@ -475,6 +478,11 @@ function physStep(vx, vy, vz, dt) { // velocities in "skill units" (pion height 
     stepSpring(PH.lf, clamp(-vy * .14, -.3, .6), 60, 4.5, h);
     stepSpring(PH.trx, clamp(vx * .14, -.5, .5), 50, 4, h);
     stepSpring(PH.trz, clamp(vz * .14, -.25, 1.2), 50, 4, h);
+    // crown: loose on the head, so it tips against the motion, overshoots and settles a beat later than the head
+    // (cx / cz = the crown's own roll / pitch in the world; it chases the head's roll -.7 hx / pitch .7 hz)
+    stepSpring(PH.cx, -.7 * PH.hx.p + clamp(vx * .025, -.14, .14), 95, 5.5, h);
+    stepSpring(PH.cz, .7 * PH.hz.p + clamp(-vz * .025, -.12, .12), 95, 5.5, h);
+    stepSpring(PH.cy, clamp(-vy * .012, -.03, .05), 160, 9, h);
   }
 }
 function deformCape(time) {
@@ -515,6 +523,7 @@ function drawToon(Msh, model, VP, L, o) {
   gl.uniformMatrix4fv(P.u.uVP, false, VP); gl.uniformMatrix4fv(P.u.uM, false, model); gl.uniformMatrix3fv(P.u.uNM, false, normalMat(model));
   gl.uniform3fv(P.u.uColor, o.color || [1, 1, 1]); gl.uniform1f(P.u.uUseVC, o.vc ? 1 : 0); gl.uniform1f(P.u.uUseTex, o.tex ? 1 : 0); gl.uniform1f(P.u.uDouble, o.dbl ? 1 : 0);
   gl.uniform3fv(P.u.uLDir, L.dir); gl.uniform3fv(P.u.uKey, L.key); gl.uniform3fv(P.u.uAmb, L.amb); gl.uniform3fv(P.u.uSky, L.sky); gl.uniform3fv(P.u.uGnd, L.gnd); gl.uniform1f(P.u.uExp, L.exp); gl.uniform3fv(P.u.uRim, L.rim); gl.uniform1f(P.u.uFlash, FLASH); gl.uniform1f(P.u.uSpec, o.spec || 0); gl.uniform1f(P.u.uCut, o.cut ? 1 : 0); gl.uniform1f(P.u.uSoot, o.noSoot ? 0 : SOOT); gl.uniform1f(P.u.uSootK, o.sootK || 1); gl.uniform3fv(P.u.uEye, window.EYE || [0, 10, 20]);
+  const ao = o.ao || [9, 10, 9, 10, 0]; gl.uniform4fv(P.u.uAO, ao.slice(0, 4)); gl.uniform1f(P.u.uAOs, ao[4]);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, o.tex || RAMP); gl.uniform1i(P.u.uTex, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, RAMP); gl.uniform1i(P.u.uRamp, 1);
   if (o.dbl) gl.disable(gl.CULL_FACE); else { gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); }
@@ -528,9 +537,48 @@ function drawOutline(Msh, model, VP, thick, radial, dbl, col) {
   if (dbl) gl.disable(gl.CULL_FACE); else { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); }
   Msh.draw();
 }
-function drawShadowMesh(Msh, model, VP, lray, jit, col) {
-  const P = shadP; gl.useProgram(P.p);
+function drawShadowMesh(Msh, model, VP, lray, jit, col, fadeH) {
+  const P = shadP; gl.useProgram(P.p); gl.uniform1f(P.u.uFadeH, fadeH || 1e4);
   gl.uniformMatrix4fv(P.u.uVP, false, VP); gl.uniformMatrix4fv(P.u.uM, false, model); gl.uniform3fv(P.u.uLRay, lray); gl.uniform2fv(P.u.uJit, jit); gl.uniform4fv(P.u.uCol, col);
   gl.disable(gl.CULL_FACE); Msh.draw();
+}
+/* ---------------- motion blur: average several renders inside the shutter interval ----------------
+   renderAt(u): draw the scene u frames before the current frame (0 <= u <= shutter).
+   compose(): flatten every layer into one canvas and return it.  probe(): screen points that move with the
+   character (head, hands, body). The two extreme samples decide how many in-between samples are needed,
+   so still frames cost only two renders and fast moves get up to maxN. Accumulation is premultiplied float. */
+window.MB = { maxN: 16, shutter: .4, pxPerSample: 2, maxPx: 28, maxRel: .045 }; // px in 1078-wide layout pixels (scaled for 4K)
+function mbCapture(renderAt, compose, probe) {
+  // centred shutter: samples from S/2 frames before to S/2 frames after the frame time, so an impact frame stays
+  // crisp (nothing moves after it) and only carries a light trail of the fall.
+  const C = window.MB, N0 = Math.max(1, C.maxN | 0), S = C.shutter, hw0 = S / 2;
+  window.__mbN = 1;
+  if (N0 < 2 || !(S > 0)) { renderAt(0); return compose(); }
+  const span = (a, b) => { let d = 0; for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] && b[i]) d = Math.max(d, Math.hypot(a[i][0] - b[i][0], a[i][1] - b[i][1])); return d; };
+  renderAt(hw0); const pA = probe();
+  renderAt(-hw0); const pB = probe();
+  renderAt(0); const p0 = probe();
+  let d = span(pA, p0) + span(p0, pB);                                // path length through the shutter
+  if (d < 1.5) return compose();                                     // practically still: the sharp frame, no pixel work
+  const tall = p0[1] && p0[2] ? Math.hypot(p0[1][0] - p0[2][0], p0[1][1] - p0[2][1]) : 400; // ground/base -> crown top, layout px
+  const cap = Math.max(6, Math.min(C.maxPx, C.maxRel * tall));      // smear at most ~4.5% of Pion's on-screen height
+  let hw = hw0; if (d > cap) { hw = hw0 * cap / d; d = cap; }        // very fast: shorten the shutter so Pion stays readable
+  const N = Math.min(N0, Math.max(3, Math.ceil(d / C.pxPerSample) + 1));
+  // only the area the character sweeps is averaged; the rest of the frame is the sharp u = 0 image
+  const cv0 = compose(), w = cv0.width, h = cv0.height, k = w / W, pts = p0.concat(pA, pB).filter(Boolean);
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const q of pts) { x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]); }
+  const mg = Math.max(x1 - x0, y1 - y0) * .6 + 60;
+  const bx = Math.max(0, Math.floor((x0 - mg) * k)), by = Math.max(0, Math.floor((y0 - mg) * k));
+  const bw = Math.min(w, Math.ceil((x1 + mg) * k)) - bx, bh = Math.min(h, Math.ceil((y1 + mg) * k)) - by;
+  if (bw <= 0 || bh <= 0) return cv0;
+  const keep = cv0.getContext('2d').getImageData(0, 0, w, h);         // sharp full frame (outside the box)
+  const acc = new Float32Array(bw * bh * 4);
+  const add = c => { const d8 = c.getContext('2d').getImageData(bx, by, bw, bh).data;
+    for (let i = 0; i < d8.length; i += 4) { const a = d8[i + 3]; if (!a) continue; const q = a / 255; acc[i] += d8[i] * q; acc[i + 1] += d8[i + 1] * q; acc[i + 2] += d8[i + 2] * q; acc[i + 3] += a; } };
+  for (let i = 0; i < N; i++) { renderAt(hw - 2 * hw * i / (N - 1)); add(compose()); }
+  const out = compose(), g = out.getContext('2d'); g.putImageData(keep, 0, 0);
+  const img = g.createImageData(bw, bh), o = img.data;
+  for (let i = 0; i < o.length; i += 4) { const a = acc[i + 3]; if (a <= 0) continue; o[i] = acc[i] / a * 255; o[i + 1] = acc[i + 1] / a * 255; o[i + 2] = acc[i + 2] / a * 255; o[i + 3] = a / N; }
+  g.putImageData(img, bx, by); window.__mbN = N; return out;
 }
 window.__engine = true;

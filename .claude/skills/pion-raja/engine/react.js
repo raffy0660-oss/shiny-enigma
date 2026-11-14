@@ -24,7 +24,7 @@ window.setReact = d => {
   RX.cams = (d.cams || []).slice().sort((p, q) => p.t - q.t); RX.shakes = d.shakes || []; RX.turns = (d.turns || []).slice().sort((p, q) => p.t - q.t);
   RX.fxl = d.fx || [];
   RX.imgs = {}; for (const E of RX.fxl) if (E.type === 'photo' && !RX.imgs[E.src]) { const im = new Image(); im.src = E.src; RX.imgs[E.src] = im; }
-  rLast = -10; return RX.n;
+  rLast = -10; RS.clear(); return RX.n;
 };
 
 /* ---------- flying in / out (pure functions of time) ---------- */
@@ -44,6 +44,13 @@ function flyPos(t) { // -> {p, vis, op, flying}
   if (!ev.out) { if (u >= 1) return { p: E, vis: true, op: 1, flying: false }; return { p: bez(S, C1, C2, E, 1 - Math.pow(1 - u, 3)), vis: true, op: ev.dir === 'kamera' ? 1 : smooth(0, .12, u), flying: true }; }
   if (u >= 1) return { p: S, vis: false, op: 0, flying: false };
   return { p: bez(E, C2, C1, S, u * u * u), vis: true, op: 1 - smooth(.8, 1, u), flying: true };
+}
+function flyoutStretch(t) { // crouch before taking off, stretch while shooting away
+  let a = 0;
+  for (const ev of RX.fly) { if (!ev.out) continue; const e = t - ev.t0;
+    if (e >= -.3 && e < 0) a -= .17 * smooth(-.3, -.04, e);
+    else if (e >= 0 && e < .35) { const u = e / .35; a += -.17 * (1 - smooth(0, .25, u)) + .16 * Math.sin(Math.PI * u) * (1 - u * .5); } }
+  return a;
 }
 function flyVel(t) { const dt = 1 / 30, a = flyPos(t - dt).p, b = flyPos(t).p; return [(b[0] - a[0]) / dt, (b[1] - a[1]) / dt, (b[2] - a[2]) / dt]; }
 function hoverAmt(t) { let on = 1, t0 = -9; for (const [ht, v] of RX.hover) if (t >= ht) { on = v; t0 = ht; } return on ? smooth(t0, t0 + .6, t) : 1 - smooth(t0, t0 + .6, t); }
@@ -280,14 +287,29 @@ function drawSparkle(g, x, y, R, e) { // little star burst (prop appears)
   g.restore();
 }
 
-function renderReact(f) {
-  const t = f / RX.fps;
+const RS = new Map(); // frame -> full talking/jelly state after that frame (motion-blur sub-frames read neighbours)
+const rSnap = () => { const o = { mouth, mouthHold, wobSign }; for (const k in J) o['J' + k] = [J[k].p, J[k].v]; for (const k in PH) o['P' + k] = [PH[k].p, PH[k].v]; return o; };
+const rSet = (A, B, k) => { for (const n in J) { J[n].p = lerp(A['J' + n][0], B['J' + n][0], k); J[n].v = lerp(A['J' + n][1], B['J' + n][1], k); }
+  for (const n in PH) { PH[n].p = lerp(A['P' + n][0], B['P' + n][0], k); PH[n].v = lerp(A['P' + n][1], B['P' + n][1], k); } mouth = A.mouth; mouthHold = A.mouthHold; wobSign = A.wobSign; };
+function rEnsure(f) { // springs at the state of frame f (stepped sequentially from frame 0, cached)
+  if (RS.has(f)) { const S = RS.get(f); rSet(S, S, 1); return; }
+  if (f > rLast && f - rLast <= 2 && RS.has(rLast)) { const S = RS.get(rLast); rSet(S, S, 1); for (let g = rLast + 1; g <= f; g++) { rStep(g); RS.set(g, rSnap()); } }
+  else { resetReact(); RS.clear(); for (let g = 0; g <= f; g++) { rStep(g); if (g >= f - 3) RS.set(g, rSnap()); } }
+  rLast = f; for (const k of [...RS.keys()]) if (k < f - 4) RS.delete(k);
+}
+function renderReactAt(f, u) { // u > 0: u frames before f, u < 0: after f
+  const g = u > 0 ? f - 1 : f + 1;
+  if (!u || g < 0 || g >= RX.n) { rEnsure(f); return drawReact(f, 0); }
+  rEnsure(g); const Sg = RS.get(g); rEnsure(f); const Sf = RS.get(f);
+  rSet(Sf, Sg, Math.abs(u));
+  try { drawReact(f, u); } finally { rSet(Sf, Sf, 1); }
+}
+function drawReact(f, u) {
+  const t = (f - (u || 0)) / RX.fps; window.__probe = [];
   gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(0, 0, 0, 0); gl.clearStencil(0); gl.depthMask(true);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
   for (const g of [fx, trailCtx, bgCtx]) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, g.canvas.width, g.canvas.height); }
   fx.setTransform(fx.canvas.width / W, 0, 0, fx.canvas.height / H, 0, 0); trailCtx.setTransform(trailCtx.canvas.width / W, 0, 0, trailCtx.canvas.height / H, 0, 0);
-  if (f !== rLast + 1) { resetReact(); for (let g = 0; g < f; g++) rStep(g); }
-  rStep(f); rLast = f;
   const fr = camAt(t), cam = reactCam(fr), VP = cam.VP; window.EYE = cam.eye;
   const castle = RX.bg === 'castle' || RX.bg === 'hospital', L = RX.bg === 'castle' ? LIGHT_CASTLE : LIGHT;
   const fl = flyPos(t), fv = flyVel(t);
@@ -301,14 +323,16 @@ function renderReact(f) {
     if (fl.vis) { // soft contact shadow on the floor
       const q = cam.toPix([fl.p[0], 0, fl.p[2]]), r = cam.ppu * 1.25 / (1 + Math.max(0, fl.p[1]) * .3), a = .5 / (1 + Math.max(0, fl.p[1]) * .5);
       bgCtx.save(); bgCtx.setTransform(bgCtx.canvas.width / W, 0, 0, bgCtx.canvas.height / H, 0, 0); bgCtx.translate(q[0], q[1]); bgCtx.scale(1, .28);
-      const gr = bgCtx.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, `rgba(20,5,0,${a})`); gr.addColorStop(1, 'rgba(20,5,0,0)'); bgCtx.fillStyle = gr; bgCtx.beginPath(); bgCtx.arc(0, 0, r, 0, 7); bgCtx.fill(); bgCtx.restore();
+      const gr = bgCtx.createRadialGradient(0, 0, 0, 0, 0, r); gr.addColorStop(0, `rgba(20,5,0,${a})`); gr.addColorStop(.55, `rgba(20,5,0,${a * .45})`); gr.addColorStop(1, 'rgba(20,5,0,0)'); bgCtx.fillStyle = gr; bgCtx.beginPath(); bgCtx.arc(0, 0, r, 0, 7); bgCtx.fill();
+      const air = Math.max(0, fl.p[1]), rc = r * .55, ac = .45 / (1 + air * 2.5), gc = bgCtx.createRadialGradient(0, 0, 0, 0, 0, rc); // contact shadow right under the base
+      gc.addColorStop(0, `rgba(15,3,0,${ac})`); gc.addColorStop(.6, `rgba(15,3,0,${ac * .6})`); gc.addColorStop(1, 'rgba(15,3,0,0)'); bgCtx.fillStyle = gc; bgCtx.beginPath(); bgCtx.arc(0, 0, rc, 0, 7); bgCtx.fill(); bgCtx.restore();
     }
   }
   const hov = hoverAmt(t) * (.07 * Math.sin(t * 2.3) + .07);
   cv.style.opacity = String(hidden ? 0 : fl.op);
   if (!fl.vis) { drawFX(f, t, { vis: false }); drawSub(fx, t); return; }
   const st = startleAt(t), bp = bodyPose(t);
-  const a = J.sq.p + st.a * .55 + .014 * Math.sin(t * 2.4), sy = 1 + a, sxz = 1 / Math.sqrt(1 + a); // + idle breathing
+  const a = J.sq.p + st.a * .55 + .014 * Math.sin(t * 2.4) + flyoutStretch(t), sy = 1 + a, sxz = 1 / Math.sqrt(1 + a); // + idle breathing
   const roll = J.wob.p * .5 + .022 * Math.sin(t * 1.3) + bp.roll;
   const lean = clamp(fv[2] * .012, -.2, .45) - clamp(fv[1] * .01, -.25, .25), bank = clamp(-fv[0] * .02, -.5, .5), fyaw = clamp(fv[0] * .012, -.4, .4);
   const flyM = mat.chain(mat.T(fl.p[0], fl.p[1] + hov, fl.p[2]), mat.T(0, 2, 0), mat.RX(lean), mat.RZ(bank), mat.RY(fyaw), mat.T(0, -2, 0));
@@ -323,6 +347,8 @@ function renderReact(f) {
   FLASH = 0; drawPion(PP, base, VP, L, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, t });
   drawProps(t, PP, base, VP, L, cam);
   const hw = mat.xform(PP.headM, [0, 0, 0, 1]), head = { p: cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), r: cam.ppu }; window.__head = head;
+  const pix = (M, v) => { const w = mat.xform(M, [...v, 1]); return cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]); };
+  window.__probe = [head.p, pix(base, [0, 0, 0]), pix(PP.crownM, [0, 1.0, 0]), pix(base, [1, 0, 0]), pix(base, [-1, 0, 0]), ...PP.hands.filter(Boolean).map(Hd => pix(Hd.M, [0, 0, 0]))];
   drawFX(f, t, o);
   if (fl.flying || flyPos(t - .5).flying) drawTrail(t, cam);
   if (hurt) drawSmoke(fx, head, t, hurt * .5);
@@ -356,15 +382,18 @@ function drawTrail(t, cam) {
   }
   g.restore();
 }
-window.renderReact = renderReact;
-// flatten background + trail + character + fx into one PNG inside the page (no DOM screenshot -> no stale compositor layers)
+window.renderReact = f => renderReactAt(f, 0);
+// flatten background + trail + character + fx into one canvas inside the page (no DOM screenshot -> no stale compositor layers)
 const outCv = document.createElement('canvas');
-window.grabReact = (bg) => {
-  outCv.width = cv.width; outCv.height = cv.height; const g = outCv.getContext('2d');
+function composeReact(bg) {
+  outCv.width = cv.width; outCv.height = cv.height; const g = outCv.getContext('2d', { willReadFrequently: true });
   if (bg) { g.fillStyle = bg; g.fillRect(0, 0, outCv.width, outCv.height); }
   g.drawImage(bgCtx.canvas, 0, 0); g.drawImage(trailCtx.canvas, 0, 0);
   g.globalAlpha = +cv.style.opacity || 0; g.drawImage(cv, 0, 0); g.globalAlpha = 1;
   g.drawImage(fx.canvas, 0, 0);
-  return outCv.toDataURL(bg ? 'image/jpeg' : 'image/png', .92).split(',')[1];
-};
+  return outCv;
+}
+window.grabReact = bg => composeReact(bg).toDataURL(bg ? 'image/jpeg' : 'image/png', .92).split(',')[1];
+// frame f with motion blur (window.MB.maxN samples at most, 1 = off)
+window.grabReactMB = (f, bg) => mbCapture(u => renderReactAt(f, u), () => composeReact(bg), () => window.__probe || []).toDataURL(bg ? 'image/jpeg' : 'image/png', .92).split(',')[1];
 window.__reactReady = true;

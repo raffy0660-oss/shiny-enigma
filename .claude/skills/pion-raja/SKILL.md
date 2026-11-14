@@ -27,10 +27,13 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
 | `engine/react_render.js` | Reaction mode: voice-over + cue file -> talking Pion video |
 | `engine/preview.js` | Quick contact sheet of the character with no video |
 | `engine/sfx.py` | Procedural cartoon SFX (no samples) + mixer |
+| `engine/smooth_track.py` | Removes tracking jitter from `anchors.json` / `track.json` without sliding (keeps cuts, frozen frames, sudden moves) |
+| `engine/integrate.py` | Composites Pion into footage: matches sharpness, light wrap, matching grain (used by the example `composite*.py`) |
 | `engine/track.py`, `objtrack.py`, `verify.py`, `comp.py`, `plan.py` | Tools from the first project (tracking, plan, checks) |
 | `PANDUAN_REAKSI.md` | Full user-facing guide to reaction mode and the cue format (Indonesian) |
 | `PERUBAHAN.md` | Changelog of the engine |
 | `examples/proj1`, `proj2`, `proj4` | Finished projects: `plan_pN.py`, `cues/`, `sfx_events.txt`, `composite*.py`, helper grids. Copy one as a template |
+| `PERBANDINGAN_V2.jpg` | Before/after of the v2 motion & shading upgrade |
 
 ## Setup (once per machine/session)
 
@@ -55,6 +58,7 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
 3. Check first: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --preview 1,2.5,4` and look at the sheet.
 4. Render: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --size 2160x3840` (4K).
    `--bg green,black`, `--alpha` (ProRes 4444 .mov), `--png`, `--start/--dur/--local` for a section.
+   Motion blur is on by default (`--blur 16`, `--shutter 0.4`); use `--blur 1` for quick drafts.
 5. Deliver `*_green.mp4`; the CapCut chroma-key steps are in `PANDUAN_REAKSI.md`.
 
 ## Mode 2: Pion inside the creator's video (overlay, tracked)
@@ -63,18 +67,35 @@ Follow `examples/proj4` (newest). Per project folder with `src/input.mp4` (1080x
 1. **Study every frame first**: `python3 grid.py sheet.jpg 0,15,30,... 8` and `zgrid.py` (zoomed region). Note shots,
    focus points, solid surfaces, the white "commentary" screens and their frame ranges.
 2. **Track anchors** on surfaces/objects Pion stands on or touches: edit `JOBS` in `track_pts.py` -> `anchors.json`.
+   Then **always** de-jitter: `python3 ../pion_raja/smooth_track.py anchors.json` (raw copy kept as `anchors_raw.json`;
+   it prints jitter before/after and the max shift, which should stay a few px). Same tool works on proj1-style `track.json`.
 3. **Plan**: edit `plan_pN.py` (helpers `stand`, `drop`, `launch`, `jump`... per frame; plus expression/gesture/fx
    timeline and `SHOTCAM`) -> writes `plan.json` and `timeline_pN.js`. Keep Pion on the focus point and on solid ground.
 4. **Ambient light thumbs**: `ffmpeg -i src/input.mp4 -vf scale=36:64:flags=area -f rawvideo -pix_fmt rgb24 thumbs.raw`
 5. **Render Pion layer** (4K):
    `PLAN=$PWD/plan.json THUMBS=$PWD/thumbs.raw PAGE=$PWD/index_pN.html RW=2156 RH=3840 node ../pion_raja/drive.js out4k/vframes <frames|a-b|all>`
    (`index_pN.html` loads `../pion_raja/engine.js`, the project timeline, then `../pion_raja/render.js`.)
+   Motion blur is on by default (`BLUR=16`, `SHUTTER=0.4`, centred shutter, smear capped so Pion stays readable).
+   Use `BLUR=1` for fast drafts / checks; the final 4K render with blur takes roughly 6-9x longer on fast scenes.
+   Optional: `autoDir: true` in a `SHOTCAM` entry takes the key-light side from the footage (shadow falls to the darker side).
 6. **White screens -> castle scenes**: one cue file per white segment (`cues/whiteN.txt`, `bg castle`), rendered with
    `react_render.js --audio src/input.mp4 --start S --dur D --local --size 2156x3840 --bg black --png`.
 7. **SFX**: `python3 ../pion_raja/sfx.py sfx_events.txt sfx_only.wav --mix src/input.mp4 mix.m4a`
    (`--demo demo.wav` lists every sound). Always also deliver `sfx_only.wav`.
 8. **Composite**: set `WHITES`, `TRANS` (zoom-blur cuts) in `composite4k.py`, run it, then mux `mix.m4a`.
+   The example composites call `integrate.over()` for every Pion layer (sharpness match, light wrap, grain), so
+   Pion looks shot by the same phone. For an older project's composite, replace its plain alpha blend with it.
 9. **Review every frame of the result** (contact sheets, `compcheck.py`) and fix before delivering.
+
+## What the engine does automatically (v2)
+
+- Motion blur (both modes): centred shutter, sample count adapts to how far Pion moves; still frames stay sharp.
+- Crown follow-through: the crown lags the head, tips and settles a beat later.
+- Anticipation + landing read from the plan: crouch before any hop/jump/launch, squash-and-rebound after touchdown;
+  in reaction mode a crouch-and-stretch before `flyout`.
+- Shadows: 16-sample soft area-light shadow that fades with height, tight contact shadow under the base,
+  ambient occlusion under the collar and crown; softer two-layer contact shadow in castle/hospital scenes.
+- Deterministic: parallel jobs give byte-identical frames to a single job (checked).
 
 ## Rules of thumb
 

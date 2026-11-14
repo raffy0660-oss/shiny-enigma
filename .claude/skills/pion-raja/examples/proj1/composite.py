@@ -2,6 +2,8 @@
 Keeps the black bars and the burned-in captions (any non-white pixel of a white screen stays on top)."""
 import subprocess, numpy as np, os, sys
 from PIL import Image
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'pion_raja'))
+from integrate import over as integrate_over  # soften + light wrap + grain, measured from the footage
 W, H, Y0, Y1 = 1078, 1920, 276, 1650
 WHITES = [(154, 217, 'out/w1_frames'), (513, 660, 'out/w2_frames'), (825, 969, 'out/w3_frames')]
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'out/final.mp4'
@@ -24,9 +26,8 @@ while True:
     else:
         p = f'out/vframes/{f:04d}.png'
         if os.path.exists(p):
-            ov = np.asarray(Image.open(p).convert('RGBA'))[Y0:Y1].astype(np.float32)
-            a = ov[..., 3:4] / 255.0
-            if a.max() > 0: fr[Y0:Y1] = (ov[..., :3] * a + fr[Y0:Y1].astype(np.float32) * (1 - a) + .5).astype(np.uint8)
+            ov = np.asarray(Image.open(p).convert('RGBA'))[Y0:Y1]
+            if ov[..., 3].any(): reg = fr[Y0:Y1].copy(); integrate_over(reg, ov, seed=f); fr[Y0:Y1] = reg
     enc.stdin.write(fr.tobytes()); f += 1
     if f % 100 == 0: print('frame', f, flush=True)
 enc.stdin.close(); enc.wait(); print('done', f, 'frames ->', OUT)

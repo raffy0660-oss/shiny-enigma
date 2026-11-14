@@ -7,7 +7,22 @@ window.setData = (plan, b64) => { PLAN = plan; TPEV = [];
   for (let i = 0; i < plan.length; i++) { const o = plan[i], p = plan[i - 1], n = plan[i + 1];
     if (o.vis && o.tpIn && (!p || !p.vis || p.arr !== o.arr)) TPEV.push({ t: o.arr, x: o.x, y: o.y, h: o.h, kind: 'in' });
     if (o.vis && o.van !== null && (!n || !n.vis || n.arr !== o.arr)) TPEV.push({ t: o.van, x: o.x, y: o.y, h: o.h, kind: 'out' }); }
-  const bin = atob(b64); THUMBS = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) THUMBS[i] = bin.charCodeAt(i); return PLAN.length; };
+  const bin = atob(b64); THUMBS = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) THUMBS[i] = bin.charCodeAt(i);
+  AUTODIR = {}; return PLAN.length; };
+/* SHOTCAM entry with autoDir: true -> the key light comes from the brighter side of the shot (left/right thirds of the
+   footage, averaged over the shot), so the shadow falls toward the darker side. Manual dir stays the default. */
+let AUTODIR = {};
+function lightDir(sc, s) {
+  if (!sc.autoDir) return sc.dir;
+  if (AUTODIR[s] === undefined) {
+    let l = 0, r = 0, n = 0;
+    for (let f = 0; f < PLAN.length; f++) { if (PLAN[f].s !== s || f * TW * THH * 3 >= THUMBS.length) continue;
+      l += luma(sampleBox(f, 0, H * .2, W / 3, H * .8)); r += luma(sampleBox(f, W * 2 / 3, H * .2, W, H * .8)); n++; }
+    const k = n ? (r - l) / n : 0, x = clamp(k * 6, -.75, .75), y = .75, z = .4, len = Math.hypot(x, y, z);
+    AUTODIR[s] = [x / len, y / len, z / len];
+  }
+  return AUTODIR[s];
+}
 const fx = document.getElementById('fx').getContext('2d');
 
 function sampleBox(f, x0, y0, x1, y1) {
@@ -66,8 +81,9 @@ function fallAt(t, o) { // returns tip angle (rad), hop (heights)
   return { ang, y };
 }
 function runAmt(o) { return smooth(.25, 1.2, o.spd || 0); }
+let SUBU = 0, NOSIM = false; // motion blur: render u frames before f (PLAN[f] temporarily interpolated)
 function motion(f) {
-  const o = PLAN[f], t = f / 30;
+  const o = PLAN[f], t = (f - SUBU) / 30;
   const st = startleAt(t), fa = fallAt(t, o);
   let a = st.a + .016 * Math.sin(t * 3.3), flash = 0, op = 1, y = st.y + fa.y;
   const e = t - o.arr;
@@ -82,14 +98,41 @@ function motion(f) {
   if (o.physy) { const R = TL.ride.find(r => Math.abs(r.t0 - o.arr) < .2) || TL.ride[0]; const q = clamp((t - R.t0) / (R.land - R.t0), 0, 1); y += .1 * Math.sin(Math.PI * Math.pow(q, .8)); const el = t - R.land; if (el > 0) a += -.2 * Math.exp(-4 * el) * Math.cos(11 * el); }
   if (o.lift) y += o.lift / o.h;
   if (o.sq) a += o.sq; // airborne (hops / slides): feet above the ground point, shadow stays on the ground
+  a += takeoffLand(f, o);
   return { yOff: y, a, sAll: 1, flash: clamp(flash, 0, 1), fall: fa.ang, op };
+}
+/* anticipation + landing, read from the plan itself (works for any hop / jump / drop / launch helper):
+   a short crouch right before the take-off, and a squash that springs back right after touching down. */
+function takeoffLand(f, o) {
+  const same = g => { const q = PLAN[g]; return !!(q && q.vis && q.s === o.s && q.arr === o.arr); };
+  const feet = g => PLAN[g].y - (PLAN[g].lift || 0);
+  const goes = g => same(g) && same(g - 1) && (((PLAN[g].lift || 0) - (PLAN[g - 1].lift || 0)) > .02 * PLAN[g].h || PLAN[g].h / PLAN[g - 1].h > 1.06 || feet(g) - feet(g - 1) < -.06 * PLAN[g].h);
+  const down = g => same(g) && same(g - 1) ? (feet(g) - feet(g - 1)) / PLAN[g].h : 0; // pion heights per frame, + = falling
+  let a = 0;
+  const grounded = !goes(f) && !((o.lift || 0) > .01 * o.h);
+  if (grounded) for (let k = 1; k <= 5; k++) { // take-off coming: crouch, deepest just before leaving the ground
+    if (!same(f + k)) break;
+    if (goes(f + k)) { const e = (k - 1 + SUBU) / 30; a -= .15 * smooth(.17, 0, e); break; }
+  }
+  if (grounded) for (let k = 0; k <= 14; k++) { // touched down k frames ago: squash, then a damped rebound
+    const g = f - k; if (!same(g) || !same(g - 1)) break;
+    const v = down(g);
+    if (v > .05) { if (k === 0) break; const e = (k - SUBU) / 30, amp = clamp(v * .6, .04, .1); a += -amp * Math.exp(-6 * e) * Math.cos(15 * e); break; }
+    if (Math.abs(v) > .015) break;
+  }
+  return a;
 }
 function axisAngle(k, ang) {
   const c = Math.cos(ang), s = Math.sin(ang), C = 1 - c, [x, y, z] = k;
   return Float32Array.of(c + x * x * C, y * x * C + z * s, z * x * C - y * s, 0, x * y * C - z * s, c + y * y * C, z * y * C + x * s, 0, x * z * C + y * s, y * z * C - x * s, c + z * z * C, 0, 0, 0, 0, 1);
 }
 let lastF = -10; const RL = { p: 0, v: 0 };
+const SNAP = new Map(); // frame -> spring state right after that frame was simulated (motion-blur sub-frames read neighbours)
+const snapPhys = () => { const s = { RL: [RL.p, RL.v] }; for (const k in PH) s[k] = [PH[k].p, PH[k].v]; return s; };
+const setPhys = (A, B, k) => { RL.p = lerp(A.RL[0], B.RL[0], k); RL.v = lerp(A.RL[1], B.RL[1], k); for (const n in PH) { PH[n].p = lerp(A[n][0], B[n][0], k); PH[n].v = lerp(A[n][1], B[n][1], k); } };
 function simulate(f) {
+  if (NOSIM) return;
+  if (SNAP.has(f)) { const S = SNAP.get(f); setPhys(S, S, 1); return; }
   // sequential physics; reset at shot start / arrival
   const step = (g) => {
     const o = PLAN[g], p = PLAN[g - 1];
@@ -111,8 +154,9 @@ function simulate(f) {
     // inertia: object accelerating sideways tips the pion opposite
     if (!o.track) { const pp = PLAN[g - 2]; if (pp && pp.arr === o.arr) { const ax = ((o.x - p.x) - (p.x - pp.x)) / o.h * 900; RL.v += clamp(-ax * .02, -.6, .6); } }
   };
-  if (f !== lastF + 1) { resetPhysics(); let g = f; while (g > 0 && PLAN[g - 1].s === PLAN[f].s) g--; for (let k = g; k < f; k++) step(k); }
-  step(f); lastF = f;
+  if (f > lastF && f - lastF <= 2 && SNAP.has(lastF)) { const S = SNAP.get(lastF); setPhys(S, S, 1); for (let k = lastF + 1; k <= f; k++) { step(k); SNAP.set(k, snapPhys()); } }
+  else { resetPhysics(); SNAP.clear(); let g = f; while (g > 0 && PLAN[g - 1].s === PLAN[f].s) g--; for (let k = g; k <= f; k++) { step(k); if (k >= f - 3) SNAP.set(k, snapPhys()); } }
+  lastF = f; for (const k of [...SNAP.keys()]) if (k < f - 4) SNAP.delete(k);
 }
 
 /* ---------- arms ---------- */
@@ -216,7 +260,8 @@ function posePion(base, t, gs, look, hurt) {
   const HR = look && (look.rx || look.ry || look.rz) ? mat.chain(mat.T(0, 2.25, 0), mat.RY(look.ry || 0), mat.RX(look.rx || 0), mat.RZ(look.rz || 0), mat.T(0, -2.25, 0)) : null;
   const hb = HR ? mat.mul(base, HR) : base;
   const headM = mat.chain(hb, mat.T(hx * .8, 2.95 + hy * .9, hz * .8), mat.RX(hz * .7), mat.RZ(-hx * .7 + .03 * Math.sin(t * 2.1)), mat.S(1 / Math.sqrt(hs), .96 * hs, 1 / Math.sqrt(hs)));
-  const crownM = mat.chain(hb, mat.T(hx * .9, 3.55 + hy * .9 + .96 * (hs - 1), hz * .9), mat.RX(hz * .7), mat.RZ(-.1 - hx * .7 + .03 * Math.sin(t * 2.1)));
+  const cw = PH.cx ? [PH.cx.p, PH.cz.p, PH.cy.p] : [0, 0, 0]; // crown lags behind the head and wobbles on it (follow-through)
+  const crownM = mat.chain(hb, mat.T(hx * .9, 3.55 + hy * .9 + .96 * (hs - 1) + cw[2], hz * .9), mat.RX(hz * .7), mat.RZ(-.1 - hx * .7 + .03 * Math.sin(t * 2.1)), mat.T(0, -.35, 0), mat.RZ(cw[0] + .7 * hx), mat.RX(cw[1] - .7 * hz), mat.T(0, .35, 0));
   const crownH = hurt ? mat.chain(crownM, mat.T(.2 * hurt, -.12 * hurt, .05), mat.RZ(-.42 * hurt), mat.RX(.12 * hurt)) : crownM; // knocked askew
   const collarM = mat.chain(base, mat.T(0, 2.05, 0), mat.S(1, 1, .8));
   deformCape(t);
@@ -260,10 +305,10 @@ function drawPion(PP, base, VP, L, face) {
   if (hurt) { drawOutline(M.bandRing, bandM, VP, .05); drawOutline(M.bandKnot, knotM, VP, .05); for (const m of plasters) drawOutline(M.plaster, m, VP, .035); }
   for (const A of arms) { drawOutline(A.mesh, base, VP, .06); drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
   // fills
-  drawToon(M.body, base, VP, L, { vc: true });
+  drawToon(M.body, base, VP, L, { vc: true, ao: [1.55, 2.02, 9, 10, .32] });     // body darkens under the fur collar
   for (const r of M.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: RINGC });
   drawToon(M.collar, collarM, VP, L, { vc: true });
-  drawToon(M.head, headM, VP, L, { vc: true });
+  drawToon(M.head, headM, VP, L, { vc: true, ao: [-.5, -.86, .36, .64, .26] }); // chin over the collar, forehead under the crown
   const GS = .85; // toon specular + fresnel glint on gold
   if (det) { drawToon(M.hatDome, hatM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBrim, brimM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBow, bowM, VP, L, { color: [.3, .18, .09], noSoot: true }); }
   if (!det) drawToon(M.crownBand, crownM, VP, L, { color: GOLD, dbl: true, spec: GS });
@@ -353,12 +398,12 @@ function drawStamp(g, t, E, cx, cy, size) { // slammed rubber stamp text
 /* ---------- main draw ---------- */
 const GOLD = [1, .773, .192], CRIMSON = [.784, .078, .227], RINGC = [.14, .05, .05], GLOVE = [1, .95, .88], ARMC = [.96, .32, .22];
 function renderFrame(f) {
-  const o = PLAN[f], t = f / 30; window.__curF = f;
+  const o = PLAN[f], t = (f - SUBU) / 30; window.__curF = f; window.__probe = [];
   gl.viewport(0, 0, cv.width, cv.height); gl.clearColor(0, 0, 0, 0); gl.clearStencil(0); gl.depthMask(true);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
   fx.setTransform(1, 0, 0, 1, 0, 0); fx.clearRect(0, 0, fx.canvas.width, fx.canvas.height); fx.setTransform(fx.canvas.width / W, 0, 0, fx.canvas.height / H, 0, 0); window.__head = null;
   cv.style.opacity = '1';
-  if (!o.vis) { lastF = f; drawFX(f, t, o); return; }
+  if (!o.vis) { drawFX(f, t, o); return; }
   simulate(f);
   const sc = SHOTCAM[o.s], cam = makeCam(o.pitch || sc.pitch, sc.fov), VP = cam.VP; window.EYE = [0, HC, 0];
   const m = motion(f); FLASH = m.flash; cv.style.opacity = String(m.op);
@@ -380,7 +425,7 @@ function renderFrame(f) {
   const tint = bg.map(v => lerp(1, clamp(v / Math.max(lum, .05), .45, 1.8), .55));
   const exp = clamp(.4 + .95 * lum, .32, 1.1) * sc.exp;
   const L = {
-    dir: sc.dir, exp,
+    dir: lightDir(sc, o.s), exp,
     key: sc.key.map((v, i) => v * sc.keyI * lerp(1, tint[i], .35)),
     amb: tint.map(v => v * .36), sky: tint.map(v => v * .2),
     gnd: fl.map(v => clamp(v / lf, .5, 1.6) * .12),
@@ -393,21 +438,25 @@ function renderFrame(f) {
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.disable(gl.DEPTH_TEST);
   const air = clamp(m.yOff / .3, 0, 1);
   const shadowCol = fl.map(v => v * .22);
-  { const r = s * .34 * (1 - .35 * air); const bm = mat.chain(mat.T(P[0], .001, P[2]), mat.S(r, 1, r)); gl.useProgram(blobP.p); gl.uniformMatrix4fv(blobP.u.uVP, false, VP); gl.uniformMatrix4fv(blobP.u.uM, false, bm); gl.uniform4fv(blobP.u.uCol, [...shadowCol, .55 * (1 - .6 * air) * m.sAll]); blobMesh.draw(); }
+  const blob = (r, al) => { const bm = mat.chain(mat.T(P[0], .001, P[2]), mat.S(r, 1, r)); gl.useProgram(blobP.p); gl.uniformMatrix4fv(blobP.u.uVP, false, VP); gl.uniformMatrix4fv(blobP.u.uM, false, bm); gl.uniform4fv(blobP.u.uCol, [...shadowCol, al]); blobMesh.draw(); };
+  blob(s * .34 * (1 - .35 * air), .55 * (1 - .6 * air) * m.sAll);              // soft ambient pool
+  blob(s * .2 * (1 - .2 * air), .42 * Math.pow(1 - air, 2) * m.sAll);           // contact shadow: tight and dark where the base touches the ground
   if (!o.noshadow) gl.enable(gl.STENCIL_TEST);
-  const NS = o.noshadow ? 0 : 7, shA = sc.shA * (1 - .5 * air) * clamp(.6 + .8 * lum, .7, 1.1) * m.sAll;
-  const lray = sc.dir.map(v => -v);
+  const NS = o.noshadow ? 0 : 16, shA = sc.shA * (1 - .5 * air) * clamp(.6 + .8 * lum, .7, 1.1) * m.sAll;
+  const lray = lightDir(sc, o.s).map(v => -v), fadeH = 4.65 * s * U;
   const casters = [[M.body, base], [M.head, PP.headM], [M.crownBand, PP.crownM], [M.cape, base], [M.collar, PP.collarM]];
   for (const A of arms) casters.push([A.mesh, base], [M.hand, A.handM], [M.shoulder, A.shM]);
-  for (let i = 0; i < NS; i++) {
+  for (let i = 0; i < NS; i++) { // area light: 16 light directions on a Vogel disk -> smooth penumbra that widens with height
     gl.clear(gl.STENCIL_BUFFER_BIT); gl.stencilFunc(gl.EQUAL, 0, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR);
-    const ang = i / NS * Math.PI * 2, rr = i ? .1 : 0, jit = [Math.cos(ang) * rr, Math.sin(ang) * rr];
-    for (const [ms, mm] of casters) drawShadowMesh(ms, mm, VP, lray, jit, [...shadowCol, shA / NS * 1.6]);
+    const ang = i * 2.39996, rr = .13 * Math.sqrt((i + .5) / NS), jit = [Math.cos(ang) * rr, Math.sin(ang) * rr];
+    for (const [ms, mm] of casters) drawShadowMesh(ms, mm, VP, lray, jit, [...shadowCol, shA / NS * 1.85], fadeH);
   }
   gl.disable(gl.STENCIL_TEST);
   const ex = exprAt(t), blink = blinking(t) && ex.since > .25 && !m.flash;
   drawPion(PP, base, VP, L, { ex, blink, talk: 0, exp, tint, hurt: o.hurt || 0, glasses: o.glasses || 0, det: o.det || 0, t });
   { const hw = mat.xform(PP.headM, [0, 0, 0, 1]); window.__head = { p: cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), r: s * U * cam.unitPx(P) }; }
+  const pix = (M, v) => { const w = mat.xform(M, [...v, 1]); return cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]); };
+  window.__probe = [window.__head.p, cam.toPix(P), pix(PP.crownM, [0, 1.0, 0]), pix(base, [1, 0, 0]), pix(base, [-1, 0, 0]), ...PP.hands.filter(Boolean).map(Hd => { const w = mat.xform(Hd.M, [0, 0, 0, 1]); return cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]); })];
   FLASH = 0; drawFX(f, t, o);
   if (o.hurt) drawSmoke(fx, window.__head, t, o.hurt * (o.smoke ?? .6));
   for (const E of (TL.fx || [])) { if (t < E.t0 || t > E.t1) continue; const k = smooth(E.t0, E.t0 + .15, t) * (1 - smooth(E.t1 - .15, E.t1, t));
@@ -585,13 +634,32 @@ function drawFX(f, t, o) {
     }
   }
 }
+// sub-frame render for motion blur. u > 0: u frames BEFORE f, u < 0: |u| frames AFTER f (centred shutter).
+// Plan geometry and spring state are interpolated with the neighbouring frame on that side.
+const LERPK = ['x', 'y', 'h', 'yaw', 'roll', 'rx', 'ry', 'rh', 'pitch', 'lift', 'sq', 'dist', 'spd'];
+function renderFrameAt(f, u) {
+  const o = PLAN[f];
+  if (!u || !o.vis) return renderFrame(f);
+  const g = u > 0 ? f - 1 : f + 1, q = PLAN[g], k = Math.abs(u);
+  const cont = !!(q && q.vis && q.s === o.s && q.arr === o.arr);
+  let oi = o, Sf = null, Sg = null;
+  if (cont) { simulate(g); Sg = SNAP.get(g); simulate(f); Sf = SNAP.get(f);
+    oi = Object.assign({}, o); for (const n of LERPK) if (typeof o[n] === 'number' && typeof q[n] === 'number') oi[n] = lerp(o[n], q[n], k); }
+  else simulate(f);
+  if (Sf && Sg) setPhys(Sf, Sg, k);
+  PLAN[f] = oi; SUBU = cont ? u : 0; NOSIM = true;
+  try { renderFrame(f); } finally { PLAN[f] = o; SUBU = 0; NOSIM = false; if (Sf) setPhys(Sf, Sf, 1); }
+}
 window.renderFrame = renderFrame;
-// flatten character (with its opacity) + fx overlay into one transparent PNG inside the page (no DOM screenshot)
-window.grabFrame = () => {
-  const o = window.__grabCv || (window.__grabCv = document.createElement('canvas')); o.width = cv.width; o.height = cv.height; const g = o.getContext('2d');
+// flatten character (with its opacity) + fx overlay into one canvas inside the page (no DOM screenshot)
+function composeFrame() {
+  const o = window.__grabCv || (window.__grabCv = document.createElement('canvas')); o.width = cv.width; o.height = cv.height; const g = o.getContext('2d', { willReadFrequently: true });
   const oc = PLAN && PLAN[window.__curF] && PLAN[window.__curF].occl; // character goes into a hole: visible above its centre line or inside its opening
   g.save(); if (oc) { const kx = o.width / W, ky = o.height / H; g.beginPath(); g.rect(0, 0, o.width, oc[1] * ky); g.ellipse(oc[0] * kx, oc[1] * ky, oc[2] * kx, oc[3] * ky, 0, 0, 7); g.clip(); }
   g.globalAlpha = +cv.style.opacity || 0; g.drawImage(cv, 0, 0); g.globalAlpha = 1; g.restore(); g.drawImage(fx.canvas, 0, 0);
-  return o.toDataURL('image/png').split(',')[1];
-};
+  return o;
+}
+window.grabFrame = () => composeFrame().toDataURL('image/png').split(',')[1];
+// render frame f with motion blur (window.MB.maxN samples at most; 1 = off) and return the PNG
+window.grabFrameMB = f => mbCapture(u => renderFrameAt(f, u), composeFrame, () => window.__probe || []).toDataURL('image/png').split(',')[1];
 window.__ready = true;

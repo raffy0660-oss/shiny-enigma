@@ -1,5 +1,25 @@
 # Pion Raja: catatan perubahan
 
+## v2: gerak lebih halus, bayangan lebih bagus, menyatu dengan video
+Lihat `PERBANDINGAN_V2.jpg` untuk sebelum/sesudah.
+- **Motion blur** di mode video (`drive.js`, env `BLUR`, `SHUTTER`) dan mode reaksi (`--blur`, `--shutter`).
+  Shutter terpusat (setengah ke belakang, setengah ke depan), jadi frame benturan tetap jelas.
+  Jumlah sampel menyesuaikan jarak gerak: frame diam tetap tajam, gerakan cepat sampai 16 sampel.
+  Panjang blur dibatasi sekitar 4,5% tinggi Pion di layar supaya tetap terbaca. `BLUR=1` mematikan blur (draft cepat).
+- **Tracking halus**: `smooth_track.py` menghilangkan getar pada `anchors.json`/`track.json` (regresi lokal tanpa delay,
+  jendela menyesuaikan kecepatan, bobot bilateral). Spike satu frame dibuang. Cut, frame video yang beku, dan awal
+  gerakan mendadak tidak ikut bergeser. Di data proj4: getar saat diam turun 2–3x, pergeseran maksimum di bawah 3 px.
+- **Gerakan**: mahkota punya pegas sendiri (telat dan memantul setelah kepala). Ada ancang-ancang otomatis sebelum
+  lompat/hop/launch, serta squash lalu memantul saat mendarat. Di mode reaksi ada jongkok lalu meregang sebelum `flyout`.
+- **Bayangan**: 16 sampel area light (dulu 7) sehingga penumbra halus dan melebar sesuai tinggi. Bagian yang tinggi
+  bayangannya lebih tipis. Ada contact shadow rapat di bawah alas, ambient occlusion di bawah kerah dan mahkota,
+  serta contact shadow dua lapis di adegan istana. Opsional: `autoDir: true` di `SHOTCAM` (sisi cahaya diambil dari video).
+- **Menyatu dengan video**: `integrate.py` mengukur ketajaman dan noise footage per frame, lalu melembutkan Pion,
+  menambah light wrap di tepi, dan menambah grain yang sama. Dipakai oleh `composite*.py` di contoh.
+- Render paralel tetap identik byte-per-byte dengan render satu job (sudah dicek di kedua mode).
+- Catatan waktu: di 4K, adegan yang banyak gerak cepat 6–9x lebih lama dengan blur. Frame diam hampir tidak bertambah.
+
+
 ## Animasi & karakter
 - **6 gesture baru dengan animasi tangan.** `clap`, `lookout`, `dance`, `facepalm`, `knock`, dan `cross` sudah ada
   di `timeline.js` tapi `gestureState()` tidak menanganinya, jadi tangan tidak pernah muncul. Sekarang:

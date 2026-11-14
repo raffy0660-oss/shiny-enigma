@@ -11,6 +11,7 @@
 //   --jelly 1.0                      jelly strength multiplier
 //   --fps 30 --size 1080x1920 --jobs N --start 0 --dur <s>  (cut a section of the audio)
 //   --preview t1,t2,...              only render a contact sheet of these moments (fast check)
+//   --blur 16                        motion blur: max samples per frame (default 16, 1 = off); --shutter 0.4 (frames)
 //   --local                          cue times are relative to --start (default: absolute audio times)
 const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('/opt/npm-tools/node_modules/playwright'); } })();
 const fs = require('fs'), path = require('path'), os = require('os'), { execFileSync } = require('child_process');
@@ -18,6 +19,7 @@ const fs = require('fs'), path = require('path'), os = require('os'), { execFile
 const argv = process.argv.slice(2), arg = (k, d) => { const i = argv.indexOf('--' + k); return i < 0 ? d : (argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : true); };
 const AUDIO = arg('audio', null), CUES = arg('cues', null), OUT = arg('out', 'reaksi'), FPS = +arg('fps', 30);
 const [RW, RH] = String(arg('size', '1080x1920')).split('x').map(Number), JELLY = +arg('jelly', 1);
+const BLUR = +arg('blur', 16), SHUTTER = +arg('shutter', .4);
 const START = +arg('start', 0), BG = String(arg('bg', 'green')), PREVIEW = arg('preview', null);
 const lerp = (a, b, u) => a + (b - a) * u;
 const hexOf = b => ({ green: '00FF00', black: '000000', blue: '0047FF', white: 'FFFFFF' }[b] || b.replace('#', ''));
@@ -139,6 +141,7 @@ async function openPage(data) {
   await p.goto('file://' + path.resolve(__dirname, 'react.html') + `?w=${RW}&h=${RH}`);
   await p.waitForFunction(() => window.__reactReady === true, null, { timeout: 60000 });
   await p.evaluate(d => window.setReact(d), data);
+  await p.evaluate(([n, s]) => { window.MB.maxN = n; window.MB.shutter = s; }, [BLUR, SHUTTER]);
   await p.evaluate(() => Promise.all(Object.values(RX.imgs).map(i => i.decode().catch(() => 0))));
   return { b, p };
 }
@@ -168,7 +171,7 @@ async function openPage(data) {
   if (PREVIEW) { // contact sheet on the chosen background
     const { b, p } = await openPage(data); await p.evaluate(c => { document.body.style.background = c; }, '#' + BGHEX);
     const ts = String(PREVIEW).split(',').map(Number), shots = [];
-    for (const t of ts) shots.push(await p.evaluate(([f, bg]) => { window.renderReact(f); return window.grabReact(bg); }, [Math.min(au.n - 1, Math.round(t * FPS)), '#' + BGHEX]));
+    for (const t of ts) shots.push(await p.evaluate(([f, bg, mb]) => mb ? window.grabReactMB(f, bg) : (window.renderReact(f), window.grabReact(bg)), [Math.min(au.n - 1, Math.round(t * FPS)), '#' + BGHEX, BLUR > 1]));
     const sheet = await p.evaluate(async ([imgs, labels]) => {
       const ims = await Promise.all(imgs.map(s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = 'data:image/jpeg;base64,' + s; })));
       const w = 270, h = 480, cols = Math.min(6, ims.length), c = document.createElement('canvas'); c.width = w * cols; c.height = h * Math.ceil(ims.length / cols); const g = c.getContext('2d');
@@ -184,7 +187,7 @@ async function openPage(data) {
   await Promise.all(Array.from({ length: JOBS }, (_, j) => frames.slice(j * per, (j + 1) * per)).filter(c => c.length).map(async list => {
     const { b, p } = await openPage(data);
     for (const f of list) {
-      const png = await p.evaluate(f => { window.renderReact(f); return window.grabReact(null); }, f);
+      const png = await p.evaluate(([f, mb]) => mb ? window.grabReactMB(f, null) : (window.renderReact(f), window.grabReact(null)), [f, BLUR > 1]);
       fs.writeFileSync(path.join(dir, String(f).padStart(5, '0') + '.png'), Buffer.from(png, 'base64'));
       if (++done % 60 === 0 || done === frames.length) console.log(`frame ${done}/${frames.length}  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
     }

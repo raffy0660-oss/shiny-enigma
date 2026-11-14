@@ -2,6 +2,8 @@
 screens (captions kept), reaction cameos, zoom-blur transitions at the scene changes, SFX mixed over the original audio."""
 import subprocess, numpy as np, os, sys, cv2
 from PIL import Image
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'pion_raja'))
+from integrate import over as integrate_over  # soften + light wrap + grain, measured from the footage
 W, H = 2156, 3840; Y0, Y1 = 552, 3300
 WHITES = [(118, 212, 'out4k/w1_frames'), (364, 428, 'out4k/w2_frames'), (684, 756, 'out4k/w3_frames')]
 CAMEOS = []
@@ -11,10 +13,10 @@ MEME = (383, 428)   # pion recreates the AHAtik meme: black & white, contrast, g
 dec = subprocess.Popen(['ffmpeg', '-v', 'error', '-i', 'src/input.mp4', '-vf', f'scale={W}:{H}:flags=lanczos', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'], stdout=subprocess.PIPE)
 enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', '30', '-i', '-', '-vf', 'scale=2160:3840:flags=lanczos',
                         '-c:v', 'libx264', '-crf', '17', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', OUT], stdin=subprocess.PIPE)
-def over(fr, path):
+def over(fr, path, seed=0):
     if not os.path.exists(path): return
-    ov = np.asarray(Image.open(path).convert('RGBA'))[Y0:Y1].astype(np.float32); a = ov[..., 3:4] / 255.0
-    if a.max() > 0: fr[Y0:Y1] = (ov[..., :3] * a + fr[Y0:Y1].astype(np.float32) * (1 - a) + .5).astype(np.uint8)
+    ov = np.asarray(Image.open(path).convert('RGBA'))[Y0:Y1]
+    if ov[..., 3].any(): reg = fr[Y0:Y1].copy(); integrate_over(reg, ov, seed=seed); fr[Y0:Y1] = reg
 def zoom_blur(fr, s):
     reg = fr[Y0:Y1].astype(np.float32); h, w = reg.shape[:2]; acc = reg.copy(); n = 7
     for i in range(1, n):
@@ -43,9 +45,9 @@ while True:
                 reg = reg * (1 - k) + np.repeat(gy[..., None], 3, 2) * k; keep[:] = False
             reg = np.clip(reg, 0, 255).astype(np.uint8); reg[keep] = src[keep]; fr[Y0:Y1] = reg
     else:
-        over(fr, f'out4k/vframes/{f:04d}.png')
+        over(fr, f'out4k/vframes/{f:04d}.png', seed=f)
         cm = next((s for s in CAMEOS if s[0] <= f <= s[1]), None)
-        if cm: over(fr, f'{cm[2]}/{f - cm[0]:05d}.png')
+        if cm: over(fr, f'{cm[2]}/{f - cm[0]:05d}.png', seed=f + 100000)
     for c in TRANS:
         d = f - c + .5
         if abs(d) < 5: zoom_blur(fr, .16 * (1 - abs(d) / 5) ** 1.5)
