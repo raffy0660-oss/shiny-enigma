@@ -94,7 +94,10 @@ def engine_cues(src, segs, dst):
             continue
         out.append(line.rstrip())
     for t, m in segs:
-        out.append(f"{t:.3f} light {ES.PRESETS[m][1]} exp 1")
+        light = ES.PRESETS[m][1]
+        w = light.split(); d = np.array([float(v) for v in w[w.index("dir") + 1:w.index("dir") + 4]])
+        pos = np.array([0.0, 3.0, 0.0]) + d / np.linalg.norm(d) * 4.2   # point key fixed in the room, along the mood key: moving changes his light
+        out.append(f"{t:.3f} light {light} pos {pos[0]:.2f} {pos[1]:.2f} {pos[2]:.2f} exp 1")
     open(dst, "w").write("\n".join(out) + "\n")
 
 
@@ -181,7 +184,8 @@ def main():
     ap.add_argument("--work", default=None)
     ap.add_argument("--novolume", action="store_true")
     ap.add_argument("--blur", type=int, default=6, help="engine motion-blur samples (1 = off)")
-    ap.add_argument("--camblur", type=int, default=6, help="Remotion camera motion-blur samples (1 = off)")
+    ap.add_argument("--camblur", type=int, default=8, help="Remotion camera motion-blur samples (1 = off)")
+    ap.add_argument("--shake", type=float, default=1.0, help="gentle camera shake while the camera moves (0 = off)")
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2)))
     a = ap.parse_args()
 
@@ -239,7 +243,7 @@ def main():
                 print(f"  {i + 1}/{n}", flush=True)
 
     # 4. camera plan + Remotion
-    plan = json.loads(run(["node", os.path.join(SKILL, "engine", "camplan.js"), cues, "--sample", str(fps), "--frames", str(n)]))
+    plan = json.loads(run(["node", os.path.join(SKILL, "engine", "camplan.js"), cues, "--sample", str(fps), "--frames", str(n), "--shake", str(a.shake)]))
     h0 = track["frames"][0]["head"]
     focus = [(h0[0] - ecx) * k + pcx, (h0[1] - eb) * k + y1]
     run(["ffmpeg", "-v", "error", "-y", "-i", os.path.abspath(a.audio), "-ar", "48000", "-ac", "2", os.path.join(work, "public", "audio.wav")])

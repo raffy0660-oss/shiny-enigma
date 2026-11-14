@@ -55,7 +55,7 @@ const Scene: React.FC<PionCastleProps> = (p) => {
 export const PionCastle: React.FC<PionCastleProps> = (p) => (
   <AbsoluteFill style={{ backgroundColor: "black" }}>
     {p.camBlur > 1 ? (
-      <CameraMotionBlur shutterAngle={180} samples={p.camBlur}>
+      <CameraMotionBlur shutterAngle={270} samples={p.camBlur}>
         <Scene {...p} />
       </CameraMotionBlur>
     ) : (

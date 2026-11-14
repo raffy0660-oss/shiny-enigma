@@ -31,6 +31,10 @@ Satu file cue mengatur semuanya:
   - saat mood berganti, kamera **zoom out ke normal** lalu mulai zoom lagi dengan sudut berikutnya.
 - **Gerakan Pion** (gesture, `acting`, terbang) membuat **bayangan di lantai dan cahaya di badannya ikut bergerak**.
   Bayangan ikut bergeser dan menipis saat Pion melompat. Tidak ada bekas bayangan yang diam.
+  Cahaya di Pion datang dari **lampu titik yang diam di ruangan** (arah key mood itu), jadi saat dia bergoyang,
+  miring, atau melompat mendekati lampu, terang-gelap di badannya ikut berubah.
+- **Kamera bergerak = motion blur (shutter 270°, 8 sampel) + getaran halus** yang hanya muncul selama kamera
+  bergerak (`--shake 0` mematikan, `--shake 0.5` lebih halus). Saat kamera diam, gambar diam.
 - **Remotion** (`castle3d/remotion`) merakit hasil akhir: kamera, motion blur kamera, vignette, audio.
   Scene dirender 1,5x lebih besar dari output, jadi zoom 1,5x tetap tajam.
 

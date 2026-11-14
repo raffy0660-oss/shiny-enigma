@@ -13,6 +13,7 @@
 //   --preview t1,t2,...              only render a contact sheet of these moments (fast check)
 //   --blur 16                        motion blur: max samples per frame (default 16, 1 = off); --shutter 0.4 (frames)
 //   --local                          cue times are relative to --start (default: absolute audio times)
+//   --shake 1                        camera shake while the autozoom camera moves (0 = off)
 // cue `light dir x y z key r g b amb r g b rim r g b ...` overrides the toon light preset (to match a 3D background)
 // cue `<t> autozoom [N] [strength]` / `<t> autozoom off`: micro zoom punch-ins every N karaoke words, centred on the face
 const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('/opt/npm-tools/node_modules/playwright'); } })();
@@ -181,7 +182,7 @@ async function openPage(data) {
     const CP = require('./camplan.js'), off = arg('local') ? 0 : START;
     const onsets = []; for (let f = 0; f < au.n; f++) if (au.onset[f] > 0) onsets.push(f / FPS + off);
     const keys = CP.planCamera({ words: (cues.subs || []).map(([t, text]) => ({ t, text })), exprs: cues.expr, az: cues.az, onsets });
-    camz = []; for (let f = 0; f < au.n; f++) { const c = CP.camAtPlan(keys, f / FPS + off); camz.push([c.z, c.ox, c.oy, c.roll].map(v => +v.toFixed(5))); }
+    camz = []; const sh = arg('shake') === null ? 1 : +arg('shake'); for (let f = 0; f < au.n; f++) { const c = CP.sampleCam(keys, f / FPS + off, sh); camz.push([c.z, c.ox, c.oy, c.roll].map(v => +v.toFixed(5))); }
     if (arg('camplan')) fs.writeFileSync(String(arg('camplan')), JSON.stringify(keys, null, 1));
   }
   // acting layer events: '!' words (emphasis hop) and expression changes (a little "take")

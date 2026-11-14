@@ -90,6 +90,8 @@ node react_render.js --audio vo.m4a --cues cues.txt --out hasil/reaksi1
   dan sedikit miring**. Sudut itu ditahan sampai mood berganti.
 - Saat **mood berganti**: zoom out ke normal (0,7 detik), lalu zoom lagi dengan sudut berikutnya.
 - `0.0 autozoom 2` tiap 2 kata · `0.0 autozoom 4 0.6` tiap 4 kata, lebih halus · `5.2 autozoom off` berhenti.
+- Selama kamera bergerak ada **getaran halus** (hilang saat kamera diam). `--shake 0` di perintah render mematikan,
+  `--shake 0.5` lebih halus. Motion blur engine (`--blur`) ikut memburamkan gerak kamera.
 - `word` hanya penanda waktu kata (tidak ditampilkan). Tanpa `word`, ritmenya dari suku kata di audio.
 - Video yang sudah jadi: `python3 microzoom.py --in hasil.mp4 --out hasil_zoom.mp4 --cues cues.txt` (zoom tanpa sudut).
 - Video istana 3D: `castle3d/castle_video.py` memakai rencana kamera yang sama lewat Remotion.
@@ -106,4 +108,5 @@ Pion bergerak sendiri mengikuti suara (default nyala):
 
 ## Cahaya per waktu
 `3.2 light dir .. key .. amb .. rim .. exp 1` mengganti cahaya Pion mulai detik 3,2 (crossfade 0,4 detik).
-`light ...` tanpa waktu tetap berlaku untuk seluruh video.
+`light ...` tanpa waktu tetap berlaku untuk seluruh video. Tambahkan `pos x y z` untuk lampu titik yang diam di ruangan
+(satuan model Pion, kepala sekitar y=3): saat Pion bergerak, cahaya di badannya ikut berubah.

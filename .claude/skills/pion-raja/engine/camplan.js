@@ -97,7 +97,24 @@ function camAtPlan(keys, t) {
   return c;
 }
 
-module.exports = { parseCues, planCamera, camAtPlan, moodOf, MOODS, CORNERS };
+/* handheld shake that lives only while the camera moves: amplitude follows camera speed, gone on holds */
+const SHAKE = { pos: .0035, roll: .32, zoom: .005 };
+function shakeAt(keys, t, k = 1) {
+  const a = camAtPlan(keys, t - 1 / 60), b = camAtPlan(keys, t + 1 / 60);
+  const speed = (Math.abs(b.z - a.z) * 2 + Math.hypot(b.ox - a.ox, b.oy - a.oy) * 6 + Math.abs(b.roll - a.roll) * .06) * 30;
+  const env = k * Math.min(1, speed / .9);
+  if (env < 1e-3) return { z: 0, ox: 0, oy: 0, roll: 0 };
+  const n = (f1, f2, f3, p) => (Math.sin(t * f1 + p) * .5 + Math.sin(t * f2 + p * 1.7) * .3 + Math.sin(t * f3 + p * 2.3) * .2);
+  return { z: env * SHAKE.zoom * n(9.1, 15.3, 23.7, .4), ox: env * SHAKE.pos * n(11.3, 17.9, 29.1, 1.3),
+           oy: env * SHAKE.pos * n(10.7, 19.1, 27.3, 2.9), roll: env * SHAKE.roll * n(8.3, 13.7, 21.9, 4.1) };
+}
+/* what renderers sample per frame: smooth plan + gentle shake while moving */
+function sampleCam(keys, t, shake = 1) {
+  const c = camAtPlan(keys, t), s = shake ? shakeAt(keys, t, shake) : null;
+  return s ? { z: c.z + s.z, ox: c.ox + s.ox, oy: c.oy + s.oy, roll: c.roll + s.roll } : c;
+}
+
+module.exports = { parseCues, planCamera, camAtPlan, sampleCam, moodOf, MOODS, CORNERS };
 
 if (require.main === module) {
   const a = process.argv.slice(2), opt = k => { const i = a.indexOf('--' + k); return i < 0 ? null : a[i + 1]; };
@@ -107,7 +124,8 @@ if (require.main === module) {
   const keys = planCamera(Object.assign(P, { max: +(opt('max') || 1.5) }));
   if (opt('sample')) { // --sample FPS --frames N : per-frame [z, ox, oy, roll] for renderers that just read numbers
     const fps = +opt('sample'), n = +opt('frames'), out = [];
-    for (let f = 0; f < n; f++) { const c = camAtPlan(keys, f / fps); out.push([c.z, c.ox, c.oy, c.roll].map(v => +v.toFixed(5))); }
+    const sh = opt('shake') === null ? 1 : +opt('shake');
+    for (let f = 0; f < n; f++) { const c = sampleCam(keys, f / fps, sh); out.push([c.z, c.ox, c.oy, c.roll].map(v => +v.toFixed(5))); }
     process.stdout.write(JSON.stringify({ keys, frames: out }) + '\n');
   } else process.stdout.write(JSON.stringify(keys, null, 1) + '\n');
 }
