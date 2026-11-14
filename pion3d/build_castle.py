@@ -1030,6 +1030,9 @@ def mood_chandelier(volume, pos=(0.0, 7.5, 16.9), color=(1.0, 0.52, 0.2)):
     for o in bpy.data.objects:
         if o.name.startswith(("ChandelierRing", "LampRod_", "LampShade_", "LampBulb_", "ChandLight_")):
             o.location += d
+    for o in bpy.data.objects:   # a lit fixture should not print its chain/ring shadow on Pion's face
+        if o.name.startswith(("ChandelierRing", "ChandelierChain", "LampRod_", "LampShade_", "LampBulb_")):
+            o.visible_shadow = False
     ch = bpy.data.objects.get("ChandelierChain")
     if ch:
         h0, h1 = CEIL_Z - old.z, CEIL_Z - new.z
