@@ -19,6 +19,58 @@ ENGINE_H = 4.65   # engine pion height (model units, crown tip to base)
 PROXY_H = 4.83    # Blender proxy height: its crown is scaled 1.18 in z
 
 
+def _box(a, r, axis):
+    """Box filter of radius r along one axis (edge-clamped), via cumulative sums."""
+    pad = [(0, 0)] * a.ndim
+    pad[axis] = (r + 1, r)
+    c = np.cumsum(np.pad(a, pad, mode="edge"), axis=axis)
+    hi = np.take(c, np.arange(2 * r + 1, c.shape[axis]), axis=axis)
+    lo = np.take(c, np.arange(0, c.shape[axis] - 2 * r - 1), axis=axis)
+    return (hi - lo) / (2 * r + 1)
+
+
+def _blur(img, r):
+    """Float Gaussian-ish blur: three box passes per axis (PIL cannot blur float images)."""
+    r = max(1, int(r / 1.7))
+    out = img.astype(np.float32)
+    for _ in range(3):
+        out = _box(_box(out, r, 0), r, 1)
+    return out
+
+
+def relight(rgb, alpha, light_png, size, strength, bands):
+    """Multiply the room's light (Blender clay proxy) onto the engine Pion, cel-banded."""
+    Lp = Image.open(light_png).convert("RGBA").resize(size, Image.LANCZOS)
+    Lf = np.asarray(Lp).astype(np.float32) / 255.0
+    lc, la = Lf[..., :3], Lf[..., 3:4]
+    # fill outside the proxy silhouette (engine and proxy outlines differ a little):
+    # normalised convolution of the premultiplied light
+    r = max(3, size[0] // 60)
+    num = _blur((lc * la).astype(np.float32), r)
+    den = _blur(la.astype(np.float32), r)
+    filled = num / np.maximum(den, 1e-4)
+    lc = lc * la + filled * (1 - la)
+    lum = lc.mean(-1, keepdims=True)
+    inside = (la[..., 0] > 0.5)
+    ref = np.percentile(lum[inside], 55) if inside.any() else lum.mean()
+    shade = lum / max(ref, 1e-4)
+    tint = lc / np.maximum(lum, 1e-4)
+    # keep the room's warm cast (torches, candles): only take out half of the average tint
+    if inside.any():
+        tint = tint / (0.5 + 0.5 * tint[inside].mean(0))
+    if bands > 0:  # cel steps with a soft 1.5 px edge
+        levels = np.linspace(0.5, 1.4, bands)
+        idx = np.clip(np.round((shade - 0.55) / (0.8 / max(bands - 1, 1))), 0, bands - 1).astype(int)
+        q = levels[idx]
+        shade = _blur(q.astype(np.float32), 2)
+    factor = shade * tint
+    factor = 1 + (factor - 1) * strength
+    # rim: the brightest light (window behind) adds a warm edge, not just a multiply
+    rim = np.clip(lum / max(ref, 1e-4) - 1.45, 0, 1) * 0.35 * strength
+    out = rgb * factor + rim * tint * 0.6
+    return out * alpha + rgb * (1 - alpha)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--bg", required=True)
@@ -31,6 +83,9 @@ def main():
     ap.add_argument("--dx", type=float, default=0.0)
     ap.add_argument("--dy", type=float, default=0.0)
     ap.add_argument("--contact", type=float, default=0.75)
+    ap.add_argument("--light", default=None, help="light pass PNG from build_castle.py --lightpass")
+    ap.add_argument("--relight", type=float, default=1.0, help="how much of the room light goes onto Pion")
+    ap.add_argument("--bands", type=int, default=4, help="cel bands for the room light (0 = smooth)")
     a = ap.parse_args()
 
     bg = Image.open(a.bg).convert("RGB")
@@ -57,6 +112,8 @@ def main():
     rgb, alpha = F[..., :3], F[..., 3:4]
     B = np.asarray(bg).astype(np.float32) / 255.0
 
+    if a.light:
+        rgb = relight(rgb, alpha, a.light, (W, H), a.relight, a.bands)
     # light wrap: blurred plate bleeding over the inner edge of the character
     r = max(2, round(W / 90))
     blur_bg = np.asarray(bg.filter(ImageFilter.GaussianBlur(r))).astype(np.float32) / 255.0

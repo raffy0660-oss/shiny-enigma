@@ -18,6 +18,7 @@ import argparse
 import math
 import os
 import random
+import time
 import sys
 
 import bpy  # must come before bmesh/mathutils with the pip module
@@ -552,6 +553,9 @@ def main():
     ap.add_argument("--proxy", action="store_true",
                     help="Pion invisible to camera/reflections, still casts shadows (for the engine Pion composite)")
     ap.add_argument("--bbox", default=None, help="write the proxy's screen bbox (px) to this JSON")
+    ap.add_argument("--lightpass", default=None,
+                    help="also render the proxy alone in white clay, lit by the room (RGBA PNG) for relighting the engine Pion")
+    ap.add_argument("--lightpass-only", action="store_true", help="skip the beauty render")
     a = ap.parse_args(argv)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     rig, pion_objs = build_pion(a.expr)
@@ -600,12 +604,56 @@ def main():
             o.visible_volume_scatter = False
     bpy.ops.wm.save_as_mainfile(filepath=a.out)
     print("RESULT built", a.out)
-    if a.render:
-        import time
+    import time
+    if a.render and not a.lightpass_only:
         t0 = time.time()
         sc.render.filepath = a.render
         bpy.ops.render.render(write_still=True)
         print("RESULT rendered", a.render, f"{time.time() - t0:.1f}s")
+    if a.lightpass:
+        render_lightpass(sc, pion_objs, a.lightpass, min(a.samples, 48))
+
+
+def render_lightpass(sc, pion_objs, path, samples):
+    """The room's light on Pion: proxy visible in white clay, every other object hidden from
+    the camera but still lighting and shadowing it (bounce, torch colour, window rim)."""
+    clay = bpy.data.materials.new("LightClay")
+    clay.use_nodes = True
+    b = clay.node_tree.nodes.get("Principled BSDF")
+    b.inputs["Base Color"].default_value = (0.8, 0.8, 0.8, 1)
+    b.inputs["Roughness"].default_value = 0.6
+    b.inputs["Specular IOR Level"].default_value = 0.35
+    names = {o.name for o in pion_objs}
+    for o in bpy.data.objects:
+        if o.type != "MESH":
+            continue
+        if o.name in names and o.name.startswith(("EyeWhite", "Pupil", "Brow", "Mouth", "Ruby")):
+            o.hide_render = True      # the engine draws its own face: keep only the head's form
+            continue
+        if o.name in names:
+            for md in list(o.modifiers):
+                if md.name == "Outline":
+                    o.modifiers.remove(md)
+            for i in range(len(o.material_slots)):
+                o.material_slots[i].material = clay
+            o.visible_camera = True
+            o.visible_glossy = True
+        else:
+            o.visible_camera = False
+        if o.name == "Haze":
+            o.hide_render = True
+    sc.render.film_transparent = True
+    sc.render.use_compositing = False
+    sc.view_settings.view_transform = "Standard"
+    sc.view_settings.look = "None"
+    sc.view_settings.exposure = -1.0      # headroom: the comp normalises it
+    sc.cycles.samples = samples
+    sc.render.image_settings.color_mode = "RGBA"
+    sc.render.image_settings.color_depth = "16"
+    t0 = time.time()
+    sc.render.filepath = path
+    bpy.ops.render.render(write_still=True)
+    print("RESULT lightpass", path, f"{time.time() - t0:.1f}s")
 
 
 if __name__ == "__main__":
