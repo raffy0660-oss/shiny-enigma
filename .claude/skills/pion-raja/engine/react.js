@@ -201,7 +201,7 @@ function nerdGlow(t) {
   let g = 0;
   for (const G of TL.gest) { if (G.type !== 'nerd' || t < G.t0 || t > G.t1) continue; const u = t - G.t0;
     g = Math.max(g, gEnv(G, t) * smooth(0, .3, u) * (1 - .85 * smooth(1.4, 2.5, u))); }
-  return g;
+  const k = RX.fxl.filter(e => e.type === 'glow' && t >= e.t0).pop(); return g * (k ? k.amt : 1); // cue `glow <0..1>` scales the book's light
 }
 const GOLD_GLOW = [1.0, .8, .42];
 function glowLight(L, g) { // the book becomes the key: strong gold uplight from the front, face flooded warm

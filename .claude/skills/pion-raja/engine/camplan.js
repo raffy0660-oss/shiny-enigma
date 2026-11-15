@@ -19,7 +19,7 @@ const fs = IN_NODE ? require('fs') : null, path = IN_NODE ? require('path') : nu
 // node reads moods.json next to this file; a browser page sets window.PION_MOODS (the parsed moods.json) first
 const MOODS = IN_NODE ? JSON.parse(fs.readFileSync(path.join(__dirname, 'moods.json'), 'utf8')).expr_to_mood
                       : ((typeof window !== 'undefined' && window.PION_MOODS) || {}).expr_to_mood || {};
-const moodOf = e => MOODS[e] || 'hangat';
+const moodOf = e => e && e[0] === '@' ? e.slice(1) : (MOODS[e] || 'hangat');   // '@mood' = pinned by a `mood` cue
 const CORNERS = [ // one per atmosphere, cycling: camera drifts to a corner and tilts a little
   { ox: .085, oy: -.045, roll: -3.2 },
   { ox: -.085, oy: -.035, roll: 3.0 },
@@ -28,15 +28,21 @@ const CORNERS = [ // one per atmosphere, cycling: camera drifts to a corner and 
 ];
 
 function parseCues(txt) {
-  const words = [], exprs = [], az = [], man = [];
+  const words = [], exprs = [], az = [], man = [], pins = [];
   for (const raw of txt.split(/\r?\n/)) {
     const w = raw.replace(/#.*/, '').trim().split(/\s+/); if (w.length < 2 || isNaN(+w[0])) continue;
     const t = +w[0], cmd = w[1];
     if (cmd === 'word' || cmd === 'kata') words.push({ t, text: w.slice(2).join(' ') });
     else if (cmd === 'expr') exprs.push([t, w[2]]);
+    else if (cmd === 'mood') pins.push([t, (w[2] || 'auto').toLowerCase()]);
     else if (MOODS[cmd]) exprs.push([t, cmd]);
     else if (cmd === 'zoomto') man.push({ t, z: +(w[2] || 1.3), oy: +(w[3] || 0), ox: +(w[4] || 0), roll: +(w[5] || 0), dur: +(w[6] || .5) }); // manual key: zoom z, offsets as frame fractions (-oy = camera up)
     else if (cmd === 'autozoom' || cmd === 'zoomauto') az.push(/^(off|mati)$/i.test(w[2] || '') ? { t, off: true } : { t, every: +(w[2] || 3) || 3, amt: +(w[3] || 1) || 1 });
+  }
+  if (pins.length) { // a pinned mood overrides the expression's mood until the next pin ('auto' releases it)
+    pins.sort((a, b) => a[0] - b[0]); const pinAt = t => { let p = 'auto'; for (const [t0, m] of pins) if (t0 <= t + 1e-6) p = m; return p; };
+    for (const E of exprs) { const p = pinAt(E[0]); if (p !== 'auto') E[1] = '@' + p; }
+    for (const [t0, m] of pins) if (m !== 'auto') exprs.push([t0, '@' + m]);
   }
   return { words, exprs, az, man };
 }

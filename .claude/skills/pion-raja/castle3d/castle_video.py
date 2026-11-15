@@ -47,7 +47,7 @@ def run(cmd, cwd=None):
 
 
 def parse_exprs(path):
-    ex = []
+    ex, pins = [], []
     for line in open(path, encoding="utf-8"):
         w = line.split("#")[0].split()
         if len(w) >= 2:
@@ -55,13 +55,18 @@ def parse_exprs(path):
                 t = float(w[0])
             except ValueError:
                 continue
+            if w[1] == "mood" and len(w) > 2:          # `<t> mood X` pins the lighting mood ('auto' releases it)
+                pins.append((t, w[2].lower())); continue
             name = w[2] if w[1] == "expr" and len(w) > 2 else w[1]
             if name in MOODS:
                 ex.append((t, name))
+    pins.sort()
+    pin_at = lambda t: ([m for t0, m in pins if t0 <= t + 1e-6] or ["auto"])[-1]
+    ex = [(t, "@" + pin_at(t) if pin_at(t) != "auto" else e) for t, e in ex] + [(t, "@" + m) for t, m in pins if m != "auto"]
     ex.sort()
     segs = []
     for t, e in ex:
-        m = MOODS[e]
+        m = e[1:] if e.startswith("@") else MOODS[e]
         if not segs or segs[-1][1] != m:
             segs.append((t, m))
     if not segs:
@@ -86,7 +91,7 @@ def mood_weights(segs, t):
 
 def engine_cues(src, segs, dst, frame="2.35,6.6"):
     """Static engine camera (the camera moves in Remotion), mood lights timed to the segments."""
-    skip = {"autozoom", "zoomauto", "cam", "kamera", "light"}
+    skip = {"autozoom", "zoomauto", "cam", "kamera", "light", "mood"}
     out = [f"frame {frame}", "acting 1"]
     for line in open(src, encoding="utf-8"):
         w = line.split("#")[0].split()

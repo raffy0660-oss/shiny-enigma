@@ -124,6 +124,7 @@ function parseCues(txt) {
     else if (cmd === 'sebum') C.fx.push({ type: 'sebum', t0: t, t1: t + +(w[2] || 1.2) });                  // the oil-drop buddy walks in from the right
     else if (cmd === 'arrow' || cmd === 'panah') C.fx.push({ type: 'arrow', t0: t, t1: t + +(w[2] || 1.5), text: w.slice(3).join(' ') || '*grease' });
     else if (cmd === 'subbtn' || cmd === 'tombol') C.fx.push({ type: 'subbtn', t0: t, t1: t + +(w[2] || 999) }); // floating SUBSCRIBE button (gest click presses it)
+    else if (cmd === 'glow' || cmd === 'cahaya') C.fx.push({ type: 'glow', t0: t, t1: 999, amt: +(w[2] ?? .35) }); // book-glow strength from t on
     else if (cmd === 'hide') C.fx.push({ type: 'hide', t0: t, t1: 999 });
     else if (cmd === 'detective' || cmd === 'detektif') C.fx.push({ type: 'detective', t0: t, t1: t + +(w[2] || 99) });
     else if (cmd === 'poof') C.fx.push({ type: 'poof', t0: t, t1: t + +(w[2] || .5) });
