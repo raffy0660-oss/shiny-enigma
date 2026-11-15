@@ -67,7 +67,7 @@ function analyse(file) {
 //   <t> hover off|on                 gentle floating (on by default)
 const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
   'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu'];
-const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift'];
+const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click'];
 function parseCues(txt) {
   const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], bg: null, frame: null, frameOverride: null }, warn = [];
   const time = s => { const m = s.split(':').map(Number); return m.length > 1 ? m[0] * 60 + m[1] : m[0]; };
@@ -97,6 +97,7 @@ function parseCues(txt) {
       const G = { t0: t, t1: t + dur, type, side };
       if (type === 'point' || type === 'press') { G.tgt = nums.length >= 2 ? nums.slice(0, 2) : [side < 0 ? 180 : 900, 420]; if (type === 'press') G.hit = t + dur * .45; }
       if (type === 'throw' && nums.length) G.fly = nums[0];
+      if (type === 'click') G.hit = t + dur * .4;
       if (type === 'paper' && rest.some(v => /^(will|wasiat)$/i.test(v))) G.will = true;
       C.gest.push(G);
     }
@@ -118,6 +119,11 @@ function parseCues(txt) {
     else if (cmd === 'shake' || cmd === 'goyang') C.shakes.push({ t, amp: +(w[2] || 1), dur: +(w[3] || .4) });
     else if (cmd === 'turn' || cmd === 'balik') C.turns.push({ t, deg: +(w[2] || 180), dur: +(w[3] || .4) });
     else if (cmd === 'photo' || cmd === 'foto') { const n = w.slice(4).map(Number); C.fx.push({ type: 'photo', t0: t, t1: t + +(w[2] || 1), src: 'data:image/' + (/\.png$/i.test(w[3]) ? 'png' : 'jpeg') + ';base64,' + fs.readFileSync(path.resolve(w[3])).toString('base64'), x: n[0], y: n[1], w: n[2], rot: n[3], swap: /swap/.test(line), q: (line.match(/q=(\S+)/) || [])[1] }); }
+    else if (cmd === 'costume' || cmd === 'kostum') C.fx.push({ type: 'costume', t0: t, t1: t + +(w[3] || 999), kind: (w[2] || 'doc').toLowerCase() }); // costume doc: lab coat, head mirror, stethoscope, no crown
+    else if (cmd === 'hair' || cmd === 'rambut') C.fx.push({ type: 'hair', t0: t, t1: 999 });                 // magic hair grows on his head
+    else if (cmd === 'sebum') C.fx.push({ type: 'sebum', t0: t, t1: t + +(w[2] || 1.2) });                  // the oil-drop buddy walks in from the right
+    else if (cmd === 'arrow' || cmd === 'panah') C.fx.push({ type: 'arrow', t0: t, t1: t + +(w[2] || 1.5), text: w.slice(3).join(' ') || '*grease' });
+    else if (cmd === 'subbtn' || cmd === 'tombol') C.fx.push({ type: 'subbtn', t0: t, t1: t + +(w[2] || 999) }); // floating SUBSCRIBE button (gest click presses it)
     else if (cmd === 'hide') C.fx.push({ type: 'hide', t0: t, t1: 999 });
     else if (cmd === 'detective' || cmd === 'detektif') C.fx.push({ type: 'detective', t0: t, t1: t + +(w[2] || 99) });
     else if (cmd === 'poof') C.fx.push({ type: 'poof', t0: t, t1: t + +(w[2] || .5) });

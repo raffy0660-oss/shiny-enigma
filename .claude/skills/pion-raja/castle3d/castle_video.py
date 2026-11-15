@@ -84,10 +84,10 @@ def mood_weights(segs, t):
     return {k: v for k, v in w.items() if v > 1e-3}
 
 
-def engine_cues(src, segs, dst):
+def engine_cues(src, segs, dst, frame="2.35,6.6"):
     """Static engine camera (the camera moves in Remotion), mood lights timed to the segments."""
     skip = {"autozoom", "zoomauto", "cam", "kamera", "light"}
-    out = ["frame 2.35,6.6", "acting 1"]
+    out = [f"frame {frame}", "acting 1"]
     for line in open(src, encoding="utf-8"):
         w = line.split("#")[0].split()
         if not w or w[0] in ("frame", "bg", "light") or (len(w) > 1 and w[1] in skip):
@@ -222,6 +222,8 @@ def main():
     ap.add_argument("--camblur", type=int, default=8, help="Remotion camera motion-blur samples (1 = off)")
     ap.add_argument("--shake", type=float, default=1.0, help="gentle camera shake while the camera moves (0 = off)")
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2)))
+    ap.add_argument("--eframe", default="2.35,6.6", help="engine framing cy,vh: widen vh when a second character or a prop stands beside Pion")
+    ap.add_argument("--esize", default=None, help="engine render size (9:16), e.g. 1617x2880 to keep Pion sharp with a wider --eframe")
     a = ap.parse_args()
 
     W, H = (int(v) for v in a.res.split("x"))
@@ -254,11 +256,11 @@ def main():
 
     # 2. engine Pion frames + track
     ecue = os.path.join(work, "engine_cues.txt")
-    engine_cues(cues, segs, ecue)
+    engine_cues(cues, segs, ecue, a.eframe)
     eng = os.path.join(work, "eng")
     print("engine...", flush=True)
     run(["node", "react_render.js", "--audio", os.path.abspath(a.audio), "--cues", ecue, "--out", eng,
-         "--png", "--blur", str(a.blur), "--bg", "black", "--jobs", str(a.jobs)], cwd=ENGINE)
+         "--png", "--blur", str(a.blur), "--bg", "black", "--jobs", str(a.jobs)] + (["--size", a.esize] if a.esize else []), cwd=ENGINE)
     track = json.load(open(eng + "_track.json"))
     n, fps = len(track["frames"]), track["fps"]
 

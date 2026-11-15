@@ -354,6 +354,92 @@ function drawMoney(gB, gF, t, E, cam) { // bills orbiting the pion (behind / in 
     const r = cam.ppu * .18 * tw * inA, gr = gF.createRadialGradient(q[0], q[1], 0, q[0], q[1], r); gr.addColorStop(0, 'rgba(255,250,200,1)'); gr.addColorStop(.3, 'rgba(255,215,80,.7)'); gr.addColorStop(1, 'rgba(255,200,60,0)'); gF.fillStyle = gr; gF.beginPath(); gF.arc(q[0], q[1], r, 0, 7); gF.fill(); }
   gF.restore();
 }
+/* ---------- extras: Sebum the oil drop, book into the pocket, SUBSCRIBE button, labelled arrow ---------- */
+let XM = null;
+function extraMeshes() {
+  if (XM) return XM;
+  const prof = spline2D([[0, 0], [.45, .03], [.72, .2], [.82, .5], [.76, .86], [.6, 1.16], [.38, 1.46], [.17, 1.74], [0, 1.98]], 40);
+  XM = { drop: new Mesh(lathe(prof, 48, 0, Math.PI * 2)), ball: new Mesh(sphere(1, 24, 16)), armL: new Mesh(armGeo(), true), armR: new Mesh(armGeo(), true),
+         btn: new Mesh(boxGeo(1.3, .44, .2)), book: new Mesh(boxGeo(.6, .8, .14)), plane: new Mesh(planeGeo(1, 1)) };
+  XM.btnOn = canvasTex(520, 176, (g, w, h) => { g.fillStyle = '#e8232a'; g.fillRect(0, 0, w, h); toonText(g, 'SUBSCRIBE', w / 2, h / 2 + 4, 92, '#ffffff', '#7a0b0f'); });
+  XM.btnOff = canvasTex(520, 176, (g, w, h) => { g.fillStyle = '#8d8f96'; g.fillRect(0, 0, w, h); toonText(g, 'SUBSCRIBED', w / 2, h / 2 + 4, 80, '#ffffff', '#3a3b40'); });
+  return XM;
+}
+const SEBUM = { x0: 4.3, x1: 2.05, z: .45, sc: .8, col: [1, .74, .16] };
+function sebumState(t) { // position, walk phase, yaw; null before it enters
+  const E = RX.fxl.find(e => e.type === 'sebum'); if (!E || t < E.t0) return null;
+  const u = clamp((t - E.t0) / Math.max(.1, E.t1 - E.t0), 0, 1), e = 1 - Math.pow(1 - u, 2.2), x = lerp(SEBUM.x0, SEBUM.x1, e);
+  const walking = u < 1, ph = (SEBUM.x0 - x) * 5.2;
+  return { x, z: SEBUM.z, ph, walking, yaw: lerp(-.75, -.28, smooth(.75, 1, u)), bob: walking ? .07 * Math.abs(Math.sin(ph)) : .025 * Math.sin(t * 3.1) };
+}
+function drawExtras(t, PP, base, VP, L, cam) {
+  const X = extraMeshes(), hands = PP.hands;
+  // --- book goes into the chest pocket (gest pocket)
+  for (const G of TL.gest) { if (G.type !== 'pocket' || t < G.t0 || t > G.t1) continue;
+    const u = clamp((t - G.t0) / (G.t1 - G.t0), 0, 1), Hd = hands[(G.side || 1) > 0 ? 1 : 0], P = DOC_POCKET, ry = Math.atan2(P[0], P[2]);
+    let Mb;
+    if (u < .55 && Hd) { const r = smooth(.1, .55, u); Mb = mat.chain(Hd.M, mat.T(0, .3, .12), mat.RX(-.3 * (1 - r)), mat.RZ(.0), mat.S(.75, .75, .75)); }
+    else { const d = smooth(.55, .85, u); Mb = mat.chain(base, mat.T(P[0], P[1] + .34 - .5 * d, P[2] + .07), mat.RY(ry), mat.S(.42, .42 * (1 - .15 * d), .4)); }
+    if (u < .86) { drawOutline(X.book, Mb, VP, .03); drawToon(X.book, Mb, VP, L, { color: [.29, .08, .19], spec: .15 });
+      drawToon(X.plane, mat.chain(Mb, mat.T(0, 0, .072), mat.S(.5, .7, 1)), VP, L, { tex: PROP.bookFront || XM.btnOff, dbl: true, color: [1.1, 1.1, 1.1] }); }
+    // pocket front drawn again over the sliding book so it really goes inside
+    const pk = mat.chain(base, mat.T(...P), mat.RY(ry), mat.RX(-.18), mat.T(0, -.04, .04), mat.S(.62, 1.3, 1.2)); drawToon(M.plaster, pk, VP, L, { color: [.24, .45, .62] });
+  }
+  // --- floating SUBSCRIBE button (fx subbtn), pressed by gest click
+  for (const E of fxActive('subbtn', t)) {
+    const C = TL.gest.find(G => G.type === 'click'), pressed = C && t >= C.hit, push = C ? smooth(C.hit - .06, C.hit, t) * (1 - smooth(C.hit + .08, C.hit + .25, t)) : 0;
+    const s = easeOutBack(clamp((t - E.t0) / .3, 0, 1)) * (1 - .06 * push), Mb = mat.chain(base, mat.T(SUB_BTN[0], SUB_BTN[1] + .04 * Math.sin(t * 3), SUB_BTN[2] - .12 * push), mat.RY(-.25), mat.S(s, s, s));
+    drawOutline(X.btn, Mb, VP, .05); drawToon(X.btn, Mb, VP, L, { color: pressed ? [.55, .56, .6] : [.9, .12, .14], spec: .5 });
+    drawToon(X.plane, mat.chain(Mb, mat.T(0, 0, .102), mat.S(1.22, .4, 1)), VP, L, { tex: pressed ? X.btnOff : X.btnOn, dbl: true, color: [1.12, 1.12, 1.12] });
+  }
+  // --- Sebum the oil drop: walks in from the right, shakes Pion's hand (gest salam)
+  const S = sebumState(t); if (!S) return;
+  const sc = SEBUM.sc, W0 = mat.chain(mat.T(S.x, S.bob, S.z), mat.RY(S.yaw), mat.RZ(S.walking ? .06 * Math.sin(S.ph) : 0), mat.S(sc, sc * (1 + (S.walking ? .03 * Math.cos(S.ph * 2) : .02 * Math.sin(t * 3.1))), sc));
+  const part = (Mx, col, o) => { drawOutline(X.ball, Mx, VP, .045 / sc); drawToon(X.ball, Mx, VP, L, Object.assign({ color: col, noSoot: true }, o || {})); };
+  // feet
+  for (const sd of [-1, 1]) { const st = S.walking ? Math.sin(S.ph + (sd > 0 ? 0 : Math.PI)) : 0;
+    part(mat.chain(W0, mat.T(sd * .3, .08 + .1 * Math.max(0, st), .1 + .18 * st), mat.S(.22, .12, .3)), [.92, .58, .1]); }
+  drawOutline(X.drop, W0, VP, .06 / sc); drawToon(X.drop, W0, VP, L, { color: SEBUM.col, spec: 1.1, noSoot: true });
+  // face: eyes (whites + pupils + shine), cheeks, smile
+  const shake = TL.gest.find(G => G.type === 'salam' && t >= G.t0 && t <= G.t1), grin = shake ? 1 : .55;
+  for (const sd of [-1, 1]) {
+    part(mat.chain(W0, mat.T(sd * .23, .98, .64), mat.S(.15, .19, .08)), [1, 1, 1]);
+    drawToon(X.ball, mat.chain(W0, mat.T(sd * .21 - .03, .96, .71), mat.S(.08, .1, .04)), VP, L, { color: [.1, .05, .03], noSoot: true });
+    drawToon(X.ball, mat.chain(W0, mat.T(sd * .21 - .055, 1.0, .745), mat.S(.03, .035, .02)), VP, L, { color: [1.3, 1.3, 1.3], noSoot: true });
+    drawToon(X.ball, mat.chain(W0, mat.T(sd * .42, .75, .6), mat.S(.1, .06, .04)), VP, L, { color: [1, .5, .38], noSoot: true });
+  }
+  part(mat.chain(W0, mat.T(0, .72, .72), mat.S(.17 + .05 * grin, .06 + .05 * grin, .05)), [.45, .1, .06]);
+  drawToon(X.ball, mat.chain(W0, mat.T(-.3, 1.42, .44), mat.RZ(.5), mat.S(.08, .16, .04)), VP, L, { color: [1.35, 1.32, 1.2], noSoot: true }); // glossy oil highlight
+  // arms: the left one (toward Pion) reaches for his hand during the handshake
+  const toLocal = w => { const dx = (w[0] - S.x) / sc, dy = (w[1] - S.bob) / sc, dz = (w[2] - S.z) / sc, c = Math.cos(-S.yaw), s = Math.sin(-S.yaw); return [dx * c + dz * s, dy, -dx * s + dz * c]; };
+  for (const sd of [-1, 1]) {
+    const Sh = [sd * .66, .88, .12], sw = S.walking ? .14 * Math.sin(S.ph + (sd > 0 ? Math.PI : 0)) : 0;
+    let Hh = [sd * .98, .45, .28 + sw], env = 1;
+    if (sd < 0 && shake && hands[1]) { const hw = mat.xform(base, [...hands[1].p, 1]), tgt = toLocal([hw[0] / hw[3] + .12, hw[1] / hw[3] - .02, hw[2] / hw[3] + .02]);
+      const k = smooth(shake.t0, shake.t0 + .3, t) * (1 - smooth(shake.t1 - .25, shake.t1, t)); Hh = Hh.map((v, i) => lerp(v, tgt[i], k)); }
+    const mid = [(Sh[0] + Hh[0]) / 2 + sd * .12, (Sh[1] + Hh[1]) / 2 - .08, (Sh[2] + Hh[2]) / 2 + .08], A = sd < 0 ? X.armL : X.armR;
+    buildArm(A, Sh, mid, Hh, .1, .09); drawOutline(A, W0, VP, .05 / sc); drawToon(A, W0, VP, L, { color: SEBUM.col, spec: .8, noSoot: true });
+    part(mat.chain(W0, mat.T(...Hh), mat.S(.15, .15, .15)), SEBUM.col, { spec: .8 });
+  }
+}
+function drawSebumShadow(g, t, cam) { // soft contact shadow under the drop (background layer)
+  const S = sebumState(t); if (!S) return; const c = cam.toPix([S.x, 0, S.z]), e = cam.toPix([S.x + .6, 0, S.z]), r = Math.abs(e[0] - c[0]);
+  const gr = g.createRadialGradient(c[0], c[1], 0, c[0], c[1], r); gr.addColorStop(0, 'rgba(0,0,0,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.save(); g.setTransform(g.canvas.width / W, 0, 0, g.canvas.height / H, 0, 0); g.translate(c[0], c[1]); g.scale(1, .28); g.translate(-c[0], -c[1]); g.fillStyle = gr; g.beginPath(); g.arc(c[0], c[1], r, 0, 7); g.fill(); g.restore();
+}
+function drawArrowLabel(g, t, E, cam) { // hand-drawn arrow pointing at the drop's head, with a label at its tail
+  const S = sebumState(t); if (!S) return; const tip = cam.toPix([S.x - .1, 1.75, S.z]), U = cam.ppu;
+  const a = clamp((t - E.t0) / .28, 0, 1), out = 1 - smooth(E.t1 - .2, E.t1, t); if (out <= 0) return;
+  const wob = .04 * Math.sin(t * 9), st = [tip[0] - U * .35, tip[1] - U * 1.75], cp = [tip[0] + U * .55, tip[1] - U * 1.1];
+  g.save(); g.globalAlpha = out; g.lineCap = 'round'; g.lineJoin = 'round';
+  const q = u => { const v = 1 - u; return [v * v * st[0] + 2 * v * u * cp[0] + u * u * tip[0], v * v * st[1] + 2 * v * u * cp[1] + u * u * tip[1] + wob * U]; };
+  const path = () => { g.beginPath(); for (let i = 0; i <= 24; i++) { const p = q(i / 24 * easeIO(a)); i ? g.lineTo(...p) : g.moveTo(...p); } };
+  for (const [w, c] of [[U * .2, '#2a0f08'], [U * .11, '#ffffff']]) { g.lineWidth = w; g.strokeStyle = c; path(); g.stroke(); }
+  if (a > .9) { const p1 = q(1), p0 = q(.9), ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]), h = U * .38;
+    for (const [w, c] of [[U * .2, '#2a0f08'], [U * .11, '#ffffff']]) { g.lineWidth = w; g.strokeStyle = c; g.beginPath(); g.moveTo(p1[0] - h * Math.cos(ang - .5), p1[1] - h * Math.sin(ang - .5)); g.lineTo(...p1); g.lineTo(p1[0] - h * Math.cos(ang + .5), p1[1] - h * Math.sin(ang + .5)); g.stroke(); } }
+  const ts = easeOutBack(clamp((t - E.t0 - .12) / .3, 0, 1)); if (ts > 0) { g.translate(tip[0] - U * .05, st[1] - U * .45); g.rotate(-.08); g.scale(ts, ts); toonText(g, E.text, 0, 0, U * .52, '#ffe14d', '#2a0f08'); }
+  g.restore();
+}
 function drawGlint(g, x, y, R, e) { // 4-point star 'ting' on a shiny bald head
   if (e < 0 || e > .55) return; const q = e / .55, s = R * Math.sin(Math.min(1, q * 1.6) * Math.PI) ; if (s <= 0) return;
   g.save(); g.translate(x, y); g.rotate(q * .9); g.fillStyle = '#ffffff'; g.shadowColor = 'rgba(255,250,215,.95)'; g.shadowBlur = R * .5;
@@ -419,6 +505,7 @@ function drawReact(f, u) {
   const flyM = mat.chain(mat.T(fl.p[0], fl.p[1] + hov + hopY, fl.p[2]), mat.T(0, 2, 0), mat.RX(lean), mat.RZ(bank), mat.RY(fyaw), mat.T(0, -2, 0));
   const base = mat.chain(flyM, mat.T(0, st.y * 4.65 * .25, 0), mat.RZ(-roll - J.sway.p * .3), mat.RY(fr.yaw + bp.yaw + turnAt(t) + J.sway.p), mat.RX(bp.lean + J.nod.p * .5 + J.lean.p * .07), mat.RX(PH.hz.p * -.6), mat.RZ(PH.hx.p * .6), mat.T(0, 1.7, 0), mat.S(sxz, sy, sxz), mat.T(0, -1.7, 0)); // squash about the belly: shape wobbles, head stays in frame
   const org = cam.toPix([0, 0, 0]), o = { vis: true, x: org[0], y: org[1], h: 4.65 * cam.ppu, yaw: fr.yaw, spd: 0, dist: 0 }; // for screen-space gesture targets
+  { const hE0 = RX.fxl.find(e => e.type === 'hair' && t >= e.t0); window.HAIR_UP = hE0 ? easeOutBack(clamp((t - hE0.t0) / .38, 0, 1)) : 0; }
   const hurt = RX.hurt || 0, gs = gestureState(t, o), PP = posePion(base, t, gs, { rx: J.rx.p + J.nod.p * .6, ry: J.ry.p, rz: J.rz.p + J.tilt.p * .45 }, hurt);
   window.__clap = null;
   if (gs.clap && gs.clap.k > .01) { const w = mat.xform(base, [...gs.clap.p, 1]); window.__clap = { p: cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]), k: gs.clap.k, r: cam.ppu }; }
@@ -427,14 +514,19 @@ function drawReact(f, u) {
   const exNow = ex.m > .5 ? ex.b : ex.a; // expression 'soktahu' puts the nerd glasses on by itself
   const glasses = fxActive('glasses', t).length ? 1 : exNow === 'soktahu' ? 2 : 0, det = fxActive('detective', t).length ? 1 : 0;
   const ng = nerdGlow(t), Lg = ng > .01 ? glowLight(L, ng) : L;
-  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, t });
+  const doc = fxActive('costume', t).some(e => e.kind === 'doc') ? 1 : 0, hE = RX.fxl.find(e => e.type === 'hair' && t >= e.t0), hairAmt = hE ? easeOutBack(clamp((t - hE.t0) / .38, 0, 1)) : 0;
+  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, doc, hair: hairAmt, t });
   drawProps(t, PP, base, VP, Lg, cam);
+  drawExtras(t, PP, base, VP, Lg, cam);
   drawBookGlow(t, PP, base, cam);
   const hw = mat.xform(PP.headM, [0, 0, 0, 1]), head = { p: cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), r: cam.ppu }; window.__head = head;
   const pix = (M, v) => { const w = mat.xform(M, [...v, 1]); return cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]); };
   window.__track = { base: pix(base, [0, 0, 0]), ground: cam.toPix([fl.p[0], 0, fl.p[2]]), head: head.p, ppu: cam.ppu, vis: fl.op };
   window.__probe = [head.p, pix(base, [0, 0, 0]), pix(PP.crownM, [0, 1.0, 0]), pix(base, [1, 0, 0]), pix(base, [-1, 0, 0]), ...PP.hands.filter(Boolean).map(Hd => pix(Hd.M, [0, 0, 0]))];
   drawFX(f, t, o);
+  drawSebumShadow(bgCtx, t, cam);
+  for (const E of fxActive('arrow', t)) drawArrowLabel(fx, t, E, cam);
+  for (const E of RX.fxl) if (E.type === 'hair' && t >= E.t0 && t < E.t0 + .8) for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + .4, q = pix(PP.headM, [Math.cos(a) * 1.5, .7 + Math.sin(a) * 1.1, .4]); drawSparkle(fx, q[0], q[1], cam.ppu * (.7 + .3 * (i % 3)), t - E.t0 - i * .045); }
   if (fl.flying || flyPos(t - .5).flying) drawTrail(t, cam);
   if (hurt) drawSmoke(fx, head, t, hurt * .5);
   for (const E of fxActive('anger', t)) drawAnger(fx, head, t, smooth(E.t0, E.t0 + .15, t) * (1 - smooth(E.t1 - .15, E.t1, t)));

@@ -28,19 +28,20 @@ const CORNERS = [ // one per atmosphere, cycling: camera drifts to a corner and 
 ];
 
 function parseCues(txt) {
-  const words = [], exprs = [], az = [];
+  const words = [], exprs = [], az = [], man = [];
   for (const raw of txt.split(/\r?\n/)) {
     const w = raw.replace(/#.*/, '').trim().split(/\s+/); if (w.length < 2 || isNaN(+w[0])) continue;
     const t = +w[0], cmd = w[1];
     if (cmd === 'word' || cmd === 'kata') words.push({ t, text: w.slice(2).join(' ') });
     else if (cmd === 'expr') exprs.push([t, w[2]]);
     else if (MOODS[cmd]) exprs.push([t, cmd]);
+    else if (cmd === 'zoomto') man.push({ t, z: +(w[2] || 1.3), oy: +(w[3] || 0), ox: +(w[4] || 0), roll: +(w[5] || 0), dur: +(w[6] || .5) }); // manual key: zoom z, offsets as frame fractions (-oy = camera up)
     else if (cmd === 'autozoom' || cmd === 'zoomauto') az.push(/^(off|mati)$/i.test(w[2] || '') ? { t, off: true } : { t, every: +(w[2] || 3) || 3, amt: +(w[3] || 1) || 1 });
   }
-  return { words, exprs, az };
+  return { words, exprs, az, man };
 }
 
-function planCamera({ words, exprs, az, onsets = [], max = 1.5, moveDur = .55, outDur = .7 }) {
+function planCamera({ words, exprs, az, man = [], onsets = [], max = 1.5, moveDur = .55, outDur = .7 }) {
   words = words.slice().sort((a, b) => a.t - b.t);
   exprs = exprs.slice().sort((a, b) => a[0] - b[0]);
   az = (az || []).slice().sort((a, b) => a.t - b.t);
@@ -83,6 +84,13 @@ function planCamera({ words, exprs, az, onsets = [], max = 1.5, moveDur = .55, o
     const zz = bang ? 1 + (max - 1) * A.amt : lv(A.amt, stepI++);
     if (Math.abs(zz - z) < .01) continue;                  // already there: hold
     push(E.t, moveDur, zz, k);
+  }
+  // manual `zoomto` keys win: auto keys from just before a manual key until the next manual key / mood change are dropped
+  if (man.length) {
+    const M = man.slice().sort((a, b) => a.t - b.t), segT = segs.map(S => S.t);
+    const until = m => Math.min(...M.filter(x => x.t > m.t).map(x => x.t), ...segT.filter(x => x > m.t + 1e-6), 1e9);
+    const kept = keys.filter(K => !M.some(m => K.t > m.t - .25 && K.t < until(m)) || K.z === 1);
+    return kept.concat(M.map(m => ({ t: +m.t.toFixed(3), dur: m.dur, z: m.z, ox: m.ox, oy: m.oy, roll: m.roll }))).sort((a, b) => a.t - b.t);
   }
   return keys;
 }
