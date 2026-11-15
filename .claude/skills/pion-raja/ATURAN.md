@@ -26,3 +26,7 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     (simulasi engine memakai dt = 1/fps, kamera camplan dan Remotion ikut fps track). Footage asli 30 fps saat
     dirakit: jadikan 60 fps dengan `ffmpeg -vf minterpolate=fps=60:mi_mode=mci` (atau `fps=60` untuk duplikasi frame
     kalau interpolasi membuat artefak), lalu tempel scene Pion 60 fps di atasnya.
+15. **Istilah penting = teks Remotion**: saat Pion menyebut istilah/nama/angka penting (misal "trichorrhexis nodosa"),
+    tampilkan callout elegan dengan cue `<t> callout <dur> "ISTILAH" ["subjudul"] [top|bottom] [label="..."]`
+    (label emas kecil, huruf muncul satu per satu, garis emas tersapu, subjudul). Ramai tapi rapi: maksimal 1 callout
+    sekaligus, mulai tepat saat kata itu diucapkan, taruh di area yang tidak menutupi wajah Pion (biasanya `top`).

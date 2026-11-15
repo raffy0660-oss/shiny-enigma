@@ -38,6 +38,11 @@ Satu file cue mengatur semuanya:
 - **Remotion** (`castle3d/remotion`) merakit hasil akhir: kamera, motion blur kamera, vignette, audio.
   Scene dirender 1,5x lebih besar dari output, jadi zoom 1,5x tetap tajam.
 
+**Teks istilah (callout):** `<t> callout <dur> "TRICHORRHEXIS NODOSA" "hair that snaps at its weak points" top label="Medical term"`
+memunculkan judul elegan di atas lapisan kamera (`remotion/src/Callouts.tsx`): label emas kecil, huruf muncul satu per
+satu (naik + blur hilang), garis emas tersapu dari kiri ke kanan, subjudul miring, keluar memudar. Tidak ikut zoom atau
+motion blur kamera. Ukuran huruf menyesuaikan panjang istilah (otomatis pindah baris kalau perlu).
+
 **Tidak ada yang terpotong:** Pion engine adalah layer 2D. Jendela kamera engine (`--eframe`, default `auto`) dihitung
 dari ukuran scene istana + margin 15%, resolusinya dinaikkan supaya Pion tetap setajam scene, lalu tiap frame dicek
 (`border_hits`). Kalau ada yang menyentuh tepi jendela (mahkota terangkat, tangan, props, karakter kedua), engine

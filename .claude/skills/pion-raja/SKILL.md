@@ -115,6 +115,9 @@ Full guide (Indonesian): `castle3d/PANDUAN_ISTANA3D.md`.
 1. Setup once: `bash .claude/skills/pion-raja/castle3d/setup.sh` (EGL libs, `bpy==5.2.4` in `/opt/bpyenv`, engine copy,
    Remotion packages).
    Finished video in one command: `python3 castle_video.py --cues cues.txt --audio vo.wav --out pion.mp4 --res 1080x1350`
+   Term titles: `<t> callout <dur> "TERM" ["subtitle"] [top|bottom] [label="..."]` (Remotion `Callouts.tsx`, above the
+   camera layer: gold label, letter-by-letter reveal, sweeping gold rule, subtitle). Also `<t> mood X` pins the lighting
+   mood, `<t> zoomto z oy ox roll dur` adds a manual camera key, defaults are 60 fps and `--eframe auto` (nothing cut).
    (per-mood clean plate + moving shadow pass + light pass, engine frames with timed mood lights and a position track,
    per-frame composite where Pion's floor shadow and the room light follow him, mood crossfades, then the Remotion
    finisher `castle3d/remotion` applies the camera plan with camera motion blur, vignette and audio).

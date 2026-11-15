@@ -77,6 +77,33 @@ def parse_exprs(path):
     return segs
 
 
+def parse_callouts(path):
+    """`<t> callout <dur> "TERM" ["subtitle"] [top|bottom] [label="..."]`: on-screen term titles (Remotion)."""
+    import shlex
+    out = []
+    for line in open(path, encoding="utf-8"):
+        line = line.split("#")[0].strip()
+        if not line:
+            continue
+        try:
+            w = shlex.split(line)
+        except ValueError:
+            continue
+        if len(w) < 4 or w[1] not in ("callout", "teks"):
+            continue
+        c = {"t": float(w[0]), "dur": float(w[2]), "text": w[3], "pos": "top"}
+        rest = w[4:]
+        for v in rest:
+            if v in ("top", "bottom", "atas", "bawah"):
+                c["pos"] = "top" if v in ("top", "atas") else "bottom"
+            elif v.startswith("label="):
+                c["label"] = v[6:]
+            elif "sub" not in c:
+                c["sub"] = v
+        out.append(c)
+    return out
+
+
 def mood_weights(segs, t):
     w = {segs[0][1]: 1.0}
     for i in range(1, len(segs)):
@@ -92,7 +119,7 @@ def mood_weights(segs, t):
 
 def engine_cues(src, segs, dst, frame="2.35,6.6"):
     """Static engine camera (the camera moves in Remotion), mood lights timed to the segments."""
-    skip = {"autozoom", "zoomauto", "cam", "kamera", "light", "mood"}
+    skip = {"autozoom", "zoomauto", "cam", "kamera", "light", "mood", "callout", "teks"}
     out = [f"frame {frame}", "acting 1"]
     for line in open(src, encoding="utf-8"):
         w = line.split("#")[0].split()
@@ -347,7 +374,7 @@ def main():
     focus = [(h0[0] - ecx) * k + pcx, (h0[1] - eb) * k + y1]
     run(["ffmpeg", "-v", "error", "-y", "-i", os.path.abspath(a.audio), "-ar", "48000", "-ac", "2", os.path.join(work, "public", "audio.wav")])
     props = {"frames": n, "fps": fps, "width": W, "height": H, "sceneW": SW, "sceneH": SH, "focus": focus,
-             "cam": plan["frames"], "audio": "audio.wav", "camBlur": a.camblur}
+             "cam": plan["frames"], "audio": "audio.wav", "camBlur": a.camblur, "callouts": parse_callouts(cues)}
     pj = os.path.join(work, "props.json")
     json.dump(props, open(pj, "w"))
     rem = os.path.join(HERE, "remotion")

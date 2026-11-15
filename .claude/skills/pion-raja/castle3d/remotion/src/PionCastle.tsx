@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Audio, Img, staticFile, useCurrentFrame } from "remotion";
 import { CameraMotionBlur } from "@remotion/motion-blur";
+import { Callout, Callouts } from "./Callouts";
 
 export type PionCastleProps = {
   frames: number;
@@ -13,6 +14,7 @@ export type PionCastleProps = {
   cam: [number, number, number, number][]; // per frame [zoom, offsetX, offsetY, roll deg] from engine/camplan.js
   audio: string | null;
   camBlur: number;              // camera motion-blur samples (1 = off)
+  callouts?: Callout[];         // on-screen term titles (cue `callout`), above the camera layer
 };
 
 const lerp = (a: number, b: number, u: number) => a + (b - a) * u;
@@ -63,6 +65,7 @@ export const PionCastle: React.FC<PionCastleProps> = (p) => (
     )}
     {/* gentle vignette */}
     <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.28) 100%)" }} />
+    {p.callouts && p.callouts.length ? <Callouts items={p.callouts} /> : null}
     {p.audio ? <Audio src={staticFile(p.audio)} /> : null}
   </AbsoluteFill>
 );
