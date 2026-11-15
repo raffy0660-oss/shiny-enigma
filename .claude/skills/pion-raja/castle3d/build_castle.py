@@ -888,7 +888,7 @@ def build_pion(expr):
 
 # ----------------------------------------------------------------- camera, lights, render
 
-def camera_and_key(res):
+def camera_and_key(res, view=None):
     sc = bpy.context.scene
     cam_d = bpy.data.cameras.new("Cam")
     cam_d.lens = 34
@@ -909,6 +909,14 @@ def camera_and_key(res):
         cam_d.lens = 23
         cam_d.shift_y = 0.06
     cam_d.dof.focus_distance = (Vector((0, -0.5 * PION_SCALE, HEAD_Z)) - cam.location).length
+    if view:   # --camview: an exact camera matching the engine's reactCam (eye, target, vertical fov)
+        ex, ey, ez, tx, ty, tz, vfov = view
+        cam.location = (ex, ey, ez)
+        cam.rotation_euler = (Vector((tx, ty, tz)) - cam.location).to_track_quat("-Z", "Y").to_euler()
+        cam_d.sensor_fit = "VERTICAL"; cam_d.sensor_height = 24.0
+        cam_d.lens = 12.0 / math.tan(math.radians(vfov) / 2)
+        cam_d.shift_x = cam_d.shift_y = 0.0
+        cam_d.dof.focus_distance = (Vector((0, 0, HEAD_Z)) - cam.location).length
     sc.camera = cam
     sc.render.resolution_x, sc.render.resolution_y = res
     sc.render.resolution_percentage = 100
@@ -1233,6 +1241,7 @@ def main():
     ap.add_argument("--proxy", action="store_true",
                     help="Pion invisible to camera/reflections, still casts shadows (for the engine Pion composite)")
     ap.add_argument("--bbox", default=None, help="write the proxy's screen bbox (px) to this JSON")
+    ap.add_argument("--camview", default=None, help="ex,ey,ez,tx,ty,tz,vfov: exact camera (Blender units), e.g. from the engine's frame cy,vh,cx,tilt")
     ap.add_argument("--lightpass", default=None,
                     help="also render the proxy alone in white clay, lit by the room (RGBA PNG) for relighting the engine Pion")
     ap.add_argument("--lightpass-only", action="store_true", help="skip the beauty render")
@@ -1264,7 +1273,7 @@ def main():
                 o.visible_shadow = not a.clean
                 o.visible_diffuse = not a.clean
     build_room(volume=not a.novolume)
-    camera_and_key(tuple(int(v) for v in a.res.split("x")))
+    camera_and_key(tuple(int(v) for v in a.res.split("x")), [float(v) for v in a.camview.split(",")] if a.camview else None)
     if a.mood == "window":
         mood_window(not a.novolume)
     elif a.mood == "chandelier":
@@ -1306,8 +1315,9 @@ def main():
                 xs.append(p.x * W); ys.append((1 - p.y) * H)
             ev.to_mesh_clear()
         base = world_to_camera_view(sc, sc.camera, Vector((0, 0, 0)))
+        head = world_to_camera_view(sc, sc.camera, Vector((0, 0, HEAD_Z)))
         info = {"x0": min(xs), "x1": max(xs), "y0": min(ys), "y1": max(ys), "W": W, "H": H,
-                "base": [base.x * W, (1 - base.y) * H]}
+                "base": [base.x * W, (1 - base.y) * H], "head": [head.x * W, (1 - head.y) * H]}
         json.dump(info, open(a.bbox, "w"))
         print("RESULT bbox", info)
     # god rays only from the windows: other lights stay out of the haze

@@ -84,7 +84,7 @@ function parseCues(txt) {
       const L = {}; for (let i = 2; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; L[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
       (C.lights = C.lights || []).push({ t: +w[0], L }); return; }
     if (w[0] === 'hurt') { C.hurt = +(w[1] ?? 1); return; }
-    if (w[0] === 'frame') { const v = w[1] || 'close'; if (v.includes(',')) { const [cy, vh, cx] = v.split(',').map(Number); C.frameOverride = { cy, vh, cx: cx || 0 }; } else C.frame = v; return; }
+    if (w[0] === 'frame') { const v = w[1] || 'close'; if (v.includes(',')) { const [cy, vh, cx, tilt] = v.split(',').map(Number); C.frameOverride = { cy, vh, cx: cx || 0 }; if (!isNaN(tilt)) C.frameOverride.tiltDeg = tilt; } else C.frame = v; return; } // frame cy,vh[,cx[,tilt°]]: tilt = camera elevation (6 = default, 50 = looking down on the head)
     const t = time(w[0]) - (arg('local') ? 0 : START), cmd = (w[1] || '').toLowerCase();
     if (isNaN(t)) return warn.push(`baris ${ln + 1}: waktu tidak dikenali: ${raw}`);
     if (EXPR.includes(cmd)) C.expr.push([t, cmd]);
@@ -161,7 +161,7 @@ async function openPage(data) {
 }
 (async () => {
   const cues = CUES ? parseCues(fs.readFileSync(CUES, 'utf8')) : parseCues('');
-  const fr = arg('frame', null); if (fr && fr !== true) { if (String(fr).includes(',')) { const [cy, vh, cx] = String(fr).split(',').map(Number); cues.frameOverride = { cy, vh, cx: cx || 0 }; } else cues.frame = fr; }
+  const fr = arg('frame', null); if (fr && fr !== true) { if (String(fr).includes(',')) { const [cy, vh, cx, tilt] = String(fr).split(',').map(Number); cues.frameOverride = { cy, vh, cx: cx || 0 }; if (!isNaN(tilt)) cues.frameOverride.tiltDeg = tilt; } else cues.frame = fr; }
   const au = AUDIO ? analyse(AUDIO) : (() => { const n = Math.ceil(+arg('dur', 5) * FPS); return { n, env: Array(n).fill(0), onset: Array(n).fill(0), dur: n / FPS }; })();
   if (cues.wz && cues.frameOverride) {
     const B = cues.frameOverride, FC = cues.faceCy || 3.05; let n = 0, side = 1;
