@@ -45,7 +45,7 @@ function planCamera({ words, exprs, az, man = [], onsets = [], max = 1.5, moveDu
   words = words.slice().sort((a, b) => a.t - b.t);
   exprs = exprs.slice().sort((a, b) => a[0] - b[0]);
   az = (az || []).slice().sort((a, b) => a.t - b.t);
-  if (!az.length) return [];
+  if (!az.length && !man.length) return [];
   if (!words.length) words = onsets.filter((_, i) => i % 2 === 0).map(t => ({ t, text: '' })); // syllable rhythm fallback
   // atmosphere segments: a new one whenever the lighting mood changes
   const segs = []; let cur = null;

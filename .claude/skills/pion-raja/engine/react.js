@@ -365,7 +365,7 @@ function extraMeshes() {
   XM.btnOff = canvasTex(520, 176, (g, w, h) => { g.fillStyle = '#8d8f96'; g.fillRect(0, 0, w, h); toonText(g, 'SUBSCRIBED', w / 2, h / 2 + 4, 80, '#ffffff', '#3a3b40'); });
   return XM;
 }
-const SEBUM = { x0: 4.3, x1: 2.05, z: .45, sc: .8, col: [1, .74, .16] };
+const SEBUM = { x0: 4.1, x1: 1.78, z: .5, sc: .7, col: [1, .74, .16] };
 function sebumState(t) { // position, walk phase, yaw; null before it enters
   const E = RX.fxl.find(e => e.type === 'sebum'); if (!E || t < E.t0) return null;
   const u = clamp((t - E.t0) / Math.max(.1, E.t1 - E.t0), 0, 1), e = 1 - Math.pow(1 - u, 2.2), x = lerp(SEBUM.x0, SEBUM.x1, e);
@@ -430,14 +430,14 @@ function drawSebumShadow(g, t, cam) { // soft contact shadow under the drop (bac
 function drawArrowLabel(g, t, E, cam) { // hand-drawn arrow pointing at the drop's head, with a label at its tail
   const S = sebumState(t); if (!S) return; const tip = cam.toPix([S.x - .1, 1.75, S.z]), U = cam.ppu;
   const a = clamp((t - E.t0) / .28, 0, 1), out = 1 - smooth(E.t1 - .2, E.t1, t); if (out <= 0) return;
-  const wob = .04 * Math.sin(t * 9), st = [tip[0] - U * .35, tip[1] - U * 1.75], cp = [tip[0] + U * .55, tip[1] - U * 1.1];
+  const wob = .04 * Math.sin(t * 9), st = [tip[0] - U * .25, tip[1] - U * 2.3], cp = [tip[0] + U * .55, tip[1] - U * 1.3];
   g.save(); g.globalAlpha = out; g.lineCap = 'round'; g.lineJoin = 'round';
   const q = u => { const v = 1 - u; return [v * v * st[0] + 2 * v * u * cp[0] + u * u * tip[0], v * v * st[1] + 2 * v * u * cp[1] + u * u * tip[1] + wob * U]; };
   const path = () => { g.beginPath(); for (let i = 0; i <= 24; i++) { const p = q(i / 24 * easeIO(a)); i ? g.lineTo(...p) : g.moveTo(...p); } };
   for (const [w, c] of [[U * .2, '#2a0f08'], [U * .11, '#ffffff']]) { g.lineWidth = w; g.strokeStyle = c; path(); g.stroke(); }
   if (a > .9) { const p1 = q(1), p0 = q(.9), ang = Math.atan2(p1[1] - p0[1], p1[0] - p0[0]), h = U * .38;
     for (const [w, c] of [[U * .2, '#2a0f08'], [U * .11, '#ffffff']]) { g.lineWidth = w; g.strokeStyle = c; g.beginPath(); g.moveTo(p1[0] - h * Math.cos(ang - .5), p1[1] - h * Math.sin(ang - .5)); g.lineTo(...p1); g.lineTo(p1[0] - h * Math.cos(ang + .5), p1[1] - h * Math.sin(ang + .5)); g.stroke(); } }
-  const ts = easeOutBack(clamp((t - E.t0 - .12) / .3, 0, 1)); if (ts > 0) { g.translate(tip[0] - U * .05, st[1] - U * .45); g.rotate(-.08); g.scale(ts, ts); toonText(g, E.text, 0, 0, U * .52, '#ffe14d', '#2a0f08'); }
+  const ts = easeOutBack(clamp((t - E.t0 - .12) / .3, 0, 1)); if (ts > 0) { g.translate(tip[0] - U * .12, st[1] - U * .45); g.rotate(-.08); g.scale(ts, ts); toonText(g, E.text, 0, 0, U * .52, '#ffe14d', '#2a0f08'); }
   g.restore();
 }
 function drawGlint(g, x, y, R, e) { // 4-point star 'ting' on a shiny bald head
