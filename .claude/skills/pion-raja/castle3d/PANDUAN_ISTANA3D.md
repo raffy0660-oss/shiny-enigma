@@ -46,6 +46,23 @@ Waktu kira-kira: plate Blender sekitar 5-6 menit per mood di 1080x1350, composit
 (4 core), Remotion dengan motion blur kamera 6 sampel beberapa menit per 10 detik video. `--camblur 1` mematikan blur kamera,
 `--blur 1` mematikan motion blur engine, `--novolume` tanpa kabut (lebih cepat).
 
+## Cek pencahayaan (`light_check.py`)
+Setelah mengubah mood cahaya, ukur dengan alat skill `scenario-blender-lighting-rendering`:
+```bash
+python3 emotion_sheet.py --out cek.png --work cek --res 432x540 --samples 16 --novolume
+/opt/bpyenv/bin/python light_check.py -- --work cek
+```
+- **Yang diukur per mood:** pemisahan nilai Pion dari sekelilingnya (target ≥ 0,10, dicek hitam-putih),
+  siluet yang menyatu dengan latar, gradasi terang-gelap di badan, fokus yang bersaing, clipping, dan vignette.
+- **Value study:** `<mood>_values.png` (hitam-putih | kelompok nilai | squint).
+- **Aturan yang dipakai:**
+  - gelapkan set dulu, baru naikkan subjek;
+  - lampu gantung tidak menerangi tahta di belakang Pion;
+  - lampu bawah, rim, dan sorot mood hanya mengenai Pion;
+  - rim di sisi datangnya cahaya;
+  - Pion sedikit lebih terang per mood (`SUBJECT_EXP_MOOD` di `emotion_sheet.py`).
+- **Hasil saat ini:** semua 8 mood ≥ 0,10. Sisa clipping di `kaget` ada di mata putih Pion (memang putih sesuai desain).
+
 ## Studio preview 3D di browser (`studio/`)
 ```bash
 cd .claude/skills/pion-raja/castle3d/studio

@@ -974,11 +974,11 @@ EMOTIONS = {
                   under=((1.0, 0.32, 0.1), 900), rim=((1.0, 0.15, 0.05), 2200)),
     "sedih": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.007, (0.7, 0.8, 1.0)), room=(0.25, (0.55, 0.65, 1.0)),
                   window=((0.55, 0.7, 1.0), (0.45, 0.6, 1.0), 65000.0), rim=((0.55, 0.72, 1.0), 2600), rim_side=-1),
-    "kaget": dict(chand=(1.0, 0.96, 0.9), k=2.0, hub=11000, haze=(0.004, (1.0, 1.0, 1.0)), room=(0.4, (1.0, 0.9, 0.8)),
+    "kaget": dict(chand=(1.0, 0.96, 0.9), k=1.7, hub=9000, haze=(0.004, (1.0, 1.0, 1.0)), room=(0.4, (1.0, 0.9, 0.8)),
                   rim=((0.9, 0.95, 1.0), 2500)),
     "licik": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.006, (0.75, 0.6, 1.0)), room=(0.35, (0.6, 0.5, 1.0)),
                   under=((0.25, 1.0, 0.45), 1300), rim=((0.6, 0.15, 1.0), 3200)),
-    "duit": dict(chand=(1.0, 0.72, 0.28), k=1.3, hub=4500, haze=(0.005, (1.0, 0.85, 0.5)), room=(0.45, (1.0, 0.75, 0.35)),
+    "duit": dict(chand=(1.0, 0.72, 0.28), k=1.3, hub=4500, haze=(0.005, (1.0, 0.85, 0.5)), room=(0.24, (1.0, 0.75, 0.35)),
                  chests=((1.0, 0.7, 0.2), 900), top=((1.0, 0.78, 0.35), 2500)),
     # soktahu "enlightenment": cool, dim hall; the open book in his left hand is the light (gold, from below-front)
     "pencerahan": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.006, (0.85, 0.88, 1.0)), room=(0.3, (0.45, 0.58, 0.95)),
@@ -1061,7 +1061,7 @@ def mood_emotion(name, volume):
         col, en = E["top"]
         sp = bpy.data.lights.new("TopSpot", "SPOT"); sp.energy = en * 10; sp.color = col
         sp.spot_size = math.radians(28); sp.spot_blend = 0.4; sp.shadow_soft_size = 0.3
-        so = bpy.data.objects.new("TopSpot", sp); BP.link(so); so.location = (0.0, -1.5, 15.0)
+        so = bpy.data.objects.new("TopSpot", sp); BP.link(so); so.location = (0.0, -1.5, 15.0); subject_only(so)
         so.rotation_euler = (Vector(head) - so.location).to_track_quat("-Z", "Y").to_euler()
     if "chests" in E:  # treasure glows
         col, en = E["chests"]

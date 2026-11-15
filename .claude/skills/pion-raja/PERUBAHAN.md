@@ -29,6 +29,8 @@
   rim light tegas berwarna cahaya ruangan.
 - **Render lebih cepat**: compositing hanya di area Pion dan bayangannya dengan plate yang di-cache (sekitar 1,5x),
   engine memakai semua core, dan cache plate otomatis dibuat ulang kalau script berubah.
+- **Pencahayaan diukur dan diperbaiki** (`light_check.py`, skill lighting): pemisahan nilai Pion dari latar di semua
+  8 mood sekarang ≥ 0,10 (sebelumnya hanya pencerahan yang lolos). Lihat `pion3d/cahaya_sebelum_sesudah.jpg`.
 - **Subtitle karaoke dihapus** dari engine. Cue `word` tetap ada sebagai penanda waktu kata (untuk `autozoom`).
 
 ## v2: gerak lebih halus, bayangan lebih bagus, menyatu dengan video

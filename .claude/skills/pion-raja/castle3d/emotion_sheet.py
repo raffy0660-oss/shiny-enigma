@@ -17,7 +17,7 @@ BPY = os.environ.get("PION_BPY", "/opt/bpyenv/bin/python")                      
 
 # expression shown, engine light cue, relight (ref, floor, top), grade (sat, tint, contrast)
 SUBJECT_EXP = 1.25   # Pion a touch brighter than the room around him (value separation, measured by light_check.py)
-SUBJECT_EXP_MOOD = {"sedih": 1.7}   # moonlight leaves the red pawn dark: lift him more there
+SUBJECT_EXP_MOOD = {"sedih": 1.8, "licik": 1.35, "duit": 1.55, "kaget": 1.0}   # moonlight leaves the red pawn dark: lift him more there
 
 
 def subject_exp(mood):
@@ -31,7 +31,7 @@ PRESETS = {
     "sedih": ("kecewa", "dir -.9 .42 -.15 key .35 .45 .7 amb .32 .34 .42 sky .06 .07 .1 gnd .02 .02 .03 rim .22 .3 .48",
               (75, .4, 1.35), (0.75, ".92,.97,1.08", 0.97)),
     "kaget": ("kaget", "dir 0 .9 .4 key .9 .9 .88 amb .5 .5 .5 sky .12 .12 .12 gnd .04 .04 .04 rim .38 .38 .4",
-              (70, .35, 1.6), (0.95, "1,1,1.03", 1.2)),
+              (70, .35, 1.42), (0.95, "1,1,1.03", 1.12)),
     "licik": ("licik", "dir 0 -.45 .9 key .25 .75 .38 amb .24 .22 .3 sky .03 .03 .05 gnd .04 .08 .05 rim .3 .12 .45",
               (75, .38, 1.5), (1.05, ".97,1.02,1.05", 1.05)),
     "duit": ("duit", "dir 0 .9 .35 key .85 .68 .3 amb .35 .3 .2 sky .1 .08 .04 gnd .06 .04 .02 rim .48 .36 .12",
