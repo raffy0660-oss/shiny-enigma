@@ -7,13 +7,13 @@
 4. **Pion harus terasa di dalam video**: berdiri di permukaan solid yang ter-track, dekat orang/objek utama, tidak melayang.
 5. **Masuk tanpa spam teleport**: pakai lompat, jatuh dari atas, meluncur, terbang. Transisi antar scene harus halus (terbang ke kamera, zoom-blur).
 6. **Interaktif semaksimal mungkin dengan isi video**: berinteraksi dengan orang/objek (misal: menampar bokong, menginjak-injak, ikut terseret, menggantung di alat).
-7. **Saat pion bicara**: pakai subtitle karaoke yang bagus + mulut/jelly mengikuti audio.
+7. **Saat pion bicara**: mulut/jelly mengikuti audio. Tanpa subtitle (subtitle dibuat terpisah di editor kalau perlu).
 8. **Hook (clip awal)**: pion sedikit lebih besar dan masuk dengan dramatis.
 9. Layar putih = scene full commentary (istana / tempat sesuai cerita), latar penuh tanpa kekosongan, kamera bergerak (zoom pelan, miring/dutch angle, tidak terlalu dekat).
 10. Sound effect untuk setiap aksi pion (sfx.py), plus sfx_only.wav terpisah.
 11. Ukuran pion jangan terlalu kecil maupun terlalu besar (kecuali hook / close-up).
 
 Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh lengkap: proj1/, proj2/ (plan_*.py, cues/, composite*.py).
-12. **Kamera jangan monoton**: micro zoom (punch-in cepat ke muka pion) tiap 2-3 kata, sedikit dutch angle yang
-    berganti arah, shake kecil saat kaget. Saat atmosfer/mood cahaya berganti: zoom in atau zoom out drastis
-    (dengan zoom-blur sesuai kecepatan zoom). Tanpa subtitle kalau user tidak minta.
+12. **Kamera jangan monoton** (gaya v3.1, `engine/camplan.js` / cue `autozoom`): zoom bertahap 1,18x -> 1,34x -> 1,5x tiap
+    2-3 kata, halus dan DITAHAN sampai titik zoom berikutnya (tanpa getar/overshoot), kata dengan `!` langsung 1,5x,
+    tiap mood punya sudut + kemiringan sendiri, dan tiap ganti atmosfer kamera zoom out ke normal dulu.

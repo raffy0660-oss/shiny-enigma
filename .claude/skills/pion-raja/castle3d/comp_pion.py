@@ -38,20 +38,60 @@ def _blur(img, r):
     return out
 
 
+def _lift_islands(idx, inside, f=4, max_frac=0.25):
+    """Cel bands: a darker region fully enclosed by brighter bands (it touches neither the silhouette
+    edge nor a darker band) takes the band around it. A round head lit from the sides is a bit darker
+    in the middle; quantised, that dip becomes a lone dark blob on the face. Real cast shadows that
+    reach an edge or a darker area are kept. Works on a 1/f grid, then upsampled."""
+    from collections import deque
+    H, W = idx.shape
+    small = idx[::f, ::f].copy()
+    ins = inside[::f, ::f]
+    h, w = small.shape
+    total = max(1, int(ins.sum()))
+    for _ in range(4):
+        seen = np.zeros((h, w), bool)
+        changed = False
+        for y in range(h):
+            for x in range(w):
+                if seen[y, x] or not ins[y, x]:
+                    continue
+                k = small[y, x]
+                comp, nb, edge = [], set(), False
+                dq = deque([(y, x)]); seen[y, x] = True
+                while dq:
+                    cy, cx = dq.popleft(); comp.append((cy, cx))
+                    for ny, nx in ((cy - 1, cx), (cy + 1, cx), (cy, cx - 1), (cy, cx + 1)):
+                        if ny < 0 or nx < 0 or ny >= h or nx >= w or not ins[ny, nx]:
+                            edge = True; continue
+                        v = small[ny, nx]
+                        if v == k:
+                            if not seen[ny, nx]:
+                                seen[ny, nx] = True; dq.append((ny, nx))
+                        else:
+                            nb.add(int(v))
+                if not edge and nb and min(nb) > k and len(comp) < max_frac * total:
+                    up = min(nb)
+                    for cy, cx in comp:
+                        small[cy, cx] = up
+                    changed = True
+        if not changed:
+            break
+    big = np.repeat(np.repeat(small, f, 0), f, 1)[:H, :W]
+    return np.where(inside, np.maximum(idx, big), idx)
+
+
 def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5, top=1.4):
     """Multiply the room's light (Blender clay proxy) onto the engine Pion, cel-banded."""
+    factor, add = relight_maps(light_png, size, strength, bands, ref_pct, floor, top)
+    out = rgb * factor + add
+    return out * alpha + rgb * (1 - alpha)
+
+
+def relight_maps(light_png, size, strength, bands, ref_pct=55, floor=0.5, top=1.4):
+    """The relight as two screen maps (computed once per mood): out = pion_rgb * factor + add."""
     Lp = Image.open(light_png).convert("RGBA").resize(size, Image.LANCZOS)
     Lf = np.asarray(Lp).astype(np.float32) / 255.0
-    # closing (dilate then erode) on the light colour: removes thin dark grooves of the proxy (cape edges, crown
-    # band seam) that would otherwise print as dark / red lines across the engine Pion's ermine and face
-    n = max(3, (size[0] // 70) | 1)
-    try:
-        import cv2
-        ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
-        Lf[..., :3] = cv2.morphologyEx(np.ascontiguousarray(Lf[..., :3]), cv2.MORPH_CLOSE, ker)
-    except ImportError:
-        rgb8 = Image.fromarray((Lf[..., :3] * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(n)).filter(ImageFilter.MinFilter(n))
-        Lf[..., :3] = np.asarray(rgb8).astype(np.float32) / 255.0
     lc, la = Lf[..., :3], Lf[..., 3:4]
     # fill outside the proxy silhouette (engine and proxy outlines differ a little):
     # normalised convolution of the premultiplied light
@@ -59,12 +99,15 @@ def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5,
     num = _blur((lc * la).astype(np.float32), r)
     den = _blur(la.astype(np.float32), r)
     filled = num / np.maximum(den, 1e-4)
-    # far outside the proxy (a lifted crown, a raised arm) the convolution has no samples: fall back to the
-    # average light on the body instead of black
+    # far from the proxy (arms out in a gesture, a hop) the small fill has no data: fall back to a wide
+    # fill, then to the body's average light, so hands never go black
+    R2 = max(8, size[0] // 8)
+    num2 = _blur((lc * la).astype(np.float32), R2); den2 = _blur(la.astype(np.float32), R2)
+    wide = num2 / np.maximum(den2, 1e-4)
     ins = la[..., 0] > 0.5
-    avg = lc[ins].mean(0) if ins.any() else np.full(3, 0.5, np.float32)
-    cover = np.clip(den / 0.25, 0, 1)
-    filled = filled * cover + avg * (1 - cover)
+    avg = lc[ins].mean(0) if ins.any() else lc.reshape(-1, 3).mean(0)
+    wide = wide * np.clip(den2 / 0.05, 0, 1) + avg * (1 - np.clip(den2 / 0.05, 0, 1))
+    filled = filled * np.clip(den / 0.2, 0, 1) + wide * (1 - np.clip(den / 0.2, 0, 1))
     lc = lc * la + filled * (1 - la)
     lum = lc.mean(-1, keepdims=True)
     inside = (la[..., 0] > 0.5)
@@ -86,14 +129,14 @@ def relight(rgb, alpha, light_png, size, strength, bands, ref_pct=55, floor=0.5,
         R = max(6, size[0] // 30)
         votes = np.stack([_blur((idx[..., 0] == k).astype(np.float32)[..., None], R)[..., 0] for k in range(bands)], -1)
         idx = votes.argmax(-1)[..., None]
+        idx = _lift_islands(idx[..., 0], inside)[..., None]
         q = levels[idx]
         shade = _blur(q.astype(np.float32), max(2, size[0] // 360))
     factor = shade * tint
     factor = 1 + (factor - 1) * strength
     # rim: the brightest light (window behind) adds a warm edge, not just a multiply
     rim = np.clip(lum / max(ref, 1e-4) - 1.45, 0, 1) * 0.35 * strength
-    out = rgb * factor + rim * tint * 0.6
-    return out * alpha + rgb * (1 - alpha)
+    return factor.astype(np.float32), (rim * tint * 0.6).astype(np.float32)
 
 
 def main():
@@ -108,6 +151,7 @@ def main():
     ap.add_argument("--dx", type=float, default=0.0)
     ap.add_argument("--dy", type=float, default=0.0)
     ap.add_argument("--contact", type=float, default=0.75)
+    ap.add_argument("--mask", default=None, help="also write Pion's alpha in the frame (subject mask for light checks)")
     ap.add_argument("--light", default=None, help="light pass PNG from build_castle.py --lightpass")
     ap.add_argument("--relight", type=float, default=1.0, help="how much of the room light goes onto Pion")
     ap.add_argument("--bands", type=int, default=4, help="cel bands for the room light (0 = smooth)")
@@ -174,6 +218,8 @@ def main():
     rng = np.random.default_rng(3)
     out = out + rng.normal(0, a.grain, out.shape[:2])[..., None]
     Image.fromarray((np.clip(out, 0, 1) * 255 + 0.5).astype(np.uint8)).save(a.out)
+    if a.mask:
+        Image.fromarray((alpha[..., 0] * 255).astype(np.uint8)).save(a.mask)
     print("RESULT comp", a.out, {"pos": (px, py), "size": crop.size})
 
 

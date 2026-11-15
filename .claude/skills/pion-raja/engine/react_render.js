@@ -13,7 +13,9 @@
 //   --preview t1,t2,...              only render a contact sheet of these moments (fast check)
 //   --blur 16                        motion blur: max samples per frame (default 16, 1 = off); --shutter 0.4 (frames)
 //   --local                          cue times are relative to --start (default: absolute audio times)
+//   --shake 1                        camera shake while the autozoom camera moves (0 = off)
 // cue `light dir x y z key r g b amb r g b rim r g b ...` overrides the toon light preset (to match a 3D background)
+// cue `<t> autozoom [N] [strength]` / `<t> autozoom off`: micro zoom punch-ins every N karaoke words, centred on the face
 const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('/opt/npm-tools/node_modules/playwright'); } })();
 const fs = require('fs'), path = require('path'), os = require('os'), { execFileSync } = require('child_process');
 
@@ -77,6 +79,10 @@ function parseCues(txt) {
       C.light = C.light || {}; for (let i = 1; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; C.light[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
       return; }
     if (w[0] === 'face') { C.faceCy = +w[1]; return; }
+    if (w[0] === 'acting' || w[0] === 'gerak') { C.acting = +(w[1] ?? 1); return; }  // automatic acting layer strength (0 = off, default 1)
+    if (w[1] === 'light' && !isNaN(+w[0])) { // timed light: <t> light dir .. key .. -> crossfades (0.4 s) from the previous light
+      const L = {}; for (let i = 2; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; L[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
+      (C.lights = C.lights || []).push({ t: +w[0], L }); return; }
     if (w[0] === 'hurt') { C.hurt = +(w[1] ?? 1); return; }
     if (w[0] === 'frame') { const v = w[1] || 'close'; if (v.includes(',')) { const [cy, vh, cx] = v.split(',').map(Number); C.frameOverride = { cy, vh, cx: cx || 0 }; } else C.frame = v; return; }
     const t = time(w[0]) - (arg('local') ? 0 : START), cmd = (w[1] || '').toLowerCase();
@@ -127,7 +133,10 @@ function parseCues(txt) {
     else if (cmd === 'scan') C.fx.push({ type: 'scan', t0: t, t1: t + +(w[2] || .8) });
     else if (cmd === 'boing') C.boing.push([t, +(w[2] || .8)]);
     else if (cmd === 'say' || cmd === 'bilang') { const dur = +(w[2] || 1.2), text = w.slice(3).join(' ') || '...'; C.fx.push({ type: 'say', t0: t, t1: t + dur, text }); C.say = (C.say || []).concat([{ t, dur: Math.min(dur, .25 + text.length * .055), text }]); }
-    else if (cmd === 'word' || cmd === 'kata') (C.subs = C.subs || []).push([t, w.slice(2).join(' ')]);
+    else if (cmd === 'word' || cmd === 'kata') (C.subs = C.subs || []).push([t, w.slice(2).join(' ')]); // word timing only (no subtitles drawn): drives autozoom
+    else if (cmd === 'autozoom' || cmd === 'zoomauto') { // <t> autozoom [every N words] [strength]  |  <t> autozoom off
+      if (/^(off|mati)$/i.test(w[2] || '')) (C.az = C.az || []).push({ t, off: true });
+      else (C.az = C.az || []).push({ t, every: Math.max(1, +(w[2] || 3)), amt: +(w[3] || 1) }); }
     else if (cmd === 'hover' || cmd === 'melayang') C.hover.push([t, /^(off|mati|0|no)$/i.test(w[2] || '') ? 0 : 1]);
     else warn.push(`baris ${ln + 1}: perintah tidak dikenal: ${raw}`);
   });
@@ -167,7 +176,20 @@ async function openPage(data) {
     ex.forEach(([t0, k], i) => { if (k !== 'soktahu') return; const t1 = i + 1 < ex.length ? ex[i + 1][0] : tEnd;
       if (!cues.gest.some(G => G.t0 < t1 && G.t1 > t0)) cues.gest.push({ t0, t1, type: 'nerd', side: 1, auto: true }); });
   }
-  const data = { fps: FPS, n: au.n, env: au.env, onset: au.onset, jelly: JELLY, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
+  // autozoom -> camera plan (engine/camplan.js): sampled per frame here, read by react.js camAt()
+  let camz = null;
+  if (cues.az && cues.az.length) {
+    const CP = require('./camplan.js'), off = arg('local') ? 0 : START;
+    const onsets = []; for (let f = 0; f < au.n; f++) if (au.onset[f] > 0) onsets.push(f / FPS + off);
+    const keys = CP.planCamera({ words: (cues.subs || []).map(([t, text]) => ({ t, text })), exprs: cues.expr, az: cues.az, onsets });
+    camz = []; const sh = arg('shake') === null ? 1 : +arg('shake'); for (let f = 0; f < au.n; f++) { const c = CP.sampleCam(keys, f / FPS + off, sh); camz.push([c.z, c.ox, c.oy, c.roll].map(v => +v.toFixed(5))); }
+    if (arg('camplan')) fs.writeFileSync(String(arg('camplan')), JSON.stringify(keys, null, 1));
+  }
+  // acting layer events: '!' words (emphasis hop) and expression changes (a little "take")
+  const off0 = arg('local') ? 0 : START, fr0 = t => Math.round((t - off0) * FPS);
+  const bangF = (cues.subs || []).filter(([, txt]) => /!/.test(txt)).map(([t]) => fr0(t));
+  const ex = cues.expr.slice().sort((p, q) => p[0] - q[0]), takeF = ex.filter((e, i) => i > 0 && e[1] !== ex[i - 1][1]).map(([t]) => fr0(t));
+  const data = { fps: FPS, n: au.n, camz, acting: cues.acting ?? 1, bangF, takeF, lights: (cues.lights || []).sort((p, q) => p.t - q.t), env: au.env, onset: au.onset, jelly: JELLY, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
   for (const [bt, s] of cues.boing) { const f = Math.round(bt * FPS); if (f >= 0 && f < data.n) data.onset[f] = Math.max(data.onset[f], s); }
   for (const S of cues.say || []) { // speech bubble: fake syllables drive the mouth + jelly
     const syl = Math.max(2, Math.round(S.text.replace(/[^a-z]/gi, '').length / 2.2)), f0 = Math.round(S.t * FPS), f1 = Math.round((S.t + S.dur) * FPS);
@@ -193,12 +215,13 @@ async function openPage(data) {
 
   const dir = OUT + '_frames'; fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
   const frames = Array.from({ length: au.n }, (_, i) => i), JOBS = Math.max(1, Math.min(+arg('jobs', Math.min(6, Math.max(1, os.cpus().length - 1))), frames.length));
-  const per = Math.ceil(frames.length / JOBS), t0 = Date.now(); let done = 0;
+  const per = Math.ceil(frames.length / JOBS), t0 = Date.now(); let done = 0; const track = new Array(frames.length).fill(null);
   await Promise.all(Array.from({ length: JOBS }, (_, j) => frames.slice(j * per, (j + 1) * per)).filter(c => c.length).map(async list => {
     const { b, p } = await openPage(data);
     for (const f of list) {
       const png = await p.evaluate(([f, mb]) => mb ? window.grabReactMB(f, null) : (window.renderReact(f), window.grabReact(null)), [f, BLUR > 1]);
       fs.writeFileSync(path.join(dir, String(f).padStart(5, '0') + '.png'), Buffer.from(png, 'base64'));
+      track[f] = await p.evaluate(() => window.__track || null);
       if (++done % 60 === 0 || done === frames.length) console.log(`frame ${done}/${frames.length}  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
     }
     await b.close();
@@ -216,6 +239,7 @@ async function openPage(data) {
     execFileSync('ffmpeg', ['-y', '-v', 'error', ...pngs, ...aud, '-map', '0:v', ...(AUDIO ? ['-map', '1:a', '-c:a', 'pcm_s16le'] : []), '-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le', '-shortest', mov]);
     console.log('->', mov);
   }
+  fs.writeFileSync(OUT + '_track.json', JSON.stringify({ fps: FPS, W: RW, H: RH, frames: track })); // Pion's screen position per frame (castle3d follows it)
   if (!arg('png')) fs.rmSync(dir, { recursive: true, force: true }); else console.log('-> PNG transparan:', dir);
   console.log('selesai dalam', ((Date.now() - t0) / 1000).toFixed(0) + 's');
 })();

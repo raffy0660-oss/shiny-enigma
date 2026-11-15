@@ -17,7 +17,7 @@ const FRAMES = {
 };
 const frameOf = v => typeof v === 'string' ? (FRAMES[v] || FRAMES.mid) : v;
 window.setReact = d => {
-  RX = d;
+  RX = d; RX.bangS = new Set(d.bangF || []); RX.takeS = new Set(d.takeF || []);
   TL.expr = d.expr.length ? d.expr : [[0, 'datar']]; TL.gest = d.gest; TL.startle = d.startle;
   RX.fr = Object.assign({ cx: 0, yaw: 0, tiltDeg: 6 }, FRAMES[d.frame] || FRAMES.mid, d.frameOverride || {});
   RX.fly = (d.fly || []).slice().sort((p, q) => p.t0 - q.t0); RX.hover = d.hover || [];
@@ -57,6 +57,17 @@ function hoverAmt(t) { let on = 1, t0 = -9; for (const [ht, v] of RX.hover) if (
 
 /* ---------- camera moves, body turns ---------- */
 const easeIO3 = u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2;
+function lightAt(t, L0) { // timed light cues crossfade over 0.4 s
+  const Ls = RX.lights || []; let cur = L0;
+  for (const K of Ls) { if (t < K.t) break; const tgt = Object.assign({}, L0, K.L), u = smooth(K.t, K.t + .4, t);
+    const o = {}; for (const k in tgt) o[k] = Array.isArray(tgt[k]) ? tgt[k].map((v, i) => lerp((cur[k] || tgt[k])[i], v, u)) : lerp(cur[k] ?? tgt[k], tgt[k], u); cur = o; }
+  return cur;
+}
+function planAt(t) { // camera plan sampled per frame by react_render.js (camplan.js), lerped for motion-blur subframes
+  const Z = RX.camz; if (!Z || !Z.length) return null;
+  const x = clamp(t * RX.fps, 0, Z.length - 1), i = Math.floor(x), j = Math.min(i + 1, Z.length - 1), u = x - i;
+  return Z[i].map((v, k) => lerp(v, Z[j][k], u));
+}
 function camAt(t) { // framing animated by "cam" keys: each eases from wherever the camera is to its target
   let cur = { cy: RX.fr.cy, vh: RX.fr.vh, cx: RX.fr.cx, roll: RX.fr.roll || 0 };
   for (let i = 0; i < RX.cams.length; i++) {
@@ -66,13 +77,17 @@ function camAt(t) { // framing animated by "cam" keys: each eases from wherever 
     cur = { cy: lerp(cur.cy, tgt.cy, u), vh: lerp(cur.vh, tgt.vh, u), cx: lerp(cur.cx, tgt.cx, u), roll: lerp(cur.roll, tgt.roll, u) };
   }
   let sx = 0, sy = 0; for (const S of RX.shakes) { const e = t - S.t; if (e < 0 || e > S.dur) continue; const a = S.amp * (1 - e / S.dur); sx += a * Math.sin(e * 71) * .5; sy += a * Math.sin(e * 53 + 1) * .5; }
+  const P = planAt(t); if (P && (P[0] !== 1 || P[3])) { // zoom toward the face, corner offset, dutch angle (held until the next key)
+    const [zf, ox, oy, rl] = P, faceY = RX.faceCy || 3.0, a = clamp((1 - 1 / zf) / (1 - 1 / 1.5), 0, 1.2);
+    cur.vh /= zf; cur.cy += (faceY - cur.cy) * .85 * a - oy * cur.vh; cur.cx += ox * cur.vh * ASPECT; cur.roll += rl; }
   return Object.assign({}, RX.fr, cur, { cx: cur.cx + sx * cur.vh * .02, cy: cur.cy + sy * cur.vh * .02 });
 }
 function turnAt(t) { let y = 0; for (const T of RX.turns) { if (t < T.t) break; const u = T.dur > 0 ? easeIO3(clamp((t - T.t) / T.dur, 0, 1)) : 1; y = lerp(y, T.deg * Math.PI / 180, u); } return y; }
 const fxActive = (type, t) => RX.fxl.filter(e => e.type === type && t >= e.t0 && t <= e.t1);
 
 /* ---------- jelly / talking state (simulated sequentially from frame 0, so any frame renders deterministically) */
-const J = { sq: mkSpring(), wob: mkSpring(), nod: mkSpring(), rx: mkSpring(), ry: mkSpring(), rz: mkSpring() };
+const J = { sq: mkSpring(), wob: mkSpring(), nod: mkSpring(), rx: mkSpring(), ry: mkSpring(), rz: mkSpring(),
+  sway: mkSpring(), hop: mkSpring(), tilt: mkSpring(), lean: mkSpring() }; // acting layer: weight shift, little hops, head tilts, leaning in
 let rLast = -10, mouth = 0, mouthHold = 0, wobSign = 1;
 function resetReact() { for (const k in J) { J[k].p = 0; J[k].v = 0; } resetPhysics(); mouth = 0; mouthHold = 0; wobSign = 1; }
 function lookAt(t) { let tg = [0, 0, 0]; for (const L of RX.look) if (t >= L[0]) tg = L.slice(1); return tg; }
@@ -81,15 +96,28 @@ function rStep(f) {
   if (on > 0) { // syllable hit: squash down, wobble sideways (alternating), little nod, head jiggle
     J.sq.v -= on * 1.9 * J0; J.wob.v += wobSign * on * 1.2 * J0; wobSign = -wobSign; J.nod.v += on * 1.1 * J0; PH.hy.v -= on * 1.4 * J0;
   }
-  const lk = lookAt(t), n = 4, h = dt / n;
+  // ---- acting layer (deterministic, from the audio and cues): makes him move like he means it
+  const A = RX.acting ?? 1;
+  if (A > 0) {
+    if (on > .7) { J.hop.v += (on - .5) * 1.1 * A; J.nod.v += on * .45 * A; }                       // stressed syllable: tiny bounce + nod
+    if (RX.bangS && RX.bangS.has(f)) { J.sq.v += .9 * A; J.hop.v += 2.4 * A; J.tilt.v += wobSign * 1.3 * A; } // "!" word: stretch up into a hop
+    if (RX.takeS && RX.takeS.has(f)) { J.sq.v += .5 * A; J.hop.v += 1.3 * A; J.tilt.v -= wobSign * 1.8 * A; J.sway.v += wobSign * 1.6 * A; } // new expression: a "take"
+  }
+  const quiet = J.lean.p < .06, swayT = A * ((.05 + .9 * J.lean.p * .12) * Math.sin(t * 1.9) + .03 * Math.sin(t * .73 + 1.3));
+  const glance = A && quiet ? .2 * Math.sin(t * .8) * smooth(.06, .02, J.lean.p) : 0;      // idle: looks around when silent
+  const lk = lookAt(t), n = 4, h = dt / n, hop0 = J.hop.p, hopV0 = J.hop.v;
   for (let i = 0; i < n; i++) {
     stepSpring(J.sq, e * .035 * J0, 230, 8.5, h);   // loud = stretched a bit taller
     stepSpring(J.wob, 0, 140, 6.5, h);
     stepSpring(J.nod, e * .05, 120, 8, h);         // lean into the words
-    stepSpring(J.rx, lk[1], 70, 11, h); stepSpring(J.ry, lk[0], 70, 11, h); stepSpring(J.rz, lk[2], 70, 11, h);
+    stepSpring(J.rx, lk[1], 70, 11, h); stepSpring(J.ry, lk[0] + glance, 70, 11, h); stepSpring(J.rz, lk[2], 70, 11, h);
+    stepSpring(J.sway, swayT, 28, 8, h); stepSpring(J.hop, 0, 90, 7.5, h); stepSpring(J.tilt, 0, 55, 6.5, h); stepSpring(J.lean, e * A, 6, 5, h);
   }
+  if (hop0 > .004 && J.hop.p <= .004 && hopV0 < 0) { // landing from an acting hop: jelly squash, the crown pops up and settles
+    const imp = Math.min(2.2, -hopV0);
+    J.sq.v -= imp * .75; PH.hy.v -= imp * .45; PH.cy.v += imp * .32; J.wob.v += wobSign * imp * .25; }
   const fv = flyVel(t), fp = flyPos(t), fpPrev = flyPos(t - dt);
-  physStep(fv[0] * .25, J.sq.v * 5 + fv[1] * .25, -J.nod.v * 3 + Math.min(fv[2] * .12, 7), dt); // jelly + flight wind on head and cape
+  physStep(fv[0] * .25, J.sq.v * 5 + fv[1] * .25 + J.hop.v * .9, -J.nod.v * 3 + Math.min(fv[2] * .12, 7), dt); // jelly + flight wind on head and cape
   if (fpPrev.flying && !fp.flying && fp.vis) { J.sq.v -= 1.1; J.wob.v += .6; PH.hy.v -= 1; } // arrival: jelly "boing"
   // mouth level from loudness, with a 2-frame hold so it never flickers
   const want = e < .1 ? 0 : e < .32 ? 1 : e < .62 ? 2 : 3;
@@ -268,27 +296,6 @@ function drawProps(t, PP, base, VP, L, cam) {
 }
 
 /* ---------- karaoke subtitle: groups of words, active word yellow + pop ---------- */
-function subLines(words) { // [[t, word], ...] -> [{t0, t1, words:[[t,w],...]}]
-  const L = []; let cur = [];
-  words.forEach((w, i) => { cur.push(w); const nx = words[i + 1]; if (!nx || /[.!?,…]$/.test(w[1]) || cur.length >= 3 || nx[0] - w[0] > .7) { L.push({ words: cur, t0: cur[0][0], t1: nx ? Math.min(nx[0], w[0] + 1.2) : w[0] + 1.2 }); cur = []; } });
-  return L;
-}
-function drawSub(g, t) {
-  if (!RX.subs || !RX.subs.length) return; if (!RX.subL) RX.subL = subLines(RX.subs);
-  const Ln = RX.subL.find(l => t >= l.t0 - .02 && t < l.t1); if (!Ln) return;
-  const fs = 92, y = 1430; g.save(); g.font = `900 ${fs}px Inter, Arial Black, sans-serif`; g.textBaseline = 'middle'; g.lineJoin = 'round';
-  const ws = Ln.words.map(w => w[1].toUpperCase()), sp = fs * .45, wid = ws.map(w => g.measureText(w).width), tot = wid.reduce((a, b) => a + b, 0) + sp * (ws.length - 1);
-  const k = Math.min(1, (W - 80) / tot); let x = W / 2 - tot * k / 2; const ein = springPop((t - Ln.t0) * 1.6);
-  for (let i = 0; i < ws.length; i++) {
-    const [wt] = Ln.words[i], act = t >= wt && (i === ws.length - 1 || t < Ln.words[i + 1][0]), said = t >= wt, e = t - wt;
-    const sc = k * (act ? 1 + .1 * Math.max(0, 1 - e * 5) + .04 : 1) * Math.min(1, ein), cx = x + wid[i] * k / 2;
-    g.save(); g.translate(cx, y - (act ? 10 * Math.max(0, 1 - e * 5) : 0)); g.scale(sc, sc); g.rotate(act ? -.03 : 0); g.textAlign = 'center';
-    g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowOffsetY = 8; g.shadowBlur = 14; g.lineWidth = fs * .2; g.strokeStyle = '#1a0a06'; g.strokeText(ws[i], 0, 0); g.shadowColor = 'transparent';
-    g.fillStyle = act ? '#ffd23a' : said ? '#ffffff' : 'rgba(255,255,255,.55)'; g.fillText(ws[i], 0, 0); g.restore();
-    x += (wid[i] + sp) * k;
-  }
-  g.restore();
-}
 
 /* ---------- photo shown on a big phone screen (pops in, swaps with a flip) ---------- */
 function drawPhoto(g, t, E) {
@@ -384,7 +391,7 @@ function drawReact(f, u) {
   fx.setTransform(fx.canvas.width / W, 0, 0, fx.canvas.height / H, 0, 0); trailCtx.setTransform(trailCtx.canvas.width / W, 0, 0, trailCtx.canvas.height / H, 0, 0);
   const fr = camAt(t), cam = reactCam(fr), VP = cam.VP; window.EYE = cam.eye;
   const castle = RX.bg === 'castle' || RX.bg === 'hospital', L0 = RX.bg === 'castle' ? LIGHT_CASTLE : LIGHT;
-  const L = RX.light ? Object.assign({}, L0, RX.light) : L0; // cue `light ...`: match a 3D background's key/rim
+  const L = lightAt(t, RX.light ? Object.assign({}, L0, RX.light) : L0); // cue `light ...` / `<t> light ...`: match the 3D background's mood
   const fl = flyPos(t), fv = flyVel(t);
   const hidden = RX.fxl.some(e => e.type === 'hide' && t >= e.t0);   // after 'hide': only fx + subtitles (transparent), e.g. over an inserted clip
   if (castle && !hidden) { // background zooms with the camera (a bit less: parallax), anchored on the pion
@@ -403,15 +410,16 @@ function drawReact(f, u) {
   }
   const hov = hoverAmt(t) * (.07 * Math.sin(t * 2.3) + .07);
   cv.style.opacity = String(hidden ? 0 : fl.op);
-  if (!fl.vis) { drawFX(f, t, { vis: false }); drawSub(fx, t); return; }
+  if (!fl.vis) { drawFX(f, t, { vis: false }); return; }
   const st = startleAt(t), bp = bodyPose(t);
-  const a = J.sq.p + st.a * .55 + .014 * Math.sin(t * 2.4) + flyoutStretch(t), sy = 1 + a, sxz = 1 / Math.sqrt(1 + a); // + idle breathing
+  const a = J.sq.p + st.a * .55 + .014 * Math.sin(t * 2.4) + flyoutStretch(t) + (J.hop.p > 0 ? clamp(J.hop.v * .025, -.04, .06) : 0), sy = 1 + a, sxz = 1 / Math.sqrt(1 + a); // + idle breathing, + stretch while rising in a hop
   const roll = J.wob.p * .5 + .022 * Math.sin(t * 1.3) + bp.roll;
   const lean = clamp(fv[2] * .012, -.2, .45) - clamp(fv[1] * .01, -.25, .25), bank = clamp(-fv[0] * .02, -.5, .5), fyaw = clamp(fv[0] * .012, -.4, .4);
-  const flyM = mat.chain(mat.T(fl.p[0], fl.p[1] + hov, fl.p[2]), mat.T(0, 2, 0), mat.RX(lean), mat.RZ(bank), mat.RY(fyaw), mat.T(0, -2, 0));
-  const base = mat.chain(flyM, mat.T(0, st.y * 4.65 * .25, 0), mat.RZ(-roll), mat.RY(fr.yaw + bp.yaw + turnAt(t)), mat.RX(bp.lean + J.nod.p * .5), mat.RX(PH.hz.p * -.6), mat.RZ(PH.hx.p * .6), mat.T(0, 1.7, 0), mat.S(sxz, sy, sxz), mat.T(0, -1.7, 0)); // squash about the belly: shape wobbles, head stays in frame
+  const hopY = Math.max(0, J.hop.p) * .5; // acting hop never sinks below the floor
+  const flyM = mat.chain(mat.T(fl.p[0], fl.p[1] + hov + hopY, fl.p[2]), mat.T(0, 2, 0), mat.RX(lean), mat.RZ(bank), mat.RY(fyaw), mat.T(0, -2, 0));
+  const base = mat.chain(flyM, mat.T(0, st.y * 4.65 * .25, 0), mat.RZ(-roll - J.sway.p * .3), mat.RY(fr.yaw + bp.yaw + turnAt(t) + J.sway.p), mat.RX(bp.lean + J.nod.p * .5 + J.lean.p * .07), mat.RX(PH.hz.p * -.6), mat.RZ(PH.hx.p * .6), mat.T(0, 1.7, 0), mat.S(sxz, sy, sxz), mat.T(0, -1.7, 0)); // squash about the belly: shape wobbles, head stays in frame
   const org = cam.toPix([0, 0, 0]), o = { vis: true, x: org[0], y: org[1], h: 4.65 * cam.ppu, yaw: fr.yaw, spd: 0, dist: 0 }; // for screen-space gesture targets
-  const hurt = RX.hurt || 0, gs = gestureState(t, o), PP = posePion(base, t, gs, { rx: J.rx.p + J.nod.p * .6, ry: J.ry.p, rz: J.rz.p }, hurt);
+  const hurt = RX.hurt || 0, gs = gestureState(t, o), PP = posePion(base, t, gs, { rx: J.rx.p + J.nod.p * .6, ry: J.ry.p, rz: J.rz.p + J.tilt.p * .45 }, hurt);
   window.__clap = null;
   if (gs.clap && gs.clap.k > .01) { const w = mat.xform(base, [...gs.clap.p, 1]); window.__clap = { p: cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]), k: gs.clap.k, r: cam.ppu }; }
   const ex = exprAt(t), blink = blinking(t) && ex.since > .25;
@@ -424,6 +432,7 @@ function drawReact(f, u) {
   drawBookGlow(t, PP, base, cam);
   const hw = mat.xform(PP.headM, [0, 0, 0, 1]), head = { p: cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), r: cam.ppu }; window.__head = head;
   const pix = (M, v) => { const w = mat.xform(M, [...v, 1]); return cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]); };
+  window.__track = { base: pix(base, [0, 0, 0]), ground: cam.toPix([fl.p[0], 0, fl.p[2]]), head: head.p, ppu: cam.ppu, vis: fl.op };
   window.__probe = [head.p, pix(base, [0, 0, 0]), pix(PP.crownM, [0, 1.0, 0]), pix(base, [1, 0, 0]), pix(base, [-1, 0, 0]), ...PP.hands.filter(Boolean).map(Hd => pix(Hd.M, [0, 0, 0]))];
   drawFX(f, t, o);
   if (fl.flying || flyPos(t - .5).flying) drawTrail(t, cam);
@@ -435,7 +444,6 @@ function drawReact(f, u) {
   for (const E of fxActive('poof', t)) drawPoof(fx, head.p[0], head.p[1] + head.r * .9, head.r * 3.2, t, E);
   for (const E of fxActive('stamp', t)) drawStamp(fx, t, E, E.x || 539, E.y || 700, E.size || 110);
   for (const E of fxActive('ask', t)) drawQuestion(fx, t, head, E);
-  drawSub(fx, t);
   for (const E of fxActive('say', t)) drawBubble(fx, t, head, E);
   for (const E of fxActive('money', t)) drawMoney(trailCtx, fx, t, E, cam);
   for (const G of TL.gest) if (G.type === 'crownlift' && t >= G.t0 + .5 && t < G.t0 + 1.2) { // crown is up: shine on the bald scalp

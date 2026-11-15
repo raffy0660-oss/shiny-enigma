@@ -1,6 +1,6 @@
 # Pion Raja di istana 3D (gaya game AAA)
 
-Karakter Pion **tetap Pion asli dari engine** (outline, wajah flat, ekspresi, gesture, karaoke).
+Karakter Pion **tetap Pion asli dari engine** (outline, wajah flat, ekspresi, gesture).
 Blender hanya membuat **background 3D**, **bayangan**, dan **pencahayaan** yang menempel ke Pion.
 
 ```
@@ -16,6 +16,70 @@ bash .claude/skills/pion-raja/castle3d/setup.sh
 Memasang lib EGL/GL, Blender 5.2 sebagai modul Python (`/opt/bpyenv`), numpy/pillow, lalu menyalin
 engine ke `~/pion/pion_raja`. Butuh Python 3.13, ffmpeg, Node + Playwright (sudah ada di sesi cloud).
 Opsional: pasang skill `scenario-blender-lighting-rendering` untuk bloom + vignette halus (kalau tidak ada, dilewati).
+
+## Video jadi (paling lengkap): `castle_video.py`
+```bash
+cd .claude/skills/pion-raja/castle3d
+python3 castle_video.py --cues cues.txt --audio vo.wav --out pion.mp4 --res 1080x1350
+```
+Satu file cue mengatur semuanya:
+- **Ekspresi** menentukan mood cahaya. Saat mood berganti, ruangan dan cahaya di Pion crossfade 0,5 detik.
+- **`word` + `autozoom`** menentukan kamera (`engine/camplan.js`):
+  - zoom bertahap 1,18x → 1,34x → 1,5x, transisi halus 0,55 detik tanpa momentum atau getar;
+  - level zoom **ditahan** sampai titik zoom berikutnya, dan kata dengan `!` langsung ke 1,5x;
+  - tiap mood punya **sudut sendiri**: kamera bergeser ke pojok dan sedikit miring, ditahan selama mood itu;
+  - saat mood berganti, kamera **zoom out ke normal** lalu mulai zoom lagi dengan sudut berikutnya.
+- **Gerakan Pion** (gesture, `acting`, terbang) membuat **bayangan di lantai dan cahaya di badannya ikut bergerak**.
+  Bayangan ikut bergeser dan menipis saat Pion melompat. Tidak ada bekas bayangan yang diam.
+  Cahaya di Pion datang dari **lampu titik yang diam di ruangan** (arah key mood itu), jadi saat dia bergoyang,
+  miring, atau melompat mendekati lampu, terang-gelap di badannya ikut berubah.
+- **Kamera bergerak = motion blur (shutter 270°, 8 sampel) + getaran halus** yang hanya muncul selama kamera
+  bergerak (`--shake 0` mematikan, `--shake 0.5` lebih halus). Saat kamera diam, gambar diam.
+- **Remotion** (`castle3d/remotion`) merakit hasil akhir: kamera, motion blur kamera, vignette, audio.
+  Scene dirender 1,5x lebih besar dari output, jadi zoom 1,5x tetap tajam.
+
+Hasil per mood di-cache di folder `--work`, jadi render ulang (misal ganti cue) hanya mengulang engine dan compositing.
+Cache-nya otomatis tidak dipakai kalau `build_castle.py`/`build_pion.py`, resolusi, sampel, atau kabut berubah.
+Compositing hanya menghitung ulang area sekitar Pion dan bayangannya. Sisa frame diambil dari plate yang sudah
+di-grade (plus grain) dan disiapkan sekali: sekitar 1,5x lebih cepat dari versi sebelumnya.
+Waktu kira-kira: plate Blender sekitar 5-6 menit per mood di 1080x1350, compositing sekitar 0,3 detik per frame
+(4 core), Remotion dengan motion blur kamera 6 sampel beberapa menit per 10 detik video. `--camblur 1` mematikan blur kamera,
+`--blur 1` mematikan motion blur engine, `--novolume` tanpa kabut (lebih cepat).
+
+## Cek pencahayaan (`light_check.py`)
+Setelah mengubah mood cahaya, ukur dengan alat skill `scenario-blender-lighting-rendering`:
+```bash
+python3 emotion_sheet.py --out cek.png --work cek --res 432x540 --samples 16 --novolume
+/opt/bpyenv/bin/python light_check.py -- --work cek
+```
+- **Yang diukur per mood:** pemisahan nilai Pion dari sekelilingnya (target ≥ 0,10, dicek hitam-putih),
+  siluet yang menyatu dengan latar, gradasi terang-gelap di badan, fokus yang bersaing, clipping, dan vignette.
+- **Value study:** `<mood>_values.png` (hitam-putih | kelompok nilai | squint).
+- **Aturan yang dipakai:**
+  - gelapkan set dulu, baru naikkan subjek;
+  - lampu gantung tidak menerangi tahta di belakang Pion;
+  - lampu bawah, rim, dan sorot mood hanya mengenai Pion;
+  - rim di sisi datangnya cahaya;
+  - Pion sedikit lebih terang per mood (`SUBJECT_EXP_MOOD` di `emotion_sheet.py`).
+- **Hasil saat ini:** semua 8 mood ≥ 0,10. Sisa clipping di `kaget` ada di mata putih Pion (memang putih sesuai desain).
+
+## Studio preview 3D di browser (`studio/`)
+```bash
+cd .claude/skills/pion-raja/castle3d/studio
+python3 make_studio.py --cues cues.txt --audio vo.wav      # lalu buka http://localhost:8765/castle3d/studio/
+```
+- **Istana 3D real-time (three.js):** geometri sama dengan render Blender (`castle.glb`, diekspor sekali oleh
+  `export_studio.py`). Bata, langit-langit kotak-kotak, dan kaca patri dibuat ulang sebagai tekstur.
+- **Pion tetap 2D:** video Pion transparan dari engine di bidang yang selalu menghadap kamera, dan bayangannya
+  jatuh ke lantai.
+- **Cahaya per mood** dari data yang sama (`EMOTIONS`), dengan crossfade antar mood.
+- **Kamera "Shot cam"** memakai rencana kamera yang sama (`camplan.js`: zoom, sudut, miring, getaran). Dengan
+  "Free cam" kamu bisa memutar kamera bebas mengelilingi aula.
+- **Kontrol:** timeline bisa digeser, Play/Pause dengan audio, tombol garis tinta, mood bisa dipaksa, exposure.
+  Klik sebuah benda untuk melihat namanya.
+- **Performa:** koin, ubin, dan paku digabung (satu draw call per material), matriks benda statis dibekukan,
+  dan shader dikompilasi di awal.
+- Studio untuk draft dan cek cepat (detik, bukan menit). Hasil final tetap dari `castle_video.py` (Cycles + Remotion).
 
 ## Cara tercepat: satu frame per mood
 ```bash
@@ -76,8 +140,12 @@ Kamera background diam per adegan: render background + peta cahaya **sekali per 
 Pion engine digabung dengan `comp_pion.py`. Ganti ekspresi = crossfade ke plate mood berikutnya.
 Peta cahaya mengikuti pose diam Pion. Gesture besar (tangan) tetap kena cahaya dari peta yang sama.
 
+Micro zoom tiap beberapa kata untuk hasil istana: `python3 ../engine/microzoom.py --in hasil.mp4 --out hasil_zoom.mp4
+--cues cues.txt --bbox bg.json` (pusat zoom di wajah Pion dari `--bbox`).
+
 ## Catatan
 - Render memakai CPU (tanpa GPU): 1080x1350 64 sampel sekitar 5 menit, peta cahaya sekitar 30 detik.
 - Model Blender `build_pion.py` hanya dipakai sebagai bayangan/peta cahaya. Proporsinya harus sama dengan
-  engine (mahkota tidak diperbesar) supaya tidak muncul titik gelap di wajah.
+  engine (mahkota tidak diperbesar). comp_pion.py juga menaikkan "pulau" gelap yang terkurung area terang
+  (tengah kepala yang sedikit lebih gelap), jadi tidak muncul titik gelap di wajah.
 - `build_pion.py` / `build_pion_toon.py` juga bisa dipakai sendiri: Pion versi Blender realistis / kartun.

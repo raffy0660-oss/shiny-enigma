@@ -255,9 +255,9 @@ def build_room(volume=True):
     for sx in (-1, 1):
         for k, y in enumerate((-2.0, 9.0, 20.0)):
             x = sx * (ROOM_X - 1.6)
-            cylinder(f"Pillar_{sx}_{k}", 0.9, SPRING_Z, (x, y, 0), M["stone"], 64)
-            box(f"PillarBase_{sx}_{k}", (2.3, 2.3, 0.7), (x, y, 0.35), M["stone"], bevel=0.08)
-            box(f"PillarCap_{sx}_{k}", (2.3, 2.3, 0.6), (x, y, SPRING_Z - 0.3), M["stone"], bevel=0.08)
+            fluted_column(f"Pillar_{sx}_{k}", 0.9, SPRING_Z - 2.0, (x, y, 0.9), M["marbleL"])
+            column_base(f"PillarBase_{sx}_{k}", 0.9, (x, y, 0.0), M["stone"])
+            column_capital(f"PillarCap_{sx}_{k}", 0.9 * 0.94, (x, y, SPRING_Z - 1.15), M["stone"])
             # torch sconce facing the room
             tx = x - sx * 1.05
             cylinder(f"TorchStick_{sx}_{k}", 0.09, 1.2, (tx, y, 6.2), M["iron"], 16)
@@ -271,6 +271,10 @@ def build_room(volume=True):
             plo = bpy.data.objects.new(f"TorchLight_{sx}_{k}", pl); BP.link(plo)
             plo.location = (tx - sx * 0.25, y, 8.0)
 
+    for sx in (-1, 1):   # skirting along the side walls and the back wall
+        box(f"Skirting_{sx}", (0.35, BACK_Y - FRONT_Y, 0.9), (sx * (ROOM_X - 0.1), (BACK_Y + FRONT_Y) / 2, 0.45), M["stone"], bevel=0.05)
+        box(f"SkirtingGold_{sx}", (0.4, BACK_Y - FRONT_Y, 0.1), (sx * (ROOM_X - 0.12), (BACK_Y + FRONT_Y) / 2, 0.92), M["gold"], bevel=0.02)
+    box("SkirtingBack", (ROOM_X * 2, 0.35, 0.9), (0, BACK_Y - 0.1, 0.45), M["stone"], bevel=0.05)
     build_throne(M)
 
     # stained-glass windows on the back wall, with lead frame + light shafts
@@ -279,7 +283,8 @@ def build_room(volume=True):
         pane = arch_window_mesh(f"Window_{k}", win_w, win_h)
         pane.location = (x, BACK_Y - 0.02, 5.0)
         BP.assign(pane, mat_stained_glass(k))
-        frame = box(f"WindowSill_{k}", (win_w + 0.6, 0.7, 0.35), (x, BACK_Y - 0.3, 4.85), M["stone"], bevel=0.05)
+        frame = box(f"WindowSill_{k}", (win_w + 0.9, 0.8, 0.4), (x, BACK_Y - 0.3, 4.85), M["stone"], bevel=0.06)
+        arch_frame(f"WindowFrame_{k}", x, BACK_Y - 0.12, 5.0, win_w, win_h, M["stone"])
         sp = bpy.data.lights.new(f"WindowSun_{k}", "SPOT")
         sp.energy = 60000
         sp.color = (1.0, 0.86, 0.66)
@@ -354,7 +359,7 @@ def build_room(volume=True):
             coin.name = f"Coin_{k}_{c}"
             BP.assign(coin, M["gold"])
 
-    build_statues(M["stone"], mat_statue())
+    build_statues(M["stone"], mat_statue(), M["gold"])
     build_vault(M["gold"])
 
     # god-ray haze
@@ -376,6 +381,60 @@ def build_room(volume=True):
         vol.data.materials.append(vm)
     return M
 
+
+
+
+# ----------------------------------------------------------------- architectural detail (blender-modeling recipes)
+
+def fluted_column(name, r, h, loc, mat, flutes=20, depth=0.07, seg=120, rows=48):
+    """Classical shaft: concave flutes that fade out near both ends (apophyge), smooth shaded."""
+    bm_ = bmesh.new(); ringsv = []
+    for j in range(rows + 1):
+        v = j / rows; z = v * h
+        fade = min(1.0, v / 0.06, (1 - v) / 0.06)
+        ent = 1.0 - 0.06 * v                     # slight entasis taper
+        row = []
+        for i in range(seg):
+            a = i / seg * 2 * math.pi
+            rr = r * ent * (1 - depth * fade * (0.5 + 0.5 * math.cos(flutes * a)) ** 2)
+            row.append(bm_.verts.new((loc[0] + rr * math.cos(a), loc[1] + rr * math.sin(a), loc[2] + z)))
+        ringsv.append(row)
+    for j in range(rows):
+        for i in range(seg):
+            bm_.faces.new((ringsv[j][i], ringsv[j][(i + 1) % seg], ringsv[j + 1][(i + 1) % seg], ringsv[j + 1][i]))
+    me = bpy.data.meshes.new(name); bm_.to_mesh(me); bm_.free()
+    o = BP.new_obj(name, me); BP.smooth(o); BP.assign(o, mat)
+    return o
+
+
+def column_base(name, r, loc, mat):
+    """Attic base: square plinth + torus + scotia + torus, overlapping the shaft foot (no seam)."""
+    box(name + "_plinth", (r * 2.6, r * 2.6, 0.45), (loc[0], loc[1], loc[2] + 0.225), mat, bevel=0.06)
+    prof = [(r * 1.22, 0.42), (r * 1.25, 0.55), (r * 1.18, 0.68), (r * 1.06, 0.72), (r * 1.02, 0.82),
+            (r * 1.1, 0.9), (r * 1.12, 0.98), (r * 1.04, 1.06), (r * 0.98, 1.12)]
+    o = BP.lathe(name + "_mould", BP.catmull(prof, 40), 96); o.location = loc; BP.assign(o, mat)
+    return o
+
+
+def column_capital(name, r, loc, mat):
+    """Doric-ish capital: necking ring, echinus, square abacus with a bevel, sitting on the shaft top."""
+    prof = [(r * 0.96, -0.1), (r * 1.0, 0.0), (r * 1.06, 0.06), (r * 1.0, 0.12), (r * 1.02, 0.3),
+            (r * 1.2, 0.48), (r * 1.38, 0.62), (r * 1.42, 0.7)]
+    o = BP.lathe(name + "_echinus", BP.catmull(prof, 40), 96); o.location = loc; BP.assign(o, mat)
+    box(name + "_abacus", (r * 3.0, r * 3.0, 0.42), (loc[0], loc[1], loc[2] + 0.88), mat, bevel=0.08)
+    return o
+
+
+def arch_frame(name, x, y, z, w, h, mat, t=0.22):
+    """Stone moulding around an arched window, with a keystone."""
+    pts = [Vector((x - w / 2 - t, y, z - 0.1)), Vector((x - w / 2 - t, y, z + h - w / 2))]
+    for i in range(1, 32):
+        a = math.pi - i / 32 * math.pi
+        pts.append(Vector((x + (w / 2 + t) * math.cos(a), y, z + h - w / 2 + (w / 2 + t) * math.sin(a))))
+    pts += [Vector((x + w / 2 + t, y, z + h - w / 2)), Vector((x + w / 2 + t, y, z - 0.1))]
+    o = BP.tube(name, pts, t, 12); BP.assign(o, mat)
+    box(name + "_key", (0.55, 0.45, 0.85), (x, y - 0.05, z + h + t * 0.6), mat, bevel=0.06)
+    return o
 
 
 # ----------------------------------------------------------------- stone chess statues
@@ -447,15 +506,23 @@ def _crown_spikes(parent, mat, z, r, n, h, ball):
         BP.assign(b, mat); b.parent = parent
 
 
+def _collar(root, name, r, z, t, mat):
+    """Crisp ring (overlaps the body a little so there is no seam)."""
+    c = BP.torus(name, r, t, 96, 16, loc=(0, 0, z)); BP.assign(c, mat); c.parent = root
+    return c
+
+
 def chess_statue(kind, name, mat):
     """Returns the root object of a stone chess piece (about 6 units tall at scale 1)."""
     root = bpy.data.objects.new(name, None); BP.link(root)
+    _collar(root, name + "_footring", 1.18, 0.22, 0.09, mat)          # every piece: a beaded foot ring
     if kind == "knight":
         base = _piece_base(name + "_base", mat, top=1.2); base.parent = root
         head = _knight_head(name + "_head", mat); head.parent = root; head.location = (0, 0, 1.05)
     elif kind == "rook":
         prof = BP.catmull([[0, 0], [1.3, 0], [1.3, .2], [1.1, .35], [1.0, .6], [0.85, 2.8], [1.05, 3.1], [1.1, 3.9]], 50)
-        body = BP.lathe(name + "_body", prof + [(0.0, 3.9)], 64); BP.subsurf(body, 1); BP.assign(body, mat); body.parent = root
+        body = BP.lathe(name + "_body", prof + [(0.0, 3.9)], 96); BP.subsurf(body, 1, 2); BP.assign(body, mat); body.parent = root
+        _collar(root, name + "_band", 1.02, 2.95, 0.08, mat); _collar(root, name + "_band2", 0.92, 0.62, 0.07, mat)
         for k in range(6):
             a = k / 6 * 2 * math.pi
             mer = box(f"{name}_merlon{k}", (0.55, 0.45, 0.55), (0.82 * math.cos(a), 0.82 * math.sin(a), 4.15), mat, bevel=0.06, rot=(0, 0, a))
@@ -463,12 +530,16 @@ def chess_statue(kind, name, mat):
     elif kind == "bishop":
         prof = BP.catmull([[0, 0], [1.2, 0], [1.2, .2], [1.0, .35], [.75, .7], [.5, 2.4], [.85, 2.6], [.5, 2.75],
                            [.75, 3.4], [.7, 4.0], [.35, 4.5], [0.0, 4.65]], 60)
-        body = BP.lathe(name + "_body", prof, 64); BP.subsurf(body, 1); BP.assign(body, mat); body.parent = root
+        body = BP.lathe(name + "_body", prof, 96); BP.subsurf(body, 1, 2); BP.assign(body, mat); body.parent = root
+        _collar(root, name + "_neck", 0.62, 2.6, 0.09, mat)
         ball = BP.uv_sphere(name + "_ball", 0.22, 24, 12, loc=(0, 0, 4.8)); BP.assign(ball, mat); ball.parent = root
+        # the mitre's slit: a thin dark wedge cut look via a slim box set into the head
+        sl = box(name + "_slit", (0.08, 0.9, 0.7), (0.36, 0, 3.95), mat, bevel=0.0, rot=(0, -0.55, 0)); sl.parent = root
     elif kind in ("king", "queen"):
         prof = BP.catmull([[0, 0], [1.35, 0], [1.35, .22], [1.1, .4], [.8, .8], [.55, 3.0], [.95, 3.2], [.6, 3.4],
                            [.85, 4.2], [.95, 4.45], [0.0, 4.5]], 60)
-        body = BP.lathe(name + "_body", prof, 64); BP.subsurf(body, 1); BP.assign(body, mat); body.parent = root
+        body = BP.lathe(name + "_body", prof, 96); BP.subsurf(body, 1, 2); BP.assign(body, mat); body.parent = root
+        _collar(root, name + "_neck", 0.8, 3.2, 0.1, mat); _collar(root, name + "_crownring", 0.92, 4.38, 0.07, mat)
         if kind == "king":
             cv = box(name + "_crossV", (0.28, 0.28, 1.1), (0, 0, 5.05), mat, bevel=0.05); cv.parent = root
             ch = box(name + "_crossH", (0.8, 0.28, 0.28), (0, 0, 5.2), mat, bevel=0.05); ch.parent = root
@@ -478,14 +549,22 @@ def chess_statue(kind, name, mat):
     return root
 
 
-def build_statues(stone, statue):
+PLAQUE_MAT = [None]
+
+
+def build_statues(stone, statue, gold=None):
     """Stone chess pieces on plinths down both sides of the hall (faces toward the carpet)."""
     spots = [("knight", -7.6, 2.5, -0.6), ("knight", 7.6, 2.5, math.pi + 0.6),   # turned toward camera
              ("rook", -8.6, 11.0, 0.0), ("bishop", 8.6, 11.0, 0.0),
              ("queen", -9.6, 19.5, 0.0), ("king", 9.6, 19.5, 0.0)]
+    PLAQUE_MAT[0] = gold or stone
     for k, (kind, x, y, rz) in enumerate(spots):
-        box(f"Plinth_{k}", (3.2, 3.2, 1.4), (x, y, 0.7), stone, bevel=0.1)
-        box(f"PlinthCap_{k}", (3.5, 3.5, 0.25), (x, y, 1.52), stone, bevel=0.06)
+        box(f"PlinthFoot_{k}", (3.6, 3.6, 0.3), (x, y, 0.15), stone, bevel=0.06)          # stepped mouldings
+        box(f"Plinth_{k}", (3.1, 3.1, 1.1), (x, y, 0.82), stone, bevel=0.1)
+        box(f"PlinthNeck_{k}", (3.3, 3.3, 0.14), (x, y, 1.42), stone, bevel=0.04)
+        box(f"PlinthCap_{k}", (3.6, 3.6, 0.22), (x, y, 1.56), stone, bevel=0.07)
+        fy = y - 1.56 if abs(rz) < 1.0 or abs(rz - math.pi) > 2.0 else y - 1.56
+        box(f"PlinthPlaque_{k}", (1.6, 0.06, 0.55), (x, y - 1.57, 0.85), PLAQUE_MAT[0], bevel=0.015)   # gold plaque toward camera
         root = chess_statue(kind, f"Statue_{kind}_{k}", statue)
         root.location = (x, y, 1.65)
         root.rotation_euler = (0, 0, rz)
@@ -530,6 +609,20 @@ def build_throne(M):
         return o
     half_disc("ThroneCrest", W * 0.41, 0.9, back_y, gold)
     half_disc("ThroneCrestPad", W * 0.31, 0.3, back_y - 0.5, velvet)
+    # gold piping round the crest and the velvet back, gold studs along the pad border
+    rc = W * 0.36
+    pipe = [Vector((rc * math.cos(math.pi * i / 40), back_y - 0.66, top - 0.05 + rc * math.sin(math.pi * i / 40))) for i in range(41)]
+    pp = BP.tube("ThronePiping", pipe, 0.09, 10); BP.assign(pp, gold)
+    pw, ph = W * 0.62 / 2, back_h * 0.82
+    zb = z0 + 2.4 + back_h * 0.45 - ph / 2
+    rect = [Vector((-pw, back_y - 0.66, zb)), Vector((pw, back_y - 0.66, zb)), Vector((pw, back_y - 0.66, zb + ph)), Vector((-pw, back_y - 0.66, zb + ph)), Vector((-pw, back_y - 0.66, zb))]
+    dense = []
+    for i in range(len(rect) - 1):
+        for k in range(12):
+            dense.append(rect[i].lerp(rect[i + 1], k / 12))
+    pr = BP.tube("ThronePadPiping", dense + [rect[-1]], 0.08, 10); BP.assign(pr, gold)
+    for k, pt in enumerate(dense[::3]):
+        st = BP.uv_sphere(f"ThroneStud_{k}", 0.11, 12, 8, loc=(pt.x, pt.y - 0.06, pt.z)); BP.assign(st, gold)
     # gold crown on the crest
     cz = top - 0.2 + W * 0.41
     band = BP.lathe("ThroneCrownBand", [(1.3, -0.45), (1.42, 0.0), (1.55, 0.45)], 64)
@@ -879,13 +972,13 @@ EMOTIONS = {
     "hangat": dict(chand=(1.0, 0.52, 0.2), k=1.0, hub=3500, haze=(0.005, (1.0, 0.85, 0.7)), room=(0.4, (1.0, 0.62, 0.32))),
     "marah": dict(chand=(1.0, 0.22, 0.08), k=0.45, hub=1200, haze=(0.004, (1.0, 0.7, 0.65)), room=(0.35, (1.0, 0.45, 0.25)),
                   under=((1.0, 0.32, 0.1), 900), rim=((1.0, 0.15, 0.05), 2200)),
-    "sedih": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.007, (0.7, 0.8, 1.0)), room=(0.35, (0.55, 0.65, 1.0)),
-                  window=((0.55, 0.7, 1.0), (0.45, 0.6, 1.0), 110000.0)),
-    "kaget": dict(chand=(1.0, 0.96, 0.9), k=2.0, hub=11000, haze=(0.004, (1.0, 1.0, 1.0)), room=(0.4, (1.0, 0.9, 0.8)),
+    "sedih": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.007, (0.7, 0.8, 1.0)), room=(0.25, (0.55, 0.65, 1.0)),
+                  window=((0.55, 0.7, 1.0), (0.45, 0.6, 1.0), 65000.0), rim=((0.55, 0.72, 1.0), 2600), rim_side=-1),
+    "kaget": dict(chand=(1.0, 0.96, 0.9), k=1.7, hub=9000, haze=(0.004, (1.0, 1.0, 1.0)), room=(0.4, (1.0, 0.9, 0.8)),
                   rim=((0.9, 0.95, 1.0), 2500)),
     "licik": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.006, (0.75, 0.6, 1.0)), room=(0.35, (0.6, 0.5, 1.0)),
                   under=((0.25, 1.0, 0.45), 1300), rim=((0.6, 0.15, 1.0), 3200)),
-    "duit": dict(chand=(1.0, 0.72, 0.28), k=1.3, hub=4500, haze=(0.005, (1.0, 0.85, 0.5)), room=(0.45, (1.0, 0.75, 0.35)),
+    "duit": dict(chand=(1.0, 0.72, 0.28), k=1.3, hub=4500, haze=(0.005, (1.0, 0.85, 0.5)), room=(0.24, (1.0, 0.75, 0.35)),
                  chests=((1.0, 0.7, 0.2), 900), top=((1.0, 0.78, 0.35), 2500)),
     # soktahu "enlightenment": cool, dim hall; the open book in his left hand is the light (gold, from below-front)
     "pencerahan": dict(chand=(1.0, 0.5, 0.2), k=0.0, hub=0, haze=(0.006, (0.85, 0.88, 1.0)), room=(0.3, (0.45, 0.58, 0.95)),
@@ -893,16 +986,16 @@ EMOTIONS = {
     "misteri": dict(chand=(0.65, 0.45, 1.0), k=0.5, hub=1500, haze=(0.007, (0.7, 0.65, 1.0)), room=(0.35, (0.6, 0.55, 1.0)),
                     rim=((0.35, 0.5, 1.0), 1800)),
 }
-EXPR_TO_EMOTION = {
-    "senang": "hangat", "imut": "hangat", "ngakak": "hangat", "datar": "hangat",
-    "marah": "marah", "kecewa": "sedih", "sakit": "sedih", "kaget": "kaget",
-    "licik": "licik", "curiga": "licik", "sinis": "licik", "duit": "duit",
-    "penasaran": "misteri", "ragu": "misteri", "pusing": "misteri",
-    "girang": "hangat", "bahagia": "hangat", "cium": "hangat", "lega": "hangat", "gemas": "hangat",
-    "santai": "hangat", "ngiler": "hangat", "nangis": "sedih", "tersedu": "sedih", "merajuk": "sedih",
-    "memelas": "sedih", "syok": "kaget", "kesal": "marah", "ngamuk": "marah", "bangga": "duit",
-    "bosan": "misteri", "cemas": "misteri", "soktahu": "pencerahan",
-}
+def _load_moods():
+    import json
+    for cand in (os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "engine", "moods.json"),
+                 os.path.expanduser("~/pion/pion_raja/moods.json")):
+        if os.path.isfile(cand):
+            return json.load(open(cand))["expr_to_mood"]
+    return {}
+
+
+EXPR_TO_EMOTION = _load_moods()   # expression -> lighting mood, shared with engine/camplan.js (engine/moods.json)
 
 
 def _area(name, loc, target, color, energy, size=1.0, size_y=None):
@@ -934,6 +1027,7 @@ def mood_emotion(name, volume):
     # keep the hall readable (not a horror set): torches back on at a low, tinted level,
     # a big soft bounce from the ceiling, and the stained glass glowing a little
     lvl, rc = E.get("room", (0.35, (1.0, 0.62, 0.32)))
+    lvl *= 0.8   # the set a step darker than Pion (value separation); the mood colour stays
     for o in bpy.data.objects:
         if o.type == "LIGHT" and o.name.startswith("TorchLight"):
             o.data.energy = 1400.0 * lvl
@@ -951,17 +1045,23 @@ def mood_emotion(name, volume):
                 if n.type == "MATH" and n.operation == "MULTIPLY":
                     n.inputs[1].default_value = 7.0 * lvl
     head = (0.0, 0.0, HEAD_Z)
+    pcol = bpy.data.collections.get("PionProxy")
+    def subject_only(o):   # light-linked to Pion (his light pass), never brightening the set around him
+        if pcol:
+            o.light_linking.receiver_collection = pcol
+        return o
     if "under" in E:   # uplight from the floor in front: menace
         col, en = E["under"]
-        _area("UnderLight", (0.0, -3.2, 0.25), head, col, en, size=0.9)
-    if "rim" in E:     # hard edge from behind
+        subject_only(_area("UnderLight", (0.0, -3.2, 0.25), head, col, en, size=0.9))
+    if "rim" in E:     # hard edge from behind, on the key side
         col, en = E["rim"]
-        _area("RimMood", (1.5, 3.2 * PION_SCALE, 5.5 * PION_SCALE), head, col, en, size=1.2, size_y=4.0 * PION_SCALE)
+        side = E.get("rim_side", 1)   # rim on the key side: the side the mood's light comes from
+        subject_only(_area("RimMood", (1.5 * side, 3.2 * PION_SCALE, 5.5 * PION_SCALE), head, col, en, size=1.2, size_y=4.0 * PION_SCALE))
     if "top" in E:     # narrow spot from above
         col, en = E["top"]
         sp = bpy.data.lights.new("TopSpot", "SPOT"); sp.energy = en * 10; sp.color = col
         sp.spot_size = math.radians(28); sp.spot_blend = 0.4; sp.shadow_soft_size = 0.3
-        so = bpy.data.objects.new("TopSpot", sp); BP.link(so); so.location = (0.0, -1.5, 15.0)
+        so = bpy.data.objects.new("TopSpot", sp); BP.link(so); so.location = (0.0, -1.5, 15.0); subject_only(so)
         so.rotation_euler = (Vector(head) - so.location).to_track_quat("-Z", "Y").to_euler()
     if "chests" in E:  # treasure glows
         col, en = E["chests"]
@@ -1058,6 +1158,14 @@ def mood_chandelier(volume, pos=(0.0, 7.5, 16.9), color=(1.0, 0.52, 0.2)):
         if m.name == "LampBulb":
             m.node_tree.nodes["Principled BSDF"].inputs["Emission Color"].default_value = (1.0, 0.5, 0.16, 1)
             m.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 60.0
+    # value separation (Andy: darken the set before brightening the subject): the chandelier, the brightest
+    # source, skips the gold throne right behind Pion; the room bounce and torches still show it
+    tcol = bpy.data.collections.get("ThroneNoChandelier") or bpy.data.collections.new("ThroneNoChandelier")
+    if tcol.name not in bpy.context.scene.collection.children:
+        bpy.context.scene.collection.children.link(tcol)
+    for o in bpy.data.objects:
+        if o.type == "MESH" and o.name.startswith(("Throne", "Dais")) and o.name not in tcol.objects:
+            tcol.objects.link(o)
     # one stronger hub light in the ring, also aimed down: the main shadow caster on Pion
     hub = bpy.data.lights.new("ChandHub", "SPOT")
     hub.energy = 3500.0
@@ -1068,6 +1176,11 @@ def mood_chandelier(volume, pos=(0.0, 7.5, 16.9), color=(1.0, 0.52, 0.2)):
     ho = bpy.data.objects.new("ChandHub", hub)
     BP.link(ho)
     ho.location = (new.x, new.y, new.z - 0.6)
+    for o in bpy.data.objects:
+        if o.type == "LIGHT" and (o.name.startswith("ChandLight_") or o.name == "ChandHub"):
+            o.light_linking.receiver_collection = tcol
+    for co in tcol.collection_objects:
+        co.light_linking.link_state = "EXCLUDE"
     sc = bpy.context.scene
     sc.world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.0, 0.0, 0.0, 1)
     hz = bpy.data.objects.get("Haze")
@@ -1123,6 +1236,10 @@ def main():
     ap.add_argument("--lightpass", default=None,
                     help="also render the proxy alone in white clay, lit by the room (RGBA PNG) for relighting the engine Pion")
     ap.add_argument("--lightpass-only", action="store_true", help="skip the beauty render")
+    ap.add_argument("--clean", action="store_true", help="beauty without the proxy's shadow/bounce (a clean plate for video)")
+    ap.add_argument("--shadowpass", default=None,
+                    help="base path: writes <base>_with.png / <base>_without.png (clay, proxy shadow on/off) at half res; "
+                         "their ratio is Pion's floor shadow, which castle_video.py moves with him")
     ap.add_argument("--emotion", default=None, help="lighting per feeling: an emotion preset "
                     "(hangat marah sedih kaget licik duit misteri) or a Pion expression (marah, kecewa, licik...)")
     ap.add_argument("--mood", default="warm", choices=["warm", "window", "chandelier"],
@@ -1130,6 +1247,11 @@ def main():
     a = ap.parse_args(argv)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     rig, pion_objs = build_pion(a.expr)
+    pcol = bpy.data.collections.new("PionProxy")             # target for light-linked subject lights
+    bpy.context.scene.collection.children.link(pcol)
+    for o in pion_objs:
+        if o.type == "MESH":
+            pcol.objects.link(o)
     rig.scale = (PION_SCALE, PION_SCALE, PION_SCALE)   # Pion bigger relative to the hall
     bpy.context.view_layer.update()
     if a.proxy:
@@ -1139,8 +1261,8 @@ def main():
                 o.visible_glossy = False
                 o.visible_transmission = False
                 o.visible_volume_scatter = False
-                o.visible_shadow = True
-                o.visible_diffuse = True
+                o.visible_shadow = not a.clean
+                o.visible_diffuse = not a.clean
     build_room(volume=not a.novolume)
     camera_and_key(tuple(int(v) for v in a.res.split("x")))
     if a.mood == "window":
@@ -1200,8 +1322,43 @@ def main():
         sc.render.filepath = a.render
         bpy.ops.render.render(write_still=True)
         print("RESULT rendered", a.render, f"{time.time() - t0:.1f}s")
+    if a.shadowpass:
+        render_shadowpass(sc, pion_objs, a.shadowpass, min(a.samples, 32))
     if a.lightpass:
         render_lightpass(sc, pion_objs, a.lightpass, min(a.samples, 48))
+
+
+def render_shadowpass(sc, pion_objs, base, samples):
+    """Pion's floor shadow alone: the room in white clay rendered twice (proxy casting / not casting).
+    with / without = how much light the proxy takes away from each pixel. Half resolution (soft shadows)."""
+    clay = bpy.data.materials.new("ShadowClay"); clay.use_nodes = True
+    clay.node_tree.nodes.get("Principled BSDF").inputs["Roughness"].default_value = 1.0
+    vl = sc.view_layers[0]
+    vl.material_override = clay
+    hz = bpy.data.objects.get("Haze")
+    if hz:
+        hz.hide_render = True
+    sc.render.use_freestyle = False
+    sc.render.use_compositing = False
+    sc.render.film_transparent = False
+    sc.view_settings.view_transform = "Standard"; sc.view_settings.look = "None"; sc.view_settings.exposure = 0.0
+    sc.render.image_settings.color_mode = "RGB"; sc.render.image_settings.color_depth = "16"
+    pct = sc.render.resolution_percentage
+    sc.render.resolution_percentage = 50
+    sc.cycles.samples = samples
+    meshes = [o for o in pion_objs if o.type == "MESH"]
+    for tag, cast in (("with", True), ("without", False)):
+        for o in meshes:
+            o.visible_camera = False
+            o.visible_shadow = cast
+            o.visible_diffuse = False
+        sc.render.filepath = f"{base}_{tag}.png"
+        bpy.ops.render.render(write_still=True)
+    sc.render.resolution_percentage = pct
+    vl.material_override = None
+    if hz:
+        hz.hide_render = False
+    print("RESULT shadowpass", base)
 
 
 def render_lightpass(sc, pion_objs, path, samples):
@@ -1217,8 +1374,6 @@ def render_lightpass(sc, pion_objs, path, samples):
     for o in bpy.data.objects:
         if o.type != "MESH":
             continue
-        if o.name in names and o.name.startswith(("Spike", "SpikeBall", "CrownRim")):
-            o.visible_shadow = False  # crown spikes over a top light print a dark 'nose' on the face
         if o.name in names and o.name.startswith(("EyeWhite", "Pupil", "Brow", "Mouth", "Ruby")):
             o.hide_render = True      # the engine draws its own face: keep only the head's form
             continue
@@ -1230,6 +1385,8 @@ def render_lightpass(sc, pion_objs, path, samples):
                 o.material_slots[i].material = clay
             o.visible_camera = True
             o.visible_glossy = True
+            o.visible_shadow = not o.name.startswith(("Spike", "SpikeBall", "CrownRim"))  # self-shadow (clean/shadowpass turned it off)
+            o.visible_diffuse = True
         else:
             o.visible_camera = False
         if o.name == "Haze":

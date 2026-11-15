@@ -24,6 +24,9 @@ mkdir -p ~/pion
 rm -rf ~/pion/pion_raja
 cp -r "$SKILL/engine" ~/pion/pion_raja
 
+# Remotion finisher (camera moves, camera motion blur, audio)
+(cd "$HERE/remotion" && { [ -d node_modules ] || npm install --no-audit --no-fund >/dev/null; })
+
 /opt/bpyenv/bin/python -c "import bpy; print('bpy', bpy.app.version_string)"
 command -v ffmpeg >/dev/null && echo "ffmpeg ok" || echo "WARNING: ffmpeg missing"
 node -e "require('playwright'); console.log('playwright ok')" 2>/dev/null || echo "WARNING: playwright not found for node"

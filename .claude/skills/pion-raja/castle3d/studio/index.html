@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pion Studio</title>
+<style>
+  :root { --bg: #0e0b0a; --panel: rgba(20, 14, 12, .88); --ink: #f3e6cf; --muted: #b79f80; --gold: #e8b64c; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; overflow: hidden; }
+  #stage { position: absolute; inset: 0 0 92px 0; display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; box-shadow: 0 0 0 1px #3a2a1e; }
+  #bar { position: absolute; left: 0; right: 0; bottom: 0; height: 92px; background: var(--panel); padding: 8px 16px; box-sizing: border-box; }
+  #row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  button, select { background: #2a1d16; color: var(--ink); border: 1px solid #5a4030; border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; }
+  button.on { border-color: var(--gold); color: var(--gold); }
+  #time { font-variant-numeric: tabular-nums; min-width: 92px; }
+  #scrub { width: 100%; margin: 8px 0 0; accent-color: var(--gold); }
+  #segs { position: relative; height: 6px; margin-top: 2px; }
+  #segs div { position: absolute; top: 0; height: 6px; border-radius: 3px; }
+  #hud { position: absolute; top: 10px; left: 12px; background: var(--panel); padding: 8px 10px; border-radius: 8px; font-size: 12px; color: var(--muted); max-width: 260px; }
+  #hud b { color: var(--ink); }
+  #pick { color: var(--gold); }
+  label { color: var(--muted); }
+</style>
+<script type="importmap">
+{ "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hud">
+  <div><b>Pion Studio</b>: 2D Pion in the 3D castle</div>
+  <div>mood: <b id="mood">-</b> · zoom <b id="zoom">1.00x</b></div>
+  <div id="stats">-</div>
+  <div>click an object: <span id="pick">-</span></div>
+</div>
+<div id="bar">
+  <div id="row">
+    <button id="play">▶ Play</button>
+    <span id="time">0.00 / 0.00</span>
+    <button id="shot" class="on" title="the planned shot camera (zoom, corner, dutch angle)">Shot cam</button>
+    <button id="free" title="orbit freely around the hall">Free cam</button>
+    <button id="ink" class="on">Ink lines</button>
+    <label>mood <select id="moodSel"><option value="">follow cues</option></select></label>
+    <label>exposure <input id="exp" type="range" min="0.3" max="2.5" step="0.05" value="1.1"></label>
+  </div>
+  <input id="scrub" type="range" min="0" max="1" step="0.001" value="0">
+  <div id="segs"></div>
+</div>
+<script>
+  // camplan.js (shared with the engine and Remotion) reads the mood map from window.PION_MOODS
+  window.__boot = fetch('../../engine/moods.json').then(r => r.json()).then(j => {
+    window.PION_MOODS = j;
+    return new Promise((ok, err) => { const s = document.createElement('script'); s.src = '../../engine/camplan.js'; s.onload = ok; s.onerror = err; document.head.appendChild(s); });
+  });
+</script>
+<script type="module" src="./studio.js"></script>
+</body>
+</html>
