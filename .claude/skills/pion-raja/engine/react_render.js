@@ -9,7 +9,7 @@
 //   --alpha                          also write a transparent ProRes 4444 .mov (large file)
 //   --png                            keep the PNG frames (transparent) next to the videos
 //   --jelly 1.0                      jelly strength multiplier
-//   --fps 30 --size 1080x1920 --jobs N --start 0 --dur <s>  (cut a section of the audio)
+//   --fps 60 --size 1080x1920 --jobs N --start 0 --dur <s>  (cut a section of the audio)
 //   --preview t1,t2,...              only render a contact sheet of these moments (fast check)
 //   --blur 16                        motion blur: max samples per frame (default 16, 1 = off); --shutter 0.4 (frames)
 //   --local                          cue times are relative to --start (default: absolute audio times)
@@ -20,7 +20,7 @@ const { chromium } = (() => { try { return require('playwright'); } catch (e) { 
 const fs = require('fs'), path = require('path'), os = require('os'), { execFileSync } = require('child_process');
 
 const argv = process.argv.slice(2), arg = (k, d) => { const i = argv.indexOf('--' + k); return i < 0 ? d : (argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : true); };
-const AUDIO = arg('audio', null), CUES = arg('cues', null), OUT = arg('out', 'reaksi'), FPS = +arg('fps', 30);
+const AUDIO = arg('audio', null), CUES = arg('cues', null), OUT = arg('out', 'reaksi'), FPS = +arg('fps', 60); // 60 fps by default (smoother motion); the simulation steps with dt = 1 / fps
 const [RW, RH] = String(arg('size', '1080x1920')).split('x').map(Number), JELLY = +arg('jelly', 1);
 const BLUR = +arg('blur', 16), SHUTTER = +arg('shutter', .4);
 const START = +arg('start', 0), BG = String(arg('bg', 'green')), PREVIEW = arg('preview', null);

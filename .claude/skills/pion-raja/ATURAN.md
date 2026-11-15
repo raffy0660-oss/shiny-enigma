@@ -22,3 +22,7 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     sekarang otomatis membuat jendela engine menutupi seluruh scene + margin (`--eframe auto`, resolusi ikut naik) dan
     mengecek setiap frame: kalau ada yang menyentuh tepi, engine dirender ulang dengan jendela lebih lebar. Jangan
     pakai `--eframe` sempit kecuali sudah dicek dengan `border_hits`.
+14. **60 fps** untuk hasil akhir (motion lebih halus): `react_render.js` dan `castle_video.py` default `--fps 60`
+    (simulasi engine memakai dt = 1/fps, kamera camplan dan Remotion ikut fps track). Footage asli 30 fps saat
+    dirakit: jadikan 60 fps dengan `ffmpeg -vf minterpolate=fps=60:mi_mode=mci` (atau `fps=60` untuk duplikasi frame
+    kalau interpolasi membuat artefak), lalu tempel scene Pion 60 fps di atasnya.

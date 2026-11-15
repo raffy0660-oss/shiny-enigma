@@ -240,6 +240,7 @@ def main():
     ap.add_argument("--camblur", type=int, default=8, help="Remotion camera motion-blur samples (1 = off)")
     ap.add_argument("--shake", type=float, default=1.0, help="gentle camera shake while the camera moves (0 = off)")
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2)))
+    ap.add_argument("--fps", type=int, default=60, help="frame rate of the scene (engine, composite, camera, Remotion)")
     ap.add_argument("--eframe", default="auto", help="engine framing cy,vh; 'auto' = the window covers the whole scene + margin")
     ap.add_argument("--esize", default=None, help="engine render size (9:16); default keeps Pion at least as sharp as the scene")
     a = ap.parse_args()
@@ -296,7 +297,7 @@ def main():
         engine_cues(cues, segs, ecue, f"{cy:.3f},{vh:.3f}")
         print(f"engine... frame {cy:.2f},{vh:.2f} size {esize}", flush=True)
         run(["node", "react_render.js", "--audio", os.path.abspath(a.audio), "--cues", ecue, "--out", eng,
-             "--png", "--blur", str(a.blur), "--bg", "black", "--jobs", str(a.jobs), "--size", esize], cwd=ENGINE)
+             "--png", "--blur", str(a.blur), "--bg", "black", "--jobs", str(a.jobs), "--size", esize, "--fps", str(a.fps)], cwd=ENGINE)
         cut = border_hits(eng + "_frames")
         if not cut:
             break

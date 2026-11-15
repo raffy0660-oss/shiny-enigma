@@ -121,7 +121,7 @@ function rStep(f) {
   if (fpPrev.flying && !fp.flying && fp.vis) { J.sq.v -= 1.1; J.wob.v += .6; PH.hy.v -= 1; } // arrival: jelly "boing"
   // mouth level from loudness, with a 2-frame hold so it never flickers
   const want = e < .1 ? 0 : e < .32 ? 1 : e < .62 ? 2 : 3;
-  if (mouthHold > 0) mouthHold--; else if (want !== mouth) { mouth = want; mouthHold = 1; }
+  if (mouthHold > 0) mouthHold--; else if (want !== mouth) { mouth = want; mouthHold = Math.max(1, Math.round(RX.fps / 30)); }
 }
 
 /* portrait camera: long lens aimed at the pion, slightly above eye level */

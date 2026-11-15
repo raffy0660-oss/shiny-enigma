@@ -92,6 +92,17 @@ def relight_maps(light_png, size, strength, bands, ref_pct=55, floor=0.5, top=1.
     """The relight as two screen maps (computed once per mood): out = pion_rgb * factor + add."""
     Lp = Image.open(light_png).convert("RGBA").resize(size, Image.LANCZOS)
     Lf = np.asarray(Lp).astype(np.float32) / 255.0
+    # closing (dilate then erode) on the light colour: removes the proxy's thin dark grooves (cape edges, crown
+    # band seam). The light pass is a still pose, so those grooves printed as red lines that stay put on the
+    # ermine and body while the engine Pion moves.
+    n = max(3, (size[0] // 70) | 1)
+    try:
+        import cv2
+        ker = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (n, n))
+        Lf[..., :3] = cv2.morphologyEx(np.ascontiguousarray(Lf[..., :3]), cv2.MORPH_CLOSE, ker)
+    except ImportError:
+        rgb8 = Image.fromarray((Lf[..., :3] * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(n)).filter(ImageFilter.MinFilter(n))
+        Lf[..., :3] = np.asarray(rgb8).astype(np.float32) / 255.0
     lc, la = Lf[..., :3], Lf[..., 3:4]
     # fill outside the proxy silhouette (engine and proxy outlines differ a little):
     # normalised convolution of the premultiplied light
@@ -114,6 +125,9 @@ def relight_maps(light_png, size, strength, bands, ref_pct=55, floor=0.5, top=1.
     ref = np.percentile(lum[inside], ref_pct) if inside.any() else lum.mean()
     shade = lum / max(ref, 1e-4)
     tint = lc / np.maximum(lum, 1e-4)
+    # the room's light colour changes slowly across the body; sharp hue lines are proxy artefacts (its red cape
+    # edges bounce red onto the trims), so keep only the low-frequency colour
+    tint = _blur(tint.astype(np.float32), max(6, size[0] // 25))
     # keep the room's warm cast (torches, candles): only take out half of the average tint
     if inside.any():
         tint = tint / (0.5 + 0.5 * tint[inside].mean(0))
