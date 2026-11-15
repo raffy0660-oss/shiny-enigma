@@ -484,7 +484,7 @@ function coinState(t, PP, base, cam) { // where the coin is: in hand, flipping, 
 }
 function stompOff(t) { // hop on the spot (period .34 s), a little forward onto the book; squash on each landing
   const E = RX.fxl.find(e => e.type === 'stomp' && t >= e.t0 - .3 && t <= e.t1 + .4); if (!E) return { y: 0, z: 0, sq: 0, n: 0 };
-  const z = .5 * smooth(E.t0 - .25, E.t0, t) * (1 - smooth(E.t1, E.t1 + .35, t));
+  const z = 0; // hops on the spot (the book halves lie under the hem on both sides)
   if (t < E.t0 || t > E.t1) return { y: 0, z, sq: 0, n: t > E.t1 ? Math.floor((E.t1 - E.t0) / .34) + 1 : 0 };
   const k = (t - E.t0) / .34, u = k % 1; return { y: .6 * Math.sin(Math.PI * u), z, sq: -.13 * Math.exp(-u * 14) + .05 * Math.sin(Math.PI * u), n: Math.floor(k) + 1, u };
 }
@@ -512,7 +512,7 @@ function drawProps4(t, PP, base, VP, L, cam) {
   }
   const SO = stompOff(t), flat = Math.max(.32, 1 - .17 * SO.n);
   for (const sd of [-1, 1]) {
-    const Hd = sd < 0 ? hL : hR, floorP = [sd * .62, .3, 1.55 + (sd > 0 ? .1 : 0)];
+    const Hd = sd < 0 ? hL : hR, floorP = [sd * 1.0, .28, .62 + (sd > 0 ? .08 : 0)]; // beside the base, half under the hem: stays in frame
     let Mh;
     if (t < T.drop0 && Hd) { const sep = smooth(T.tear0, T.tear1, t); Mh = mat.chain(base, mat.T(Hd.p[0] - sd * .16, Hd.p[1] + .1, Hd.p[2] + .14), mat.RZ(-sd * .35 * sep), mat.RY(sd * .5 * sep), mat.S(1.35, 1.35, 1.35)); }
     else { const u = clamp((t - T.drop0) / Math.max(.05, T.drop1 - T.drop0), 0, 1), e = u * u, w = (DN.__w = DN.__w || {})[sd] || (DN.__w[sd] = wpos(Hd) || floorP);

@@ -333,6 +333,11 @@ def main():
         cut = border_hits(eng + "_frames")
         if not cut:
             break
+        if a.eframe == "auto" and not a.esize:
+            # the auto window already covers the whole scene plus a margin: whatever touches its border (a coin
+            # filling the lens, debris flying away) is outside the visible picture, so do not widen for it
+            print(f"  {len(cut)} frames reach the window border outside the visible scene (ok)", flush=True)
+            break
         print(f"  {len(cut)} frames touch the engine border (e.g. {cut[:4]}): widening the window", flush=True)
         vh *= 1.3
     else:
