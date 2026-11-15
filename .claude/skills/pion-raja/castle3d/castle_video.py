@@ -17,6 +17,7 @@ The scene frames are rendered 1.5x bigger than the output so a 1.5x zoom stays s
 """
 import argparse
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -104,6 +105,18 @@ def engine_cues(src, segs, dst, frame="2.35,6.6"):
         pos = np.array([0.0, 3.0, 0.0]) + d / np.linalg.norm(d) * 4.2   # point key fixed in the room, along the mood key: moving changes his light
         out.append(f"{t:.3f} light {light} pos {pos[0]:.2f} {pos[1]:.2f} {pos[2]:.2f} exp {ES.subject_exp(m)}")
     open(dst, "w").write("\n".join(out) + "\n")
+
+
+def border_hits(frames_dir, thr=8):
+    """Frames whose alpha touches the image border (something was cut by the engine camera's window)."""
+    hits = []
+    for name in sorted(os.listdir(frames_dir)):
+        if not name.endswith(".png"):
+            continue
+        al = np.asarray(Image.open(os.path.join(frames_dir, name)).getchannel("A"))
+        if max(al[0].max(), al[-1].max(), al[:, 0].max(), al[:, -1].max()) > thr:
+            hits.append(int(name[:-4]))
+    return hits
 
 
 def shift(a, dx, dy):
@@ -227,8 +240,8 @@ def main():
     ap.add_argument("--camblur", type=int, default=8, help="Remotion camera motion-blur samples (1 = off)")
     ap.add_argument("--shake", type=float, default=1.0, help="gentle camera shake while the camera moves (0 = off)")
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2)))
-    ap.add_argument("--eframe", default="2.35,6.6", help="engine framing cy,vh: widen vh when a second character or a prop stands beside Pion")
-    ap.add_argument("--esize", default=None, help="engine render size (9:16), e.g. 1617x2880 to keep Pion sharp with a wider --eframe")
+    ap.add_argument("--eframe", default="auto", help="engine framing cy,vh; 'auto' = the window covers the whole scene + margin")
+    ap.add_argument("--esize", default=None, help="engine render size (9:16); default keeps Pion at least as sharp as the scene")
     a = ap.parse_args()
 
     W, H = (int(v) for v in a.res.split("x"))
@@ -260,12 +273,37 @@ def main():
         open(stamp, "w").write(src_key)
 
     # 2. engine Pion frames + track
+    # The engine Pion is a 2D layer: whatever leaves the engine camera's window (a lifted crown, an arm, a prop,
+    # a second character) is cut by a straight edge. So the window always covers the whole castle scene plus a
+    # margin (auto: from the proxy's screen box), its resolution keeps Pion at least as sharp as the scene, and
+    # every frame is checked afterwards: anything touching the border -> render again with a wider window.
+    bb0 = json.load(open(os.path.join(work, f"mood_{moods[0]}.json")))
+    s0 = SW / bb0["W"]
+    ppu = (bb0["y1"] - bb0["y0"]) * s0 / CP.PROXY_H                       # scene px per engine unit
+    base_y = bb0["base"][1] * s0
+    if a.eframe == "auto":
+        vh = max(SH / ppu, SW / ppu / (1078 / 1920)) * 1.15
+        cy = (base_y - SH / 2) / ppu                                       # scene centre, in units above Pion's base
+    else:
+        cy, vh = (float(v) for v in a.eframe.split(",")[:2])
     ecue = os.path.join(work, "engine_cues.txt")
-    engine_cues(cues, segs, ecue, a.eframe)
     eng = os.path.join(work, "eng")
-    print("engine...", flush=True)
-    run(["node", "react_render.js", "--audio", os.path.abspath(a.audio), "--cues", ecue, "--out", eng,
-         "--png", "--blur", str(a.blur), "--bg", "black", "--jobs", str(a.jobs)] + (["--size", a.esize] if a.esize else []), cwd=ENGINE)
+    for attempt in range(3):
+        if a.esize:
+            esize = a.esize
+        else:                                                              # engine px per unit >= scene px per unit
+            eh = int(math.ceil(ppu * vh / 2) * 2); esize = f"{int(round(eh * 1078 / 1920 / 2) * 2)}x{eh}"
+        engine_cues(cues, segs, ecue, f"{cy:.3f},{vh:.3f}")
+        print(f"engine... frame {cy:.2f},{vh:.2f} size {esize}", flush=True)
+        run(["node", "react_render.js", "--audio", os.path.abspath(a.audio), "--cues", ecue, "--out", eng,
+             "--png", "--blur", str(a.blur), "--bg", "black", "--jobs", str(a.jobs), "--size", esize], cwd=ENGINE)
+        cut = border_hits(eng + "_frames")
+        if not cut:
+            break
+        print(f"  {len(cut)} frames touch the engine border (e.g. {cut[:4]}): widening the window", flush=True)
+        vh *= 1.3
+    else:
+        print("WARNING: frames still touch the engine border:", cut[:8], flush=True)
     track = json.load(open(eng + "_track.json"))
     n, fps = len(track["frames"]), track["fps"]
 

@@ -17,3 +17,8 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
 12. **Kamera jangan monoton** (gaya v3.1, `engine/camplan.js` / cue `autozoom`): zoom bertahap 1,18x -> 1,34x -> 1,5x tiap
     2-3 kata, halus dan DITAHAN sampai titik zoom berikutnya (tanpa getar/overshoot), kata dengan `!` langsung 1,5x,
     tiap mood punya sudut + kemiringan sendiri, dan tiap ganti atmosfer kamera zoom out ke normal dulu.
+13. **Tidak boleh ada yang terpotong border**: Pion (engine) adalah layer 2D yang ditempel ke istana 3D. Semua yang keluar
+    dari jendela kamera engine (mahkota diangkat, tangan, props, karakter kedua) terpotong lurus. `castle_video.py`
+    sekarang otomatis membuat jendela engine menutupi seluruh scene + margin (`--eframe auto`, resolusi ikut naik) dan
+    mengecek setiap frame: kalau ada yang menyentuh tepi, engine dirender ulang dengan jendela lebih lebar. Jangan
+    pakai `--eframe` sempit kecuali sudah dicek dengan `border_hits`.

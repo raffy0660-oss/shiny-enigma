@@ -38,6 +38,11 @@ Satu file cue mengatur semuanya:
 - **Remotion** (`castle3d/remotion`) merakit hasil akhir: kamera, motion blur kamera, vignette, audio.
   Scene dirender 1,5x lebih besar dari output, jadi zoom 1,5x tetap tajam.
 
+**Tidak ada yang terpotong:** Pion engine adalah layer 2D. Jendela kamera engine (`--eframe`, default `auto`) dihitung
+dari ukuran scene istana + margin 15%, resolusinya dinaikkan supaya Pion tetap setajam scene, lalu tiap frame dicek
+(`border_hits`). Kalau ada yang menyentuh tepi jendela (mahkota terangkat, tangan, props, karakter kedua), engine
+dirender ulang dengan jendela 1,3x lebih lebar (maksimal 3 kali).
+
 Hasil per mood di-cache di folder `--work`, jadi render ulang (misal ganti cue) hanya mengulang engine dan compositing.
 Cache-nya otomatis tidak dipakai kalau `build_castle.py`/`build_pion.py`, resolusi, sampel, atau kabut berubah.
 Compositing hanya menghitung ulang area sekitar Pion dan bayangannya. Sisa frame diambil dari plate yang sudah
