@@ -30,12 +30,15 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     tampilkan callout elegan dengan cue `<t> callout <dur> "ISTILAH" ["subjudul"] [top|bottom] [label="..."]`
     (label emas kecil, huruf muncul satu per satu, garis emas tersapu, subjudul). Ramai tapi rapi: maksimal 1 callout
     sekaligus, mulai tepat saat kata itu diucapkan, taruh di area yang tidak menutupi wajah Pion (biasanya `top`).
-16. **Kamera template**: micro zoom selalu pola 3x zoom in lalu 1x zoom out (`<t> autozoom 2 1 pola`: 1,12x -> 1,24x ->
-    1,35x -> 1,0x, berulang), dengan sedikit motion blur kamera dan getaran halus (default castle_video).
+16. **Kamera template, selalu di tengah**: micro zoom pola 3x zoom in lalu 1x zoom out (`<t> autozoom 2 1 pola`: 1,12x ->
+    1,24x -> 1,35x -> 1,0x, berulang), sedikit motion blur kamera dan getaran halus. **Saat Pion bicara, mukanya selalu
+    di TENGAH frame** (kamera mengikuti muka yang di-track per frame, ikut goyang/lompat). Tidak boleh zoom ke samping
+    model (offset pojok sudah dihapus; yang tersisa cuma kemiringan dutch).
 17. **Audio kelas profesional**: musik latar yang cocok dengan karakter (ceria, jenaka, pizzicato/bassoon/glockenspiel) di
     bawah suara dan ducking saat Pion bicara, plus SFX ElevenLabs (`eleven_text_to_sound_v3`) untuk setiap aksi. Akun
     free tidak bisa memakai Music API: buat musik loop dengan SFX v3 (`loop: true`, sampai 30 detik).
-18. **Zoom ke barang**: setiap Pion menunjukkan barang (koin, kantong, buku, potongan di lantai, efek di wajah), kamera
-    zoom cepat ke barang itu (`<t> zoomto 1.3 oy ox roll 0.3`, offset ke posisi barang) lalu langsung zoom out lagi
-    (`<t> zoomto 1.0 0 0 0 0.3`); setelah zoom out, template 3-in-1-out berjalan lagi.
+18. **Zoom ke barang = barang di tengah**: setiap Pion menunjukkan/memegang barang, kamera zoom cepat dengan barang itu
+    tepat di tengah frame (`<t> zoomitem <coin|pouch|book|floorbook|sebum|button|handL|handR> 1.3 0.3`, posisi barang
+    di-track engine per frame), lalu langsung zoom out (`<t> zoomto 1.0 0 0 0 0.3`) dan kamera kembali ke muka.
+    Jangan pakai offset `zoomto` kira-kira untuk barang.
 19. **Pion sedikit lebih besar** di istana: `castle_video.py --pscale 1.12` (diskalakan dari titik alasnya).

@@ -10,7 +10,8 @@ export type PionCastleProps = {
   height: number;
   sceneW: number;               // scene frames are bigger than the output, so a 1.5x zoom stays sharp
   sceneH: number;
-  focus: [number, number];      // Pion's face in scene pixels: the zoom centre
+  focus: [number, number];      // Pion's face in scene pixels (first frame): fallback zoom centre
+  focusTrack?: [number, number][]; // per frame camera target (face while talking, the held item on `zoomitem`)
   cam: [number, number, number, number][]; // per frame [zoom, offsetX, offsetY, roll deg] from engine/camplan.js
   audio: string | null;
   camBlur: number;              // camera motion-blur samples (1 = off)
@@ -35,9 +36,14 @@ const Scene: React.FC<PionCastleProps> = (p) => {
   const cover = Math.max(c + (H / W) * s, c + (W / H) * s);
   const S = (W / SW) * z * cover;
   // camera centre: from the frame centre toward the face as we zoom, plus the mood's corner offset
-  const a = clamp((1 - 1 / z) / (1 - 1 / 1.5), 0, 1.2) * 0.9;
-  let cx = lerp(SW / 2, p.focus[0], a) + ox * SW;
-  let cy = lerp(SH / 2, p.focus[1], a) + oy * SH;
+  // the target (face / held item) reaches the exact centre of the frame as soon as the camera zooms in (z >= 1.1);
+  // at z = 1 the whole scene is framed
+  const ft = p.focusTrack && p.focusTrack.length ? p.focusTrack : null;
+  const fpt = ft ? (() => { const x = clamp(frame, 0, ft.length - 1), i = Math.floor(x), j = Math.min(i + 1, ft.length - 1), u = x - i;
+    return [lerp(ft[i][0], ft[j][0], u), lerp(ft[i][1], ft[j][1], u)]; })() : p.focus;
+  const a = clamp((z - 1) / 0.1, 0, 1);
+  let cx = lerp(SW / 2, fpt[0], a) + ox * SW;
+  let cy = lerp(SH / 2, fpt[1], a) + oy * SH;
   const hw = (W / 2) / S, hh = (H / 2) / S, bx = hw * c + hh * s, by = hw * s + hh * c;
   cx = clamp(cx, bx, SW - bx);
   cy = clamp(cy, by, SH - by);

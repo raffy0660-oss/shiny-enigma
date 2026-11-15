@@ -25,9 +25,12 @@ python3 castle_video.py --cues cues.txt --audio vo.wav --out pion.mp4 --res 1080
 Satu file cue mengatur semuanya:
 - **Ekspresi** menentukan mood cahaya. Saat mood berganti, ruangan dan cahaya di Pion crossfade 0,5 detik.
 - **`word` + `autozoom`** menentukan kamera (`engine/camplan.js`):
-  - zoom bertahap 1,18x → 1,34x → 1,5x, transisi halus 0,55 detik tanpa momentum atau getar;
+  - zoom bertahap (default 1,18x → 1,34x → 1,5x) atau **template** `autozoom 2 1 pola`: 1,12x → 1,24x → 1,35x → 1,0x berulang (3 in, 1 out), transisi halus tanpa momentum atau getar;
   - level zoom **ditahan** sampai titik zoom berikutnya, dan kata dengan `!` langsung ke 1,5x;
-  - tiap mood punya **sudut sendiri**: kamera bergeser ke pojok dan sedikit miring, ditahan selama mood itu;
+  - **muka Pion selalu di tengah** setiap zoom (kamera mengikuti muka yang di-track per frame: goyang, lompat, terbang);
+    tiap mood cuma punya **kemiringan** sendiri (tidak ada lagi geser ke pojok);
+  - **barang di tengah**: `<t> zoomitem coin 1.3 0.3` (juga `pouch`, `book`, `floorbook`, `sebum`, `button`, `handL`,
+    `handR`) memusatkan barang yang dipegang, lalu `<t> zoomto 1.0 0 0 0 0.3` kembali;
   - saat mood berganti, kamera **zoom out ke normal** lalu mulai zoom lagi dengan sudut berikutnya.
 - **Gerakan Pion** (gesture, `acting`, terbang) membuat **bayangan di lantai dan cahaya di badannya ikut bergerak**.
   Bayangan ikut bergeser dan menipis saat Pion melompat. Tidak ada bekas bayangan yang diam.

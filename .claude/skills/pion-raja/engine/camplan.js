@@ -20,11 +20,11 @@ const fs = IN_NODE ? require('fs') : null, path = IN_NODE ? require('path') : nu
 const MOODS = IN_NODE ? JSON.parse(fs.readFileSync(path.join(__dirname, 'moods.json'), 'utf8')).expr_to_mood
                       : ((typeof window !== 'undefined' && window.PION_MOODS) || {}).expr_to_mood || {};
 const moodOf = e => e && e[0] === '@' ? e.slice(1) : (MOODS[e] || 'hangat');   // '@mood' = pinned by a `mood` cue
-const CORNERS = [ // one per atmosphere, cycling: camera drifts to a corner and tilts a little
-  { ox: .085, oy: -.045, roll: -3.2 },
-  { ox: -.085, oy: -.035, roll: 3.0 },
-  { ox: .06, oy: .03, roll: -2.4 },
-  { ox: -.065, oy: .025, roll: 2.6 },
+const CORNERS = [ // one per atmosphere, cycling: a little dutch tilt. No offset: when Pion talks his FACE is the centre
+  { ox: 0, oy: 0, roll: -3.2 },  // of every zoom (castle_video/Remotion follow the tracked face); a held prop is centred
+  { ox: 0, oy: 0, roll: 3.0 },   // with `zoomitem` instead of zooming beside him
+  { ox: 0, oy: 0, roll: -2.4 },
+  { ox: 0, oy: 0, roll: 2.6 },
 ];
 
 function parseCues(txt) {
@@ -36,6 +36,7 @@ function parseCues(txt) {
     else if (cmd === 'expr') exprs.push([t, w[2]]);
     else if (cmd === 'mood') pins.push([t, (w[2] || 'auto').toLowerCase()]);
     else if (MOODS[cmd]) exprs.push([t, cmd]);
+    else if (cmd === 'zoomitem' || cmd === 'zoombarang') man.push({ t, target: (w[2] || 'face').toLowerCase(), z: +(w[3] || 1.35), ox: 0, oy: 0, roll: +(w[5] || 0), dur: +(w[4] || .3) }); // <t> zoomitem <coin|pouch|book|floorbook|sebum|button|handL|handR|face> [z] [dur] [roll]: centre that item
     else if (cmd === 'zoomto') man.push({ t, z: +(w[2] || 1.3), oy: +(w[3] || 0), ox: +(w[4] || 0), roll: +(w[5] || 0), dur: +(w[6] || .5) }); // manual key: zoom z, offsets as frame fractions (-oy = camera up)
     else if (cmd === 'autozoom' || cmd === 'zoomauto') az.push(/^(off|mati)$/i.test(w[2] || '') ? { t, off: true } : { t, every: +(w[2] || 3) || 3, amt: +(w[3] || 1) || 1, pattern: /^(pola|pattern|template)$/i.test(w[4] || '') });
   }
@@ -99,7 +100,7 @@ function planCamera({ words, exprs, az, man = [], onsets = [], max = 1.5, moveDu
     // back to the auto zooms once it has finished
     const until = m => m.z <= 1.001 ? m.t + m.dur + .1 : Math.min(...M.filter(x => x.t > m.t).map(x => x.t), ...segT.filter(x => x > m.t + 1e-6), 1e9);
     const kept = keys.filter(K => !M.some(m => K.t > m.t - .25 && K.t < until(m)) || K.z === 1);
-    return kept.concat(M.map(m => ({ t: +m.t.toFixed(3), dur: m.dur, z: m.z, ox: m.ox, oy: m.oy, roll: m.roll }))).sort((a, b) => a.t - b.t);
+    return kept.concat(M.map(m => Object.assign({ t: +m.t.toFixed(3), dur: m.dur, z: m.z, ox: m.ox, oy: m.oy, roll: m.roll }, m.target ? { target: m.target } : {}))).sort((a, b) => a.t - b.t);
   }
   return keys;
 }

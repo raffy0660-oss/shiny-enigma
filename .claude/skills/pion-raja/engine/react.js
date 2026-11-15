@@ -489,7 +489,7 @@ function stompOff(t) { // hop on the spot (period .34 s), a little forward onto 
   const k = (t - E.t0) / .34, u = k % 1; return { y: .6 * Math.sin(Math.PI * u), z, sq: -.13 * Math.exp(-u * 14) + .05 * Math.sin(Math.PI * u), n: Math.floor(k) + 1, u };
 }
 function drawProps4(t, PP, base, VP, L, cam) {
-  const X = props4(); window.__pouch = null;
+  const X = props4(); window.__pouch = null; window.__book = null; window.__floorbook = null;
   // --- coin
   const C = coinState(t, PP, base, cam); if (C) drawCoin(VP, L, C.M); window.__coin = C;
   // --- coin purse in the left hand (gest pouch)
@@ -506,6 +506,7 @@ function drawProps4(t, PP, base, VP, L, cam) {
   const wpos = Hd => { if (!Hd) return null; const w = mat.xform(base, [...Hd.p, 1]); return [w[0] / w[3], w[1] / w[3], w[2] / w[3]]; };
   if (t < T.tear0 && t <= DN.t1) { // whole book between the hands
     if (!hL || !hR) return; const c = hL.p.map((v, i) => (v + hR.p[i]) / 2), Mb = mat.chain(base, mat.T(c[0], c[1] + .1, c[2] + .14), mat.S(1.35 * pop, 1.35 * pop, 1.35 * pop));
+    { const wb = mat.xform(Mb, [0, 0, 0, 1]); window.__book = cam.toPix([wb[0] / wb[3], wb[1] / wb[3], wb[2] / wb[3]]); }
     drawOutline(X.book, Mb, VP, .03); drawToon(X.book, Mb, VP, L, { color: [.07, .07, .08], spec: .25 });
     drawToon(X.plane, mat.chain(Mb, mat.T(0, 0, .072), mat.S(.7, .93, 1)), VP, L, { tex: X.coverFull, dbl: true, color: [1.05, 1.05, 1.05] });
     return;
@@ -517,6 +518,8 @@ function drawProps4(t, PP, base, VP, L, cam) {
     if (t < T.drop0 && Hd) { const sep = smooth(T.tear0, T.tear1, t); Mh = mat.chain(base, mat.T(Hd.p[0] - sd * .16, Hd.p[1] + .1, Hd.p[2] + .14), mat.RZ(-sd * .35 * sep), mat.RY(sd * .5 * sep), mat.S(1.35, 1.35, 1.35)); }
     else { const u = clamp((t - T.drop0) / Math.max(.05, T.drop1 - T.drop0), 0, 1), e = u * u, w = (DN.__w = DN.__w || {})[sd] || (DN.__w[sd] = wpos(Hd) || floorP);
       const p = w.map((v, i) => lerp(v, floorP[i], e)); Mh = mat.chain(mat.T(...p), mat.RY(sd * .3 * e), mat.RX(-1.05 * e), mat.RZ(sd * (1.6 * e * (1 - e) + .12 * e)), mat.S(1.35, 1.35 * (u >= 1 ? .55 + .45 * flat : 1), 1.35 * (u >= 1 ? flat : 1))); }
+    { const wb = mat.xform(Mh, [0, 0, 0, 1]), q = cam.toPix([wb[0] / wb[3], wb[1] / wb[3], wb[2] / wb[3]]), key = t < T.drop1 ? '__book' : '__floorbook', o = window[key];
+      window[key] = o ? [(o[0] + q[0]) / 2, (o[1] + q[1]) / 2] : q; } // between the two halves
     drawOutline(X.half, Mh, VP, .03); drawToon(X.half, Mh, VP, L, { color: [.07, .07, .08], spec: .25 });
     drawToon(X.plane, mat.chain(Mh, mat.T(0, 0, .072), mat.S(.35, .93, 1)), VP, L, { tex: sd < 0 ? X.coverL : X.coverR, dbl: true, color: [1.05, 1.05, 1.05] });
     drawToon(X.plane, mat.chain(Mh, mat.T(-sd * .185, 0, 0), mat.RY(Math.PI / 2), mat.S(.16, .95, 1)), VP, L, { tex: X.jag, cut: true, dbl: true, color: [1.05, 1.05, 1.05] }); // torn paper edge
@@ -639,7 +642,13 @@ function drawReact(f, u) {
   drawBookGlow(t, PP, base, cam);
   const hw = mat.xform(PP.headM, [0, 0, 0, 1]), head = { p: cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), r: cam.ppu }; window.__head = head;
   const pix = (M, v) => { const w = mat.xform(M, [...v, 1]); return cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]); };
-  window.__track = { base: pix(base, [0, 0, 0]), ground: cam.toPix([fl.p[0], 0, fl.p[2]]), head: head.p, ppu: cam.ppu, vis: fl.op };
+  // camera targets for `zoomitem`: face, hands and whatever prop is on screen (layout px)
+  const items = {}; if (PP.hands[0]) items.handL = pix(PP.hands[0].M, [0, 0, 0]); if (PP.hands[1]) items.handR = pix(PP.hands[1].M, [0, 0, 0]);
+  if (window.__coin) items.coin = pix(window.__coin.M, [0, 0, 0]); if (window.__pouch) items.pouch = window.__pouch.p;
+  if (window.__book) items.book = window.__book; if (window.__floorbook) items.floorbook = window.__floorbook;
+  { const Sb = sebumState(t); if (Sb) items.sebum = cam.toPix([Sb.x, .8, Sb.z]); }
+  if (fxActive('subbtn', t).length) items.button = pix(base, SUB_BTN);
+  window.__track = { base: pix(base, [0, 0, 0]), ground: cam.toPix([fl.p[0], 0, fl.p[2]]), head: head.p, ppu: cam.ppu, vis: fl.op, items };
   window.__probe = [head.p, pix(base, [0, 0, 0]), pix(PP.crownM, [0, 1.0, 0]), pix(base, [1, 0, 0]), pix(base, [-1, 0, 0]), ...PP.hands.filter(Boolean).map(Hd => pix(Hd.M, [0, 0, 0]))];
   drawFX(f, t, o);
   drawSebumShadow(bgCtx, t, cam);

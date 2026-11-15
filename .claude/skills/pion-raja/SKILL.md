@@ -119,6 +119,9 @@ Full guide (Indonesian): `castle3d/PANDUAN_ISTANA3D.md`.
    until it fills the frame), `gest pouch` (empty coin purse, moth + dust), `<t> hearteyes <dur>` (jelly heart eyes),
    `gest deathnote <dur>` (book appears, torn from the middle, halves thrown down) + `<t> stomp <dur>` (hops on them),
    `<t> stat <dur> "LABEL" <value> from=.. prefix=$` (Remotion counting card), `<t> autozoom N amt pola` (3 in, 1 out).
+   Camera centring: while Pion talks his tracked FACE is the exact centre of every zoom (no corner offsets);
+   `<t> zoomitem <coin|pouch|book|floorbook|sebum|button|handL|handR> [z] [dur]` centres a held item (positions are in
+   the engine's `_track.json` `items`), then `<t> zoomto 1.0 0 0 0 0.3` zooms back out to the face/whole scene.
    Term titles: `<t> callout <dur> "TERM" ["subtitle"] [top|bottom] [label="..."]` (Remotion `Callouts.tsx`, above the
    camera layer: gold label, letter-by-letter reveal, sweeping gold rule, subtitle). Also `<t> mood X` pins the lighting
    mood, `<t> zoomto z oy ox roll dur` adds a manual camera key, defaults are 60 fps and `--eframe auto` (nothing cut).

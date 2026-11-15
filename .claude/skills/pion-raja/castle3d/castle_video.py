@@ -77,6 +77,32 @@ def parse_exprs(path):
     return segs
 
 
+def camera_focus(keys, frames, fps, to_scene):
+    """Per-frame camera target in scene px: Pion's FACE while he talks (it follows him: sway, hops, flights), or the
+    item a `zoomitem` key names (tracked by the engine). Between keys the target glides with the zoom's own easing,
+    so the camera never zooms beside him: the face or the held item ends up in the centre of the frame."""
+    ease = lambda u: 4 * u ** 3 if u < .5 else 1 - (-2 * u + 2) ** 3 / 2
+    def pt(fr, name):
+        fr = fr or frames[0]
+        p = fr["head"] if name in (None, "face", "head") else (fr.get("items") or {}).get(name) or fr["head"]
+        return to_scene(p)
+    ks = sorted(keys, key=lambda K: K["t"])
+    out, last = [], None
+    for f, fr in enumerate(frames):
+        t = f / fps
+        i = max([j for j, K in enumerate(ks) if K["t"] <= t + 1e-9] or [-1])
+        if i < 0:
+            p = pt(fr, None)
+        else:
+            K = ks[i]; prev = ks[i - 1].get("target") if i > 0 else None
+            u = ease(min(1.0, max(0.0, (t - K["t"]) / max(K.get("dur", .3), 1e-3))))
+            a, b = pt(fr, prev), pt(fr, K.get("target"))
+            p = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u]
+        last = p if last is None else [last[0] * .35 + p[0] * .65, last[1] * .35 + p[1] * .65]   # light smoothing: no jitter
+        out.append([round(last[0], 1), round(last[1], 1)])
+    return out
+
+
 def parse_callouts(path):
     """`<t> callout <dur> "TERM" ["subtitle"] [top|bottom] [label="..."]`: on-screen term titles (Remotion)."""
     import shlex
@@ -344,6 +370,14 @@ def main():
     else:
         print("WARNING: frames still touch the engine border:", cut[:8], flush=True)
     track = json.load(open(eng + "_track.json"))
+    # the engine writes its track in LAYOUT pixels (1078 x 1920); everything here works in rendered engine pixels
+    lw, lh = track["W"] / 1078.0, track["H"] / 1920.0
+    def _px(p): return [p[0] * lw, p[1] * lh] if isinstance(p, (list, tuple)) and len(p) >= 2 else p
+    for fr in track["frames"]:
+        if not fr: continue
+        for key in ("base", "ground", "head"):
+            if key in fr: fr[key] = _px(fr[key])
+        if fr.get("items"): fr["items"] = {k2: _px(v) for k2, v in fr["items"].items()}
     n, fps = len(track["frames"]), track["fps"]
 
     # 3. per-frame composite
@@ -383,9 +417,10 @@ def main():
     plan = json.loads(run(["node", os.path.join(SKILL, "engine", "camplan.js"), cues, "--sample", str(fps), "--frames", str(n), "--shake", str(a.shake)]))
     h0 = track["frames"][0]["head"]
     focus = [(h0[0] - ecx) * k + pcx, (h0[1] - eb) * k + y1]
+    focus_track = camera_focus(plan["keys"], track["frames"], fps, lambda p: [(p[0] - ecx) * k + pcx, (p[1] - eb) * k + y1])
     run(["ffmpeg", "-v", "error", "-y", "-i", os.path.abspath(a.audio), "-ar", "48000", "-ac", "2", os.path.join(work, "public", "audio.wav")])
     props = {"frames": n, "fps": fps, "width": W, "height": H, "sceneW": SW, "sceneH": SH, "focus": focus,
-             "cam": plan["frames"], "audio": "audio.wav", "camBlur": a.camblur, "callouts": parse_callouts(cues)}
+             "cam": plan["frames"], "focusTrack": focus_track, "audio": "audio.wav", "camBlur": a.camblur, "callouts": parse_callouts(cues)}
     pj = os.path.join(work, "props.json")
     json.dump(props, open(pj, "w"))
     rem = os.path.join(HERE, "remotion")
