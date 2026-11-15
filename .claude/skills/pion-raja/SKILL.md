@@ -39,6 +39,7 @@ no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesia
 | `PERBANDINGAN_V2.jpg` | Before/after of the v2 motion & shading upgrade |
 | `castle3d/studio/` | Browser studio (three.js): live 3D castle + 2D Pion video plane, mood lights, the camera plan, timeline scrub, free orbit cam (`make_studio.py`) |
 | `castle3d/` | Mode 3: 3D throne room in Blender + relight of the engine Pion (`build_castle.py`, `comp_pion.py`, `emotion_sheet.py`, `setup.sh`, guide `PANDUAN_ISTANA3D.md`, examples in `contoh/`) |
+| `castle3d/castle_video.py`, `castle3d/light_check.py`, `castle3d/remotion/` | Full castle video pipeline (cached mood plates, timed light, Remotion camera blur/shake); lighting check per mood (value separation >= 0.10 via bx_light) |
 | `EKSPRESI.jpg`, `SOKTAHU.jpg` | All 33 expressions; the soktahu pose (glasses, finger up, open book) |
 
 ## Setup (once per machine/session)
