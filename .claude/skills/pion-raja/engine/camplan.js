@@ -37,7 +37,7 @@ function parseCues(txt) {
     else if (cmd === 'mood') pins.push([t, (w[2] || 'auto').toLowerCase()]);
     else if (MOODS[cmd]) exprs.push([t, cmd]);
     else if (cmd === 'zoomto') man.push({ t, z: +(w[2] || 1.3), oy: +(w[3] || 0), ox: +(w[4] || 0), roll: +(w[5] || 0), dur: +(w[6] || .5) }); // manual key: zoom z, offsets as frame fractions (-oy = camera up)
-    else if (cmd === 'autozoom' || cmd === 'zoomauto') az.push(/^(off|mati)$/i.test(w[2] || '') ? { t, off: true } : { t, every: +(w[2] || 3) || 3, amt: +(w[3] || 1) || 1 });
+    else if (cmd === 'autozoom' || cmd === 'zoomauto') az.push(/^(off|mati)$/i.test(w[2] || '') ? { t, off: true } : { t, every: +(w[2] || 3) || 3, amt: +(w[3] || 1) || 1, pattern: /^(pola|pattern|template)$/i.test(w[4] || '') });
   }
   if (pins.length) { // a pinned mood overrides the expression's mood until the next pin ('auto' releases it)
     pins.sort((a, b) => a[0] - b[0]); const pinAt = t => { let p = 'auto'; for (const [t0, m] of pins) if (t0 <= t + 1e-6) p = m; return p; };
@@ -87,7 +87,8 @@ function planCamera({ words, exprs, az, man = [], onsets = [], max = 1.5, moveDu
     count++;
     if (!bang && (count - 1) % A.every) continue;
     if (E.t - lastKey < (bang ? .35 : moveDur + .15)) continue;   // never stack moves ('!' may cut in sooner)
-    const zz = bang ? 1 + (max - 1) * A.amt : lv(A.amt, stepI++);
+    // template mode (`autozoom N amt pola`): always 3 zooms in, then 1 zoom out, repeating
+    const PAT = [1.12, 1.24, 1.35, 1.0], zz = A.pattern ? 1 + (PAT[stepI++ % 4] - 1) * A.amt : bang ? 1 + (max - 1) * A.amt : lv(A.amt, stepI++);
     if (Math.abs(zz - z) < .01) continue;                  // already there: hold
     push(E.t, moveDur, zz, k);
   }

@@ -67,7 +67,7 @@ function analyse(file) {
 //   <t> hover off|on                 gentle floating (on by default)
 const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
   'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu'];
-const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click'];
+const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click', 'toss', 'cointhrow', 'pouch', 'deathnote'];
 function parseCues(txt) {
   const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], bg: null, frame: null, frameOverride: null }, warn = [];
   const time = s => { const m = s.split(':').map(Number); return m.length > 1 ? m[0] * 60 + m[1] : m[0]; };
@@ -125,6 +125,9 @@ function parseCues(txt) {
     else if (cmd === 'arrow' || cmd === 'panah') C.fx.push({ type: 'arrow', t0: t, t1: t + +(w[2] || 1.5), text: w.slice(3).join(' ') || '*grease' });
     else if (cmd === 'subbtn' || cmd === 'tombol') C.fx.push({ type: 'subbtn', t0: t, t1: t + +(w[2] || 999) }); // floating SUBSCRIBE button (gest click presses it)
     else if (cmd === 'glow' || cmd === 'cahaya') C.fx.push({ type: 'glow', t0: t, t1: 999, amt: +(w[2] ?? .35) }); // book-glow strength from t on
+    else if (cmd === 'coin' || cmd === 'koin') C.fx.push({ type: 'coin', t0: t, t1: t + +(w[2] || 99) });          // "brilliant" coin in the right hand (gest toss / cointhrow play with it)
+    else if (cmd === 'hearteyes' || cmd === 'matahati') C.fx.push({ type: 'hearteyes', t0: t, t1: t + +(w[2] || 1) }); // heart eyes pop in with a jelly wobble
+    else if (cmd === 'stomp' || cmd === 'injak') C.fx.push({ type: 'stomp', t0: t, t1: t + +(w[2] || 1.2) });       // hops on the spot (on the torn book)
     else if (cmd === 'hide') C.fx.push({ type: 'hide', t0: t, t1: 999 });
     else if (cmd === 'detective' || cmd === 'detektif') C.fx.push({ type: 'detective', t0: t, t1: t + +(w[2] || 99) });
     else if (cmd === 'poof') C.fx.push({ type: 'poof', t0: t, t1: t + +(w[2] || .5) });

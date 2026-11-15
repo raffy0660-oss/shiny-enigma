@@ -440,6 +440,122 @@ function drawArrowLabel(g, t, E, cam) { // hand-drawn arrow pointing at the drop
   const ts = easeOutBack(clamp((t - E.t0 - .12) / .3, 0, 1)); if (ts > 0) { g.translate(tip[0] - U * .12, st[1] - U * .45); g.rotate(-.08); g.scale(ts, ts); toonText(g, E.text, 0, 0, U * .52, '#ffe14d', '#2a0f08'); }
   g.restore();
 }
+/* ---------- props v4: "brilliant" coin, coin purse, Death Note (tear + stomp), heart eyes ---------- */
+let XM2 = null;
+function props4() {
+  if (XM2) return XM2;
+  const coinFace = canvasTex(256, 256, (g, w, h) => { // teal disc with the white "!!" (brilliant move)
+    const gr = g.createRadialGradient(w * .4, h * .35, w * .05, w / 2, h / 2, w * .5); gr.addColorStop(0, '#3fd0c3'); gr.addColorStop(1, '#159488');
+    g.fillStyle = gr; g.beginPath(); g.arc(w / 2, h / 2, w * .49, 0, 7); g.fill();
+    g.lineWidth = w * .035; g.strokeStyle = '#0d6f66'; g.beginPath(); g.arc(w / 2, h / 2, w * .46, 0, 7); g.stroke();
+    g.fillStyle = '#ffffff'; const rr = (x, y, ww, hh, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + ww, y, x + ww, y + hh, r); g.arcTo(x + ww, y + hh, x, y + hh, r); g.arcTo(x, y + hh, x, y, r); g.arcTo(x, y, x + ww, y, r); g.fill(); };
+    for (const x of [.3, .57]) { rr(w * x, h * .22, w * .13, h * .36, w * .015); rr(w * x, h * .64, w * .13, h * .13, w * .015); } });
+  const cover = (half) => canvasTex(half ? 256 : 512, 700, (g, w, h) => { // black leather, scratchy white title
+    const W0 = 512, x0 = half === 2 ? -256 : 0; g.fillStyle = '#121112'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 2600; i++) { const v = 18 + ((i * 97) % 23); g.fillStyle = `rgb(${v},${v},${v + 1})`; g.fillRect(((i * 131) % W0) + x0, (i * 59) % h, 2, 2); }
+    g.save(); g.translate(x0, 0); g.fillStyle = '#e9e4d6'; g.strokeStyle = '#e9e4d6'; g.lineWidth = 2; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const T = 'DEATH NOTE'; let x = 48; for (let i = 0; i < T.length; i++) { const ch = T[i]; g.save(); g.translate(x, 250 + ((i * 7) % 5) - 2); g.rotate((((i * 37) % 9) - 4) * .015);
+      g.font = `${ch === 'D' || ch === 'N' ? 96 : 72}px "DejaVu Serif", serif`; g.fillText(ch, 0, 0); g.strokeText(ch, .6, .4); g.restore(); x += ch === ' ' ? 20 : 47; }
+    g.restore(); });
+  const jag = canvasTex(32, 256, (g, w, h) => { g.fillStyle = '#f2ecdc'; g.beginPath(); g.moveTo(0, 0); for (let y = 0; y <= h; y += 12) g.lineTo((y / 12) % 2 ? w * .9 : w * .25, y); g.lineTo(0, h); g.fill(); });
+  XM2 = { coin: new Mesh(cylinder(.3, .3, .07, 48, false)), face: new Mesh(planeGeo(.6, .6)), coinFace, book: new Mesh(boxGeo(.72, .95, .14)), half: new Mesh(boxGeo(.36, .95, .14)),
+          plane: new Mesh(planeGeo(1, 1)), ball: new Mesh(sphere(1, 20, 14)), coverFull: cover(0), coverL: cover(1), coverR: cover(2), jag };
+  return XM2;
+}
+const COIN_TEAL = [.1, .62, .57];
+function drawCoin(VP, L, M0) { // M0: coin frame (its axis = local Y); faces on both sides
+  const X = props4(); drawOutline(X.coin, M0, VP, .03); drawToon(X.coin, M0, VP, L, { color: COIN_TEAL, spec: .9, noSoot: true });
+  for (const sd of [1, -1]) drawToon(X.face, mat.chain(M0, mat.T(0, sd * .037, 0), mat.RX(-sd * Math.PI / 2)), VP, L, { tex: X.coinFace, cut: true, dbl: true, color: [1.08, 1.08, 1.08], noSoot: true });
+}
+function coinState(t, PP, base, cam) { // where the coin is: in hand, flipping, or flying at the camera
+  const E = RX.fxl.find(e => e.type === 'coin' && t >= e.t0 && t <= e.t1); if (!E) return null;
+  const Hd = PP.hands[1] || PP.hands[0]; if (!Hd) return null;
+  const inHand = mat.chain(Hd.M, mat.T(0, .34, .08));
+  const toss = TL.gest.find(G => G.type === 'toss' && t >= G.t0 && t <= G.t1), thr = TL.gest.find(G => G.type === 'cointhrow' && t >= G.t0);
+  if (thr && t >= thr.t0 + .3) { // released: fly to just in front of the lens, tumbling, then fill the frame
+    const rel = thr.t0 + .3, u = clamp((t - rel) / .5, 0, 1), e = Math.pow(u, 2.1);
+    const w0 = mat.xform(base, [(thr.side || 1) * .35, 2.25, 1.85, 1]), p0 = [w0[0] / w0[3], w0[1] / w0[3], w0[2] / w0[3]];
+    const eye = cam.eye, fw = cam.fw, tgt = eye.map((v, i) => v + fw[i] * .2), p = p0.map((v, i) => lerp(v, tgt[i], e));
+    const nd = eye.map((v, i) => v - p[i]), nl = Math.hypot(...nd);
+    return { M: mat.chain(mat.T(...p), rotFromY(nd.map(v => v / nl)), mat.RX(6 * Math.PI * (1 - e)), mat.RY(.3)), flying: true, u };
+  }
+  if (toss) { const ph = ((t - toss.t0) % .62) / .62, hgt = 4 * 1.35 * ph * (1 - ph); return { M: mat.chain(inHand, mat.T(0, hgt, 0), mat.RX(Math.PI / 2 + ph * 6 * Math.PI)), flying: false }; }
+  return { M: mat.chain(inHand, mat.RX(Math.PI / 2 - .25)), flying: false };
+}
+function stompOff(t) { // hop on the spot (period .34 s), a little forward onto the book; squash on each landing
+  const E = RX.fxl.find(e => e.type === 'stomp' && t >= e.t0 - .3 && t <= e.t1 + .4); if (!E) return { y: 0, z: 0, sq: 0, n: 0 };
+  const z = .5 * smooth(E.t0 - .25, E.t0, t) * (1 - smooth(E.t1, E.t1 + .35, t));
+  if (t < E.t0 || t > E.t1) return { y: 0, z, sq: 0, n: t > E.t1 ? Math.floor((E.t1 - E.t0) / .34) + 1 : 0 };
+  const k = (t - E.t0) / .34, u = k % 1; return { y: .6 * Math.sin(Math.PI * u), z, sq: -.13 * Math.exp(-u * 14) + .05 * Math.sin(Math.PI * u), n: Math.floor(k) + 1, u };
+}
+function drawProps4(t, PP, base, VP, L, cam) {
+  const X = props4(); window.__pouch = null;
+  // --- coin
+  const C = coinState(t, PP, base, cam); if (C) drawCoin(VP, L, C.M); window.__coin = C;
+  // --- coin purse in the left hand (gest pouch)
+  for (const G of TL.gest) { if (G.type !== 'pouch' || t < G.t0 || t > G.t1) continue; const Hd = PP.hands[(G.side || 1) > 0 ? 1 : 0]; if (!Hd) continue;
+    const op = smooth(G.t0 + .3, G.t0 + .5, t), s0 = clamp(Hd.env * 1.3, 0, 1), P = mat.chain(Hd.M, mat.T(0, .38, .1), mat.S(s0, s0, s0));
+    const sack = mat.chain(P, mat.S(.36, .32, .3)); drawOutline(X.ball, sack, VP, .03); drawToon(X.ball, sack, VP, L, { color: [.55, .33, .16], spec: .2 });
+    const neck = mat.chain(P, mat.T(0, .3, 0), mat.S(.17 + .08 * op, .5, .16 + .08 * op)); drawOutline(M.bandRing, neck, VP, .02); drawToon(M.bandRing, neck, VP, L, { color: [.42, .24, .1] });
+    if (op > .02) drawToon(X.ball, mat.chain(P, mat.T(0, .33, 0), mat.S(.15 * op, .02, .14 * op)), VP, L, { color: [.06, .04, .03] });
+    const w = mat.xform(P, [0, .4, 0, 1]); window.__pouch = { p: cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]), op, G };
+  }
+  // --- Death Note: held, torn from the middle, thrown down, then lies on the floor (flattened by the stomps)
+  const DN = TL.gest.find(G => G.type === 'deathnote' && t >= G.t0); if (!DN) return;
+  const T = deathnoteTimes(DN), hL = PP.hands[0], hR = PP.hands[1], pop = easeOutBack(clamp((t - DN.t0) / .22, 0, 1));
+  const wpos = Hd => { if (!Hd) return null; const w = mat.xform(base, [...Hd.p, 1]); return [w[0] / w[3], w[1] / w[3], w[2] / w[3]]; };
+  if (t < T.tear0 && t <= DN.t1) { // whole book between the hands
+    if (!hL || !hR) return; const c = hL.p.map((v, i) => (v + hR.p[i]) / 2), Mb = mat.chain(base, mat.T(c[0], c[1] + .1, c[2] + .14), mat.S(1.35 * pop, 1.35 * pop, 1.35 * pop));
+    drawOutline(X.book, Mb, VP, .03); drawToon(X.book, Mb, VP, L, { color: [.07, .07, .08], spec: .25 });
+    drawToon(X.plane, mat.chain(Mb, mat.T(0, 0, .072), mat.S(.7, .93, 1)), VP, L, { tex: X.coverFull, dbl: true, color: [1.05, 1.05, 1.05] });
+    return;
+  }
+  const SO = stompOff(t), flat = Math.max(.32, 1 - .17 * SO.n);
+  for (const sd of [-1, 1]) {
+    const Hd = sd < 0 ? hL : hR, floorP = [sd * .62, .3, 1.55 + (sd > 0 ? .1 : 0)];
+    let Mh;
+    if (t < T.drop0 && Hd) { const sep = smooth(T.tear0, T.tear1, t); Mh = mat.chain(base, mat.T(Hd.p[0] - sd * .16, Hd.p[1] + .1, Hd.p[2] + .14), mat.RZ(-sd * .35 * sep), mat.RY(sd * .5 * sep), mat.S(1.35, 1.35, 1.35)); }
+    else { const u = clamp((t - T.drop0) / Math.max(.05, T.drop1 - T.drop0), 0, 1), e = u * u, w = (DN.__w = DN.__w || {})[sd] || (DN.__w[sd] = wpos(Hd) || floorP);
+      const p = w.map((v, i) => lerp(v, floorP[i], e)); Mh = mat.chain(mat.T(...p), mat.RY(sd * .3 * e), mat.RX(-1.05 * e), mat.RZ(sd * (1.6 * e * (1 - e) + .12 * e)), mat.S(1.35, 1.35 * (u >= 1 ? .55 + .45 * flat : 1), 1.35 * (u >= 1 ? flat : 1))); }
+    drawOutline(X.half, Mh, VP, .03); drawToon(X.half, Mh, VP, L, { color: [.07, .07, .08], spec: .25 });
+    drawToon(X.plane, mat.chain(Mh, mat.T(0, 0, .072), mat.S(.35, .93, 1)), VP, L, { tex: sd < 0 ? X.coverL : X.coverR, dbl: true, color: [1.05, 1.05, 1.05] });
+    drawToon(X.plane, mat.chain(Mh, mat.T(-sd * .185, 0, 0), mat.RY(Math.PI / 2), mat.S(.16, .95, 1)), VP, L, { tex: X.jag, cut: true, dbl: true, color: [1.05, 1.05, 1.05] }); // torn paper edge
+  }
+  // paper scraps from the tear: ballistic, spinning, then resting on the floor
+  if (t >= T.tear0 + .08) { const c0 = mat.xform(base, [0, 2.0, 1.3, 1]), c = [c0[0] / c0[3], c0[1] / c0[3], c0[2] / c0[3]];
+    for (let i = 0; i < 16; i++) { const r1 = (Math.sin(i * 12.9898) * 43758.5453) % 1, r2 = (Math.sin(i * 78.233) * 12345.678) % 1, tau = t - (T.tear0 + .08);
+      const v = [r1 * 2.2, 1.6 + Math.abs(r2) * 1.6, .6 + Math.abs(r1) * 1.2], p = [c[0] + v[0] * tau, Math.max(.02, c[1] + v[1] * tau - 4.9 * tau * tau), c[2] + v[2] * tau];
+      const rest = p[1] <= .021, Mp = mat.chain(mat.T(...p), mat.RX(rest ? -Math.PI / 2 : tau * 9 + i), mat.RZ(tau * 7 * r2), mat.S(.1, .13, 1));
+      drawToon(X.plane, Mp, VP, L, { color: [.98, .95, .88], dbl: true, noSoot: true }); } }
+}
+function drawHearts(g, t, PP, cam) { // jelly heart eyes: tiny -> big with an elastic overshoot, squash-and-stretch wobble, pop out
+  for (const E of fxActive('hearteyes', t)) {
+    const e = t - E.t0, out = 1 - smooth(E.t1 - .14, E.t1, t), grow = .18 + .82 * Math.max(0, 1 - Math.exp(-7 * e) * Math.cos(15 * e));
+    for (const sd of [-1, 1]) {
+      const w = mat.xform(PP.headM, [sd * .36, .1, .95, 1]), q = cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]);
+      const R = cam.ppu * .5 * grow * out * (sd > 0 ? .9 : 1), wob = Math.sin(e * 19 + sd) * .09 * Math.exp(-1.2 * e);
+      if (R <= 1) continue; g.save(); g.translate(q[0] + sd * R * .15, q[1] - R * .1); g.rotate(sd * .12); g.scale(1 + wob, 1 - wob);
+      const heart = () => { g.beginPath(); g.moveTo(0, R * .95); g.bezierCurveTo(-R * 1.25, R * .1, -R * 1.05, -R * .95, 0, -R * .45); g.bezierCurveTo(R * 1.05, -R * .95, R * 1.25, R * .1, 0, R * .95); g.closePath(); };
+      const gr = g.createRadialGradient(-R * .35, -R * .45, R * .1, 0, 0, R * 1.2); gr.addColorStop(0, '#ffb3d6'); gr.addColorStop(.55, '#ff6fae'); gr.addColorStop(1, '#e83a83');
+      heart(); g.fillStyle = gr; g.fill(); g.lineWidth = R * .09; g.strokeStyle = '#5a1430'; g.stroke();
+      g.fillStyle = 'rgba(255,255,255,.75)'; g.beginPath(); g.ellipse(-R * .42, -R * .38, R * .2, R * .12, -.6, 0, 7); g.fill();
+      g.restore();
+    }
+  }
+}
+function drawProps4FX(g, t, PP, cam) {
+  drawHearts(g, t, PP, cam);
+  const P = window.__pouch; // moth + dust out of the empty purse
+  if (P && P.op > .5) { const e = t - (P.G.t0 + .45); if (e > 0 && e < 1.2) { const U = cam.ppu;
+      for (let i = 0; i < 6; i++) { const a = e * 1.6 + i, r = U * (.15 + .5 * e) * (.6 + .4 * Math.sin(i * 3)), al = Math.max(0, .5 - e * .45);
+        g.fillStyle = `rgba(170,160,150,${al})`; g.beginPath(); g.arc(P.p[0] + Math.cos(a * 2.3) * r, P.p[1] - U * .3 * e - Math.sin(a) * r * .4, U * (.08 + .1 * e), 0, 7); g.fill(); }
+      const mx = P.p[0] + U * .6 * Math.sin(e * 5), my = P.p[1] - U * 1.6 * e, fl = Math.abs(Math.sin(e * 40));
+      g.save(); g.translate(mx, my); g.fillStyle = '#8a7a66'; g.strokeStyle = '#3a2f24'; g.lineWidth = U * .02;
+      for (const sd of [-1, 1]) { g.beginPath(); g.ellipse(sd * U * .09, 0, U * .1, U * .14 * (.3 + .7 * fl), sd * .5, 0, 7); g.fill(); g.stroke(); }
+      g.fillStyle = '#3a2f24'; g.beginPath(); g.ellipse(0, 0, U * .03, U * .09, 0, 0, 7); g.fill(); g.restore(); } }
+  const S = stompOff(t); // impact bursts on every landing
+  if (S.u !== undefined && S.u < .25) { const w = mat.xform(mat.T(0, 0, S.z), [0, 0, 1.2, 1]), q = cam.toPix([w[0], w[1], w[2]]); drawSparkle(g, q[0], q[1], cam.ppu * 1.2, S.u * 2); }
+}
 function drawGlint(g, x, y, R, e) { // 4-point star 'ting' on a shiny bald head
   if (e < 0 || e > .55) return; const q = e / .55, s = R * Math.sin(Math.min(1, q * 1.6) * Math.PI) ; if (s <= 0) return;
   g.save(); g.translate(x, y); g.rotate(q * .9); g.fillStyle = '#ffffff'; g.shadowColor = 'rgba(255,250,215,.95)'; g.shadowBlur = R * .5;
@@ -498,11 +614,12 @@ function drawReact(f, u) {
   cv.style.opacity = String(hidden ? 0 : fl.op);
   if (!fl.vis) { drawFX(f, t, { vis: false }); return; }
   const st = startleAt(t), bp = bodyPose(t);
-  const a = J.sq.p + st.a * .55 + .014 * Math.sin(t * 2.4) + flyoutStretch(t) + (J.hop.p > 0 ? clamp(J.hop.v * .025, -.04, .06) : 0), sy = 1 + a, sxz = 1 / Math.sqrt(1 + a); // + idle breathing, + stretch while rising in a hop
+  const a = J.sq.p + st.a * .55 + .014 * Math.sin(t * 2.4) + flyoutStretch(t) + (J.hop.p > 0 ? clamp(J.hop.v * .025, -.04, .06) : 0) + stompOff(t).sq, sy = 1 + a, sxz = 1 / Math.sqrt(1 + a); // + idle breathing, + stretch while rising in a hop
   const roll = J.wob.p * .5 + .022 * Math.sin(t * 1.3) + bp.roll;
   const lean = clamp(fv[2] * .012, -.2, .45) - clamp(fv[1] * .01, -.25, .25), bank = clamp(-fv[0] * .02, -.5, .5), fyaw = clamp(fv[0] * .012, -.4, .4);
   const hopY = Math.max(0, J.hop.p) * .5; // acting hop never sinks below the floor
-  const flyM = mat.chain(mat.T(fl.p[0], fl.p[1] + hov + hopY, fl.p[2]), mat.T(0, 2, 0), mat.RX(lean), mat.RZ(bank), mat.RY(fyaw), mat.T(0, -2, 0));
+  const SO = stompOff(t);
+  const flyM = mat.chain(mat.T(fl.p[0], fl.p[1] + hov + hopY + SO.y, fl.p[2] + SO.z), mat.T(0, 2, 0), mat.RX(lean), mat.RZ(bank), mat.RY(fyaw), mat.T(0, -2, 0));
   const base = mat.chain(flyM, mat.T(0, st.y * 4.65 * .25, 0), mat.RZ(-roll - J.sway.p * .3), mat.RY(fr.yaw + bp.yaw + turnAt(t) + J.sway.p), mat.RX(bp.lean + J.nod.p * .5 + J.lean.p * .07), mat.RX(PH.hz.p * -.6), mat.RZ(PH.hx.p * .6), mat.T(0, 1.7, 0), mat.S(sxz, sy, sxz), mat.T(0, -1.7, 0)); // squash about the belly: shape wobbles, head stays in frame
   const org = cam.toPix([0, 0, 0]), o = { vis: true, x: org[0], y: org[1], h: 4.65 * cam.ppu, yaw: fr.yaw, spd: 0, dist: 0 }; // for screen-space gesture targets
   { const hE0 = RX.fxl.find(e => e.type === 'hair' && t >= e.t0); window.HAIR_UP = hE0 ? easeOutBack(clamp((t - hE0.t0) / .38, 0, 1)) : 0; }
@@ -518,6 +635,7 @@ function drawReact(f, u) {
   FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, doc, hair: hairAmt, t });
   drawProps(t, PP, base, VP, Lg, cam);
   drawExtras(t, PP, base, VP, Lg, cam);
+  drawProps4(t, PP, base, VP, Lg, cam);
   drawBookGlow(t, PP, base, cam);
   const hw = mat.xform(PP.headM, [0, 0, 0, 1]), head = { p: cam.toPix([hw[0] / hw[3], hw[1] / hw[3], hw[2] / hw[3]]), r: cam.ppu }; window.__head = head;
   const pix = (M, v) => { const w = mat.xform(M, [...v, 1]); return cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]); };
@@ -526,6 +644,7 @@ function drawReact(f, u) {
   drawFX(f, t, o);
   drawSebumShadow(bgCtx, t, cam);
   for (const E of fxActive('arrow', t)) drawArrowLabel(fx, t, E, cam);
+  drawProps4FX(fx, t, PP, cam);
   for (const E of RX.fxl) if (E.type === 'hair' && t >= E.t0 && t < E.t0 + .8) for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2 + .4, q = pix(PP.headM, [Math.cos(a) * 1.5, .7 + Math.sin(a) * 1.1, .4]); drawSparkle(fx, q[0], q[1], cam.ppu * (.7 + .3 * (i % 3)), t - E.t0 - i * .045); }
   if (fl.flying || flyPos(t - .5).flying) drawTrail(t, cam);
   if (hurt) drawSmoke(fx, head, t, hurt * .5);

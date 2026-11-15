@@ -30,3 +30,8 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     tampilkan callout elegan dengan cue `<t> callout <dur> "ISTILAH" ["subjudul"] [top|bottom] [label="..."]`
     (label emas kecil, huruf muncul satu per satu, garis emas tersapu, subjudul). Ramai tapi rapi: maksimal 1 callout
     sekaligus, mulai tepat saat kata itu diucapkan, taruh di area yang tidak menutupi wajah Pion (biasanya `top`).
+16. **Kamera template**: micro zoom selalu pola 3x zoom in lalu 1x zoom out (`<t> autozoom 2 1 pola`: 1,12x -> 1,24x ->
+    1,35x -> 1,0x, berulang), dengan sedikit motion blur kamera dan getaran halus (default castle_video).
+17. **Audio kelas profesional**: musik latar yang cocok dengan karakter (ceria, jenaka, pizzicato/bassoon/glockenspiel) di
+    bawah suara dan ducking saat Pion bicara, plus SFX ElevenLabs (`eleven_text_to_sound_v3`) untuk setiap aksi. Akun
+    free tidak bisa memakai Music API: buat musik loop dengan SFX v3 (`loop: true`, sampai 30 detik).

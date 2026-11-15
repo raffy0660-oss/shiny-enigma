@@ -89,10 +89,15 @@ def parse_callouts(path):
             w = shlex.split(line)
         except ValueError:
             continue
-        if len(w) < 4 or w[1] not in ("callout", "teks"):
+        if len(w) < 4 or w[1] not in ("callout", "teks", "stat"):
             continue
         c = {"t": float(w[0]), "dur": float(w[2]), "text": w[3], "pos": "top"}
         rest = w[4:]
+        if w[1] == "stat":                            # <t> stat <dur> "LABEL" <value> [from=..] [prefix=..] ["sub"] [top|bottom]
+            c["kind"] = "stat"; c["value"] = float(rest[0]) if rest else 0.0; rest = rest[1:]
+            for v in list(rest):
+                if v.startswith("from="): c["from"] = float(v[5:]); rest.remove(v)
+                elif v.startswith("prefix="): c["prefix"] = v[7:]; rest.remove(v)
         for v in rest:
             if v in ("top", "bottom", "atas", "bawah"):
                 c["pos"] = "top" if v in ("top", "atas") else "bottom"
@@ -119,7 +124,7 @@ def mood_weights(segs, t):
 
 def engine_cues(src, segs, dst, frame="2.35,6.6"):
     """Static engine camera (the camera moves in Remotion), mood lights timed to the segments."""
-    skip = {"autozoom", "zoomauto", "cam", "kamera", "light", "mood", "callout", "teks"}
+    skip = {"autozoom", "zoomauto", "cam", "kamera", "light", "mood", "callout", "teks", "stat"}
     out = [f"frame {frame}", "acting 1"]
     for line in open(src, encoding="utf-8"):
         w = line.split("#")[0].split()

@@ -6,7 +6,8 @@ import { AbsoluteFill, Easing, interpolate, Sequence, useCurrentFrame, useVideoC
    subtitle. Drawn above the camera layer, so zooms and camera blur never touch it.
    Cue (castle_video.py):  <t> callout <dur> "TERM" ["subtitle"] [top|bottom] [label="MEDICAL TERM"] */
 
-export type Callout = { t: number; dur: number; text: string; sub?: string; label?: string; pos?: "top" | "bottom" };
+export type Callout = { t: number; dur: number; text: string; sub?: string; label?: string; pos?: "top" | "bottom";
+  kind?: "term" | "stat"; value?: number; from?: number; prefix?: string; decimals?: number };
 
 const GOLD = "#f3c75a";
 const ease = Easing.bezier(0.16, 1, 0.3, 1);
@@ -109,13 +110,50 @@ const CalloutCard: React.FC<{ c: Callout; durationInFrames: number }> = ({ c, du
   );
 };
 
+/* Stat card: a number that counts (e.g. a bank balance draining from $1,250.00 to $0.67), then lands in red with a
+   small shake. Cue: <t> stat <dur> "BANK BALANCE" 0.67 [from=1250] [prefix=$] ["subtitle"] [top|bottom] */
+const StatCard: React.FC<{ c: Callout; durationInFrames: number }> = ({ c, durationInFrames }) => {
+  const frame = useCurrentFrame();
+  const { fps, width } = useVideoConfig();
+  const out = durationInFrames - Math.round(0.3 * fps), land = 0.85 * fps;
+  const v = interpolate(frame, [0.15 * fps, land], [c.from ?? 1000, c.value ?? 0], { ...clampOpt, easing: Easing.out(Easing.cubic) });
+  const dec = c.decimals ?? 2;
+  const txt = (c.prefix ?? "$") + v.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  const size = Math.round(width * 0.135), red = interpolate(frame, [land, land + 0.12 * fps], [0, 1], clampOpt);
+  const shake = frame > land && frame < land + 0.35 * fps ? Math.sin(frame * 2.9) * (1 - (frame - land) / (0.35 * fps)) * size * 0.06 : 0;
+  return (
+    <AbsoluteFill style={{ justifyContent: c.pos === "bottom" ? "flex-end" : "flex-start", alignItems: "center",
+      padding: c.pos === "bottom" ? "0 0 14% 0" : "10% 0 0 0",
+      opacity: interpolate(frame, [out, durationInFrames], [1, 0], clampOpt),
+      translate: interpolate(frame, [out, durationInFrames], ["0px 0px", "0px -18px"], { ...clampOpt, easing: Easing.in(Easing.cubic) }) }}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center",
+        padding: `${size * 0.22}px ${size * 0.42}px ${size * 0.26}px`, borderRadius: size * 0.28,
+        background: "linear-gradient(160deg, rgba(28,22,18,0.82), rgba(12,9,7,0.78))",
+        border: `${Math.max(2, size * 0.02)}px solid rgba(243,199,90,0.55)`,
+        boxShadow: `0 ${size * 0.12}px ${size * 0.4}px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,240,200,0.18)`,
+        scale: interpolate(frame, [0, 0.35 * fps], [0.86, 1], { ...clampOpt, easing: Easing.spring({ damping: 14 }), output: "perceptual-scale" }),
+        opacity: interpolate(frame, [0, 0.2 * fps], [0, 1], clampOpt), translate: `${shake}px 0px` }}>
+        <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 700, fontSize: size * 0.2, letterSpacing: "0.3em", color: GOLD,
+          textTransform: "uppercase", marginBottom: size * 0.06 }}>{c.text}</div>
+        <div style={{ fontFamily: "'Inter Display', Inter, sans-serif", fontWeight: 800, fontSize: size, lineHeight: 1,
+          fontVariantNumeric: "tabular-nums", color: `rgb(${Math.round(255 - 0 * red)}, ${Math.round(250 - 170 * red)}, ${Math.round(240 - 175 * red)})`,
+          textShadow: `0 ${size * 0.04}px ${size * 0.12}px rgba(0,0,0,0.55)` }}>{txt}</div>
+        {c.sub ? <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 500, fontStyle: "italic", fontSize: size * 0.2,
+          color: "rgba(255,248,232,0.85)", marginTop: size * 0.1,
+          opacity: interpolate(frame, [land, land + 0.25 * fps], [0, 1], clampOpt) }}>{c.sub}</div> : null}
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 export const Callouts: React.FC<{ items: Callout[] }> = ({ items }) => {
   const { fps } = useVideoConfig();
   return (
     <>
       {items.map((c, i) => (
         <Sequence key={i} name={`Callout: ${c.text}`} from={Math.round(c.t * fps)} durationInFrames={Math.max(1, Math.round(c.dur * fps))} layout="none">
-          <CalloutCard c={c} durationInFrames={Math.max(1, Math.round(c.dur * fps))} />
+          {c.kind === "stat" ? <StatCard c={c} durationInFrames={Math.max(1, Math.round(c.dur * fps))} />
+            : <CalloutCard c={c} durationInFrames={Math.max(1, Math.round(c.dur * fps))} />}
         </Sequence>
       ))}
     </>

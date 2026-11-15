@@ -159,6 +159,7 @@ function simulate(f) {
   lastF = f; for (const k of [...SNAP.keys()]) if (k < f - 4) SNAP.delete(k);
 }
 
+function deathnoteTimes(G) { const d = G.t1 - G.t0; return { tear0: G.t0 + .42 * d, tear1: G.t0 + .62 * d, drop0: G.t0 + .7 * d, drop1: G.t0 + .9 * d }; }
 const DOC_POCKET = [.3, 1.5, .44], SUB_BTN = [1.22, 2.6, 1.05]; // doctor's chest pocket, floating subscribe button (body space)
 /* ---------- crown lift: a hand takes the crown off (shows the bald head) and puts it back ---------- */
 // timeline inside the gesture: reach .28 s (hand to the rim), lift .32 s, hold, lower over the last .45 s, hand leaves .2 s
@@ -220,6 +221,22 @@ function gestureState(t, o) {
       const tap = .05 * Math.max(0, Math.sin(ph * 5)), d = [-.08, 1, .22], dl = Math.hypot(...d);
       res[0] = { env, h: [-1.0, 2.95 + tap, .75], point: true, dir: d.map(v => v / dl) };
       res[1] = { env, h: [.62, 1.45 + .02 * Math.sin(ph * 2.3), 1.12] };
+    }
+    else if (G.type === 'toss') { // flipping a coin: the hand dips on each catch, lifts on each throw (period .62 s)
+      const u = ((t - G.t0) % .62) / .62, bob = -.09 * Math.max(0, 1 - u / .14) + .06 * smooth(.86, 1, u);
+      res[k0] = { env, h: [sd0 * .92, 1.78 + bob, 1.08] };
+    }
+    else if (G.type === 'cointhrow') { // wind up, throw at the camera (release at t0 + .3), follow through
+      const u = clamp((t - G.t0) / Math.max(.1, G.t1 - G.t0), 0, 1), e = (t - G.t0), A = [sd0 * .92, 1.78, 1.08], B = [sd0 * 1.05, 2.75, .25], C = [sd0 * .35, 2.25, 1.85], D = [sd0 * .7, 1.7, 1.35];
+      const L3 = (p, q, w) => p.map((v, i) => lerp(v, q[i], w)), h = e < .22 ? L3(A, B, easeIO(e / .22)) : e < .34 ? L3(B, C, easeIO((e - .22) / .12)) : L3(C, D, easeIO(clamp((e - .34) / .4, 0, 1)));
+      res[k0] = { env, h };
+    }
+    else if (G.type === 'pouch') { // holding a little coin purse up at the chest and peeking in
+      const op = smooth(G.t0 + .3, G.t0 + .5, t); res[k0] = { env, h: [sd0 * .75, 1.92 + .1 * op, 1.22] };
+    }
+    else if (G.type === 'deathnote') { // both hands: hold the book, tear it from the middle, throw the halves down
+      const T = deathnoteTimes(G), sep = smooth(T.tear0, T.tear1, t), dn = smooth(T.drop0, T.drop1, t);
+      for (let k = 0; k < 2; k++) { const sd = k ? 1 : -1; res[k] = { env, h: [sd * (.48 + .55 * sep - .2 * dn), 1.92 + .12 * sep - .5 * dn, 1.2 + .25 * dn] }; }
     }
     else if (G.type === 'salam') { // handshake: hand out low to the side, pumping up and down once the hands meet
       const b = .07 * Math.sin((t - G.t0) * 30) * smooth(G.t0 + .3, G.t0 + .45, t) * (1 - smooth(G.t1 - .3, G.t1 - .15, t));
