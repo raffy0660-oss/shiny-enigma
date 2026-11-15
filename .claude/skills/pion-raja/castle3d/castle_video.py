@@ -272,6 +272,7 @@ def main():
     ap.add_argument("--camblur", type=int, default=8, help="Remotion camera motion-blur samples (1 = off)")
     ap.add_argument("--shake", type=float, default=1.0, help="gentle camera shake while the camera moves (0 = off)")
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2)))
+    ap.add_argument("--pscale", type=float, default=1.0, help="Pion size in the scene relative to the proxy (scaled about his base)")
     ap.add_argument("--fps", type=int, default=60, help="frame rate of the scene (engine, composite, camera, Remotion)")
     ap.add_argument("--eframe", default="auto", help="engine framing cy,vh; 'auto' = the window covers the whole scene + margin")
     ap.add_argument("--esize", default=None, help="engine render size (9:16); default keeps Pion at least as sharp as the scene")
@@ -351,7 +352,7 @@ def main():
     x0, x1, y0, y1 = bb["x0"] * sx, bb["x1"] * sx, bb["y0"] * sx, bb["y1"] * sx
     al = np.asarray(Image.open(os.path.join(eng + "_frames", "00000.png")))[..., 3]
     ys, xs = np.nonzero(al > 8)
-    k = (y1 - y0) * CP.ENGINE_H / CP.PROXY_H / (ys.max() - ys.min())
+    k = (y1 - y0) * CP.ENGINE_H / CP.PROXY_H / (ys.max() - ys.min()) * a.pscale              # --pscale: a bigger Pion, scaled about his base
     ecx, eb, pcx = (xs.min() + xs.max()) / 2, ys.max(), (x0 + x1) / 2
     out_dir = os.path.join(work, "public", "scene")
     shutil.rmtree(out_dir, ignore_errors=True); os.makedirs(out_dir)

@@ -95,7 +95,9 @@ function planCamera({ words, exprs, az, man = [], onsets = [], max = 1.5, moveDu
   // manual `zoomto` keys win: auto keys from just before a manual key until the next manual key / mood change are dropped
   if (man.length) {
     const M = man.slice().sort((a, b) => a.t - b.t), segT = segs.map(S => S.t);
-    const until = m => Math.min(...M.filter(x => x.t > m.t).map(x => x.t), ...segT.filter(x => x > m.t + 1e-6), 1e9);
+    // a manual zoom-in holds until the next manual key / mood change; a manual zoom-out (z <= 1) hands control
+    // back to the auto zooms once it has finished
+    const until = m => m.z <= 1.001 ? m.t + m.dur + .1 : Math.min(...M.filter(x => x.t > m.t).map(x => x.t), ...segT.filter(x => x > m.t + 1e-6), 1e9);
     const kept = keys.filter(K => !M.some(m => K.t > m.t - .25 && K.t < until(m)) || K.z === 1);
     return kept.concat(M.map(m => ({ t: +m.t.toFixed(3), dur: m.dur, z: m.z, ox: m.ox, oy: m.oy, roll: m.roll }))).sort((a, b) => a.t - b.t);
   }

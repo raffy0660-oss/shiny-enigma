@@ -35,3 +35,7 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
 17. **Audio kelas profesional**: musik latar yang cocok dengan karakter (ceria, jenaka, pizzicato/bassoon/glockenspiel) di
     bawah suara dan ducking saat Pion bicara, plus SFX ElevenLabs (`eleven_text_to_sound_v3`) untuk setiap aksi. Akun
     free tidak bisa memakai Music API: buat musik loop dengan SFX v3 (`loop: true`, sampai 30 detik).
+18. **Zoom ke barang**: setiap Pion menunjukkan barang (koin, kantong, buku, potongan di lantai, efek di wajah), kamera
+    zoom cepat ke barang itu (`<t> zoomto 1.3 oy ox roll 0.3`, offset ke posisi barang) lalu langsung zoom out lagi
+    (`<t> zoomto 1.0 0 0 0 0.3`); setelah zoom out, template 3-in-1-out berjalan lagi.
+19. **Pion sedikit lebih besar** di istana: `castle_video.py --pscale 1.12` (diskalakan dari titik alasnya).
