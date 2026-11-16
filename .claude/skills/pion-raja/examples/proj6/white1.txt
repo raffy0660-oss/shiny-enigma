@@ -1,0 +1,33 @@
+# putih 1  (video 4.60-10.50 -> lokal 0.00-5.90)
+0.00 mood hangat
+0.00 ragu
+0.00 look 8 -4 6
+0.00 leak 0.50 0.15
+0.00 autozoom 2 0.7 pola
+0.22 word Floating
+0.72 word rings?
+0.60 penasaran
+1.40 sinis
+1.40 look 0
+1.52 word I
+1.66 word can't
+1.86 word even
+2.20 word fl-
+2.10 autozoom off
+2.15 zoomto 1.0 0 0 0 0.25
+2.18 burst 0.40 0.05
+2.24 syok
+2.24 startle
+2.24 look -28 -6 0
+2.30 flood 2.4
+2.62 float 0.75 0.9
+2.62 panic 1 0.3
+2.62 gest flail 3.28
+2.70 blub 1.55
+3.10 zoomto 1.14 0 0 -2 0.8
+3.94 word oat
+3.94 nangis
+3.94 look 10 -10 0
+4.40 zoomto 1.24 0 0 2.5 0.6
+5.20 word float!
+5.20 zoomto 1.32 0 0 -1.5 0.4

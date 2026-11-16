@@ -9,15 +9,18 @@
 //   --alpha                          also write a transparent ProRes 4444 .mov (large file)
 //   --png                            keep the PNG frames (transparent) next to the videos
 //   --jelly 1.0                      jelly strength multiplier
-//   --fps 30 --size 1080x1920 --jobs N --start 0 --dur <s>  (cut a section of the audio)
+//   --fps 60 --size 1080x1920 --jobs N --start 0 --dur <s>  (cut a section of the audio)
 //   --preview t1,t2,...              only render a contact sheet of these moments (fast check)
 //   --blur 16                        motion blur: max samples per frame (default 16, 1 = off); --shutter 0.4 (frames)
 //   --local                          cue times are relative to --start (default: absolute audio times)
+//   --shake 1                        camera shake while the autozoom camera moves (0 = off)
+// cue `light dir x y z key r g b amb r g b rim r g b ...` overrides the toon light preset (to match a 3D background)
+// cue `<t> autozoom [N] [strength]` / `<t> autozoom off`: micro zoom punch-ins every N karaoke words, centred on the face
 const { chromium } = (() => { try { return require('playwright'); } catch (e) { return require('/opt/npm-tools/node_modules/playwright'); } })();
 const fs = require('fs'), path = require('path'), os = require('os'), { execFileSync } = require('child_process');
 
 const argv = process.argv.slice(2), arg = (k, d) => { const i = argv.indexOf('--' + k); return i < 0 ? d : (argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : true); };
-const AUDIO = arg('audio', null), CUES = arg('cues', null), OUT = arg('out', 'reaksi'), FPS = +arg('fps', 30);
+const AUDIO = arg('audio', null), CUES = arg('cues', null), OUT = arg('out', 'reaksi'), FPS = +arg('fps', 60); // 60 fps by default (smoother motion); the simulation steps with dt = 1 / fps
 const [RW, RH] = String(arg('size', '1080x1920')).split('x').map(Number), JELLY = +arg('jelly', 1);
 const BLUR = +arg('blur', 16), SHUTTER = +arg('shutter', .4);
 const START = +arg('start', 0), BG = String(arg('bg', 'green')), PREVIEW = arg('preview', null);
@@ -54,7 +57,7 @@ function analyse(file) {
 
 /* ---------- cue file ---------- */
 // lines: <time> <command> [args]   time = seconds or m:ss.xx ; '#' starts a comment
-//   <t> <expression>                 e.g. "1.2 kaget"  (datar imut senang kaget penasaran curiga pusing sinis ngakak)
+//   <t> <expression>                 e.g. "1.2 kaget"  (see EXPR below: 33 expressions; soktahu adds nerd glasses)
 //   <t> gest <type> [dur] [kiri|kanan] [x y]   type: up cheer present shrug wave point press clap lookout dance facepalm knock cross
 //   <t> look <turn°> [nod°] [tilt°]  head turn (+ = toward screen right), nod (+ = down), tilt; "look 0" resets
 //   <t> startle                      jump of surprise
@@ -62,18 +65,26 @@ function analyse(file) {
 //   <t> fly [dur] [jauh|kiri|kanan|atas|bawah]   fly in toward the camera (invisible before)
 //   <t> flyout [dur] [jauh|kiri|kanan|atas|bawah] fly away
 //   <t> hover off|on                 gentle floating (on by default)
-const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik'];
-const GEST = ['up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify'];
+const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
+  'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu', 'melet', 'gembung', 'tiup', 'malu', 'sewot'];
+const GEST = ['flail', 'tread', 'cough', 'windup', 'blow', 'gaya', 'up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click', 'toss', 'cointhrow', 'pouch', 'deathnote'];
 function parseCues(txt) {
-  const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], bg: null, frame: null, frameOverride: null }, warn = [];
+  const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], float: [], panic: [], bg: null, frame: null, frameOverride: null }, warn = [];
   const time = s => { const m = s.split(':').map(Number); return m.length > 1 ? m[0] * 60 + m[1] : m[0]; };
   txt.split(/\r?\n/).forEach((raw, ln) => {
     const line = raw.replace(/#.*/, '').trim(); if (!line) return;
     const w = line.split(/\s+/);
     if (w[0] === 'bg') { C.bg = w[1] || null; return; }
+    if (w[0] === 'light') { // match a 3D background: light dir x y z | key r g b | amb | sky | gnd | rim | exp v
+      C.light = C.light || {}; for (let i = 1; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; C.light[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
+      return; }
     if (w[0] === 'face') { C.faceCy = +w[1]; return; }
+    if (w[0] === 'acting' || w[0] === 'gerak') { C.acting = +(w[1] ?? 1); return; }  // automatic acting layer strength (0 = off, default 1)
+    if (w[1] === 'light' && !isNaN(+w[0])) { // timed light: <t> light dir .. key .. -> crossfades (0.4 s) from the previous light
+      const L = {}; for (let i = 2; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; L[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
+      (C.lights = C.lights || []).push({ t: +w[0], L }); return; }
     if (w[0] === 'hurt') { C.hurt = +(w[1] ?? 1); return; }
-    if (w[0] === 'frame') { const v = w[1] || 'close'; if (v.includes(',')) { const [cy, vh, cx] = v.split(',').map(Number); C.frameOverride = { cy, vh, cx: cx || 0 }; } else C.frame = v; return; }
+    if (w[0] === 'frame') { const v = w[1] || 'close'; if (v.includes(',')) { const [cy, vh, cx, tilt] = v.split(',').map(Number); C.frameOverride = { cy, vh, cx: cx || 0 }; if (!isNaN(tilt)) C.frameOverride.tiltDeg = tilt; } else C.frame = v; return; } // frame cy,vh[,cx[,tilt°]]: tilt = camera elevation (6 = default, 50 = looking down on the head)
     const t = time(w[0]) - (arg('local') ? 0 : START), cmd = (w[1] || '').toLowerCase();
     if (isNaN(t)) return warn.push(`baris ${ln + 1}: waktu tidak dikenali: ${raw}`);
     if (EXPR.includes(cmd)) C.expr.push([t, cmd]);
@@ -86,6 +97,7 @@ function parseCues(txt) {
       const G = { t0: t, t1: t + dur, type, side };
       if (type === 'point' || type === 'press') { G.tgt = nums.length >= 2 ? nums.slice(0, 2) : [side < 0 ? 180 : 900, 420]; if (type === 'press') G.hit = t + dur * .45; }
       if (type === 'throw' && nums.length) G.fly = nums[0];
+      if (type === 'click') G.hit = t + dur * .4;
       if (type === 'paper' && rest.some(v => /^(will|wasiat)$/i.test(v))) G.will = true;
       C.gest.push(G);
     }
@@ -107,6 +119,15 @@ function parseCues(txt) {
     else if (cmd === 'shake' || cmd === 'goyang') C.shakes.push({ t, amp: +(w[2] || 1), dur: +(w[3] || .4) });
     else if (cmd === 'turn' || cmd === 'balik') C.turns.push({ t, deg: +(w[2] || 180), dur: +(w[3] || .4) });
     else if (cmd === 'photo' || cmd === 'foto') { const n = w.slice(4).map(Number); C.fx.push({ type: 'photo', t0: t, t1: t + +(w[2] || 1), src: 'data:image/' + (/\.png$/i.test(w[3]) ? 'png' : 'jpeg') + ';base64,' + fs.readFileSync(path.resolve(w[3])).toString('base64'), x: n[0], y: n[1], w: n[2], rot: n[3], swap: /swap/.test(line), q: (line.match(/q=(\S+)/) || [])[1] }); }
+    else if (cmd === 'costume' || cmd === 'kostum') C.fx.push({ type: 'costume', t0: t, t1: t + +(w[3] || 999), kind: (w[2] || 'doc').toLowerCase() }); // costume doc: lab coat, head mirror, stethoscope, no crown
+    else if (cmd === 'hair' || cmd === 'rambut') C.fx.push({ type: 'hair', t0: t, t1: 999 });                 // magic hair grows on his head
+    else if (cmd === 'sebum') C.fx.push({ type: 'sebum', t0: t, t1: t + +(w[2] || 1.2) });                  // the oil-drop buddy walks in from the right
+    else if (cmd === 'arrow' || cmd === 'panah') C.fx.push({ type: 'arrow', t0: t, t1: t + +(w[2] || 1.5), text: w.slice(3).join(' ') || '*grease' });
+    else if (cmd === 'subbtn' || cmd === 'tombol') C.fx.push({ type: 'subbtn', t0: t, t1: t + +(w[2] || 999) }); // floating SUBSCRIBE button (gest click presses it)
+    else if (cmd === 'glow' || cmd === 'cahaya') C.fx.push({ type: 'glow', t0: t, t1: 999, amt: +(w[2] ?? .35) }); // book-glow strength from t on
+    else if (cmd === 'coin' || cmd === 'koin') C.fx.push({ type: 'coin', t0: t, t1: t + +(w[2] || 99) });          // "brilliant" coin in the right hand (gest toss / cointhrow play with it)
+    else if (cmd === 'hearteyes' || cmd === 'matahati') C.fx.push({ type: 'hearteyes', t0: t, t1: t + +(w[2] || 1) }); // heart eyes pop in with a jelly wobble
+    else if (cmd === 'stomp' || cmd === 'injak') C.fx.push({ type: 'stomp', t0: t, t1: t + +(w[2] || 1.2) });       // hops on the spot (on the torn book)
     else if (cmd === 'hide') C.fx.push({ type: 'hide', t0: t, t1: 999 });
     else if (cmd === 'detective' || cmd === 'detektif') C.fx.push({ type: 'detective', t0: t, t1: t + +(w[2] || 99) });
     else if (cmd === 'poof') C.fx.push({ type: 'poof', t0: t, t1: t + +(w[2] || .5) });
@@ -122,7 +143,12 @@ function parseCues(txt) {
     else if (cmd === 'scan') C.fx.push({ type: 'scan', t0: t, t1: t + +(w[2] || .8) });
     else if (cmd === 'boing') C.boing.push([t, +(w[2] || .8)]);
     else if (cmd === 'say' || cmd === 'bilang') { const dur = +(w[2] || 1.2), text = w.slice(3).join(' ') || '...'; C.fx.push({ type: 'say', t0: t, t1: t + dur, text }); C.say = (C.say || []).concat([{ t, dur: Math.min(dur, .25 + text.length * .055), text }]); }
-    else if (cmd === 'word' || cmd === 'kata') (C.subs = C.subs || []).push([t, w.slice(2).join(' ')]);
+    else if (cmd === 'word' || cmd === 'kata') (C.subs = C.subs || []).push([t, w.slice(2).join(' ')]); // word timing only (no subtitles drawn): drives autozoom
+    else if (cmd === 'autozoom' || cmd === 'zoomauto') { // <t> autozoom [every N words] [strength]  |  <t> autozoom off
+      if (/^(off|mati)$/i.test(w[2] || '')) (C.az = C.az || []).push({ t, off: true });
+      else (C.az = C.az || []).push({ t, every: Math.max(1, +(w[2] || 3)), amt: +(w[3] || 1) }); }
+    else if (cmd === 'float' || cmd === 'apung') C.float.push({ t, v: +(w[2] ?? 1), dur: +(w[3] ?? .8) });   // <t> float <0..1> [dur]: floats up in water, drifting and bobbing
+    else if (cmd === 'panic' || cmd === 'panik') C.panic.push({ t, v: +(w[2] ?? 1), dur: +(w[3] ?? .3) });   // <t> panic <0..1> [dur]: jittery struggling on top of the float
     else if (cmd === 'hover' || cmd === 'melayang') C.hover.push([t, /^(off|mati|0|no)$/i.test(w[2] || '') ? 0 : 1]);
     else warn.push(`baris ${ln + 1}: perintah tidak dikenal: ${raw}`);
   });
@@ -147,7 +173,7 @@ async function openPage(data) {
 }
 (async () => {
   const cues = CUES ? parseCues(fs.readFileSync(CUES, 'utf8')) : parseCues('');
-  const fr = arg('frame', null); if (fr && fr !== true) { if (String(fr).includes(',')) { const [cy, vh, cx] = String(fr).split(',').map(Number); cues.frameOverride = { cy, vh, cx: cx || 0 }; } else cues.frame = fr; }
+  const fr = arg('frame', null); if (fr && fr !== true) { if (String(fr).includes(',')) { const [cy, vh, cx, tilt] = String(fr).split(',').map(Number); cues.frameOverride = { cy, vh, cx: cx || 0 }; if (!isNaN(tilt)) cues.frameOverride.tiltDeg = tilt; } else cues.frame = fr; }
   const au = AUDIO ? analyse(AUDIO) : (() => { const n = Math.ceil(+arg('dur', 5) * FPS); return { n, env: Array(n).fill(0), onset: Array(n).fill(0), dur: n / FPS }; })();
   if (cues.wz && cues.frameOverride) {
     const B = cues.frameOverride, FC = cues.faceCy || 3.05; let n = 0, side = 1;
@@ -157,7 +183,25 @@ async function openPage(data) {
     }
     cues.cams.sort((a, b) => a.t - b.t);
   }
-  const data = { fps: FPS, n: au.n, env: au.env, onset: au.onset, jelly: JELLY, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
+  { // expression 'soktahu' brings its own pose (book in the left hand, right index finger up) unless a gesture already covers it
+    const ex = cues.expr.slice().sort((p, q) => p[0] - q[0]), tEnd = au.dur + (arg('local') ? 0 : START);
+    ex.forEach(([t0, k], i) => { if (k !== 'soktahu') return; const t1 = i + 1 < ex.length ? ex[i + 1][0] : tEnd;
+      if (!cues.gest.some(G => G.t0 < t1 && G.t1 > t0)) cues.gest.push({ t0, t1, type: 'nerd', side: 1, auto: true }); });
+  }
+  // autozoom -> camera plan (engine/camplan.js): sampled per frame here, read by react.js camAt()
+  let camz = null;
+  if (cues.az && cues.az.length) {
+    const CP = require('./camplan.js'), off = arg('local') ? 0 : START;
+    const onsets = []; for (let f = 0; f < au.n; f++) if (au.onset[f] > 0) onsets.push(f / FPS + off);
+    const keys = CP.planCamera({ words: (cues.subs || []).map(([t, text]) => ({ t, text })), exprs: cues.expr, az: cues.az, onsets });
+    camz = []; const sh = arg('shake') === null ? 1 : +arg('shake'); for (let f = 0; f < au.n; f++) { const c = CP.sampleCam(keys, f / FPS + off, sh); camz.push([c.z, c.ox, c.oy, c.roll].map(v => +v.toFixed(5))); }
+    if (arg('camplan')) fs.writeFileSync(String(arg('camplan')), JSON.stringify(keys, null, 1));
+  }
+  // acting layer events: '!' words (emphasis hop) and expression changes (a little "take")
+  const off0 = arg('local') ? 0 : START, fr0 = t => Math.round((t - off0) * FPS);
+  const bangF = (cues.subs || []).filter(([, txt]) => /!/.test(txt)).map(([t]) => fr0(t));
+  const ex = cues.expr.slice().sort((p, q) => p[0] - q[0]), takeF = ex.filter((e, i) => i > 0 && e[1] !== ex[i - 1][1]).map(([t]) => fr0(t));
+  const data = { fps: FPS, n: au.n, camz, acting: cues.acting ?? 1, bangF, takeF, lights: (cues.lights || []).sort((p, q) => p.t - q.t), env: au.env, onset: au.onset, jelly: JELLY, float: cues.float, panic: cues.panic, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
   for (const [bt, s] of cues.boing) { const f = Math.round(bt * FPS); if (f >= 0 && f < data.n) data.onset[f] = Math.max(data.onset[f], s); }
   for (const S of cues.say || []) { // speech bubble: fake syllables drive the mouth + jelly
     const syl = Math.max(2, Math.round(S.text.replace(/[^a-z]/gi, '').length / 2.2)), f0 = Math.round(S.t * FPS), f1 = Math.round((S.t + S.dur) * FPS);
@@ -183,12 +227,13 @@ async function openPage(data) {
 
   const dir = OUT + '_frames'; fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
   const frames = Array.from({ length: au.n }, (_, i) => i), JOBS = Math.max(1, Math.min(+arg('jobs', Math.min(6, Math.max(1, os.cpus().length - 1))), frames.length));
-  const per = Math.ceil(frames.length / JOBS), t0 = Date.now(); let done = 0;
+  const per = Math.ceil(frames.length / JOBS), t0 = Date.now(); let done = 0; const track = new Array(frames.length).fill(null);
   await Promise.all(Array.from({ length: JOBS }, (_, j) => frames.slice(j * per, (j + 1) * per)).filter(c => c.length).map(async list => {
     const { b, p } = await openPage(data);
     for (const f of list) {
       const png = await p.evaluate(([f, mb]) => mb ? window.grabReactMB(f, null) : (window.renderReact(f), window.grabReact(null)), [f, BLUR > 1]);
       fs.writeFileSync(path.join(dir, String(f).padStart(5, '0') + '.png'), Buffer.from(png, 'base64'));
+      track[f] = await p.evaluate(() => window.__track || null);
       if (++done % 60 === 0 || done === frames.length) console.log(`frame ${done}/${frames.length}  ${((Date.now() - t0) / 1000).toFixed(0)}s`);
     }
     await b.close();
@@ -206,6 +251,7 @@ async function openPage(data) {
     execFileSync('ffmpeg', ['-y', '-v', 'error', ...pngs, ...aud, '-map', '0:v', ...(AUDIO ? ['-map', '1:a', '-c:a', 'pcm_s16le'] : []), '-c:v', 'prores_ks', '-profile:v', '4444', '-pix_fmt', 'yuva444p10le', '-shortest', mov]);
     console.log('->', mov);
   }
+  fs.writeFileSync(OUT + '_track.json', JSON.stringify({ fps: FPS, W: RW, H: RH, frames: track })); // Pion's screen position per frame (castle3d follows it)
   if (!arg('png')) fs.rmSync(dir, { recursive: true, force: true }); else console.log('-> PNG transparan:', dir);
   console.log('selesai dalam', ((Date.now() - t0) / 1000).toFixed(0) + 's');
 })();
