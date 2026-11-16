@@ -61,19 +61,26 @@ float vn(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(m
 uniform vec3 uColor; uniform float uUseVC; uniform sampler2D uTex; uniform float uUseTex; uniform sampler2D uRamp;
 uniform vec3 uLDir; uniform vec3 uKey; uniform vec3 uAmb; uniform vec3 uSky; uniform vec3 uGnd; uniform float uDouble; uniform float uExp;
 uniform vec3 uRim; uniform float uFlash; uniform float uCut;
+uniform vec4 uLPos; uniform float uLAtt; // optional point key light fixed in the room (xyz, w=on): shading changes as he moves
 uniform vec4 uAO; uniform float uAOs; // soft contact occlusion bands in object space (under the collar, under the crown)
 void main(){
   if(uCut>.5 && uUseTex>.5 && texture(uTex,vUv).a<.5) discard;
   vec3 n=normalize(vN); if(uDouble>.5 && !gl_FrontFacing) n=-n;
   vec3 base=uColor; if(uUseVC>.5) base*=vCol; if(uUseTex>.5) base*=texture(uTex,vUv).rgb;
-  float d=dot(n,normalize(uLDir)); float r=texture(uRamp,vec2(d*.5+.5,.5)).r;
+  vec3 Ld=normalize(uLDir); float att=1.;
+  if(uLPos.w>.5){ vec3 tl=uLPos.xyz-vW; Ld=normalize(mix(uLDir, normalize(tl), uLPos.w-.5)); att=clamp(uLAtt/max(dot(tl,tl),.01),.4,2.2); }
+  float d=dot(n,Ld), x=d*.5+.5, aw=max(fwidth(x)*.75,.002); // analytic cel bands, anti-aliased (crisp at any zoom)
+  float r=.549+.137*smoothstep(.2-aw,.2+aw,x)+.157*smoothstep(.4-aw,.4+aw,x)+.118*smoothstep(.6-aw,.6+aw,x)+.039*smoothstep(.8-aw,.8+aw,x);
   float hemi=n.y*.5+.5;
-  vec3 light=uAmb+mix(uGnd,uSky,hemi)+uKey*r;
+  vec3 light=uAmb+mix(uGnd,uSky,hemi)+uKey*r*att;
   if(uAOs>0.){ vec2 q=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q=q*q*(3.-2.*q); float occ=q.x+q.y; /* edges may be reversed (GLSL smoothstep may not) */ light*=1.-uAOs*clamp(occ,0.,1.)*(.55+.45*(1.-max(n.y,0.))); }
+  vec3 Vd=normalize(uEye-vW); float fres=1.-max(dot(n,Vd),0.);
   float rim=pow(1.-clamp(n.z,0.,1.),3.)*clamp(n.x*-.6+n.y*.5+.5,0.,1.);
+  float rimCel=smoothstep(.6-aw*4.,.6+aw*4.,fres)*smoothstep(-.15,.2,d);   // crisp lit-side rim band, coloured by the room light
   if(uSoot>0.){ vec3 q=vO*uSootK; float nz=vn(q*2.3)*.65+vn(q*5.1)*.35; base*=mix(1.,.28,uSoot*smoothstep(.52,.72,nz)); }
-  vec3 col=base*light*uExp+uRim*rim;
-  if(uSpec>0.){ vec3 V=normalize(uEye-vW); vec3 R=reflect(-normalize(uLDir),n); float sp=pow(max(dot(R,V),0.),18.); col+=uSpec*(smoothstep(.45,.55,sp)*vec3(1.,.97,.86)+.35*smoothstep(.08,.3,sp)*vec3(1.,.85,.5)); float fr=pow(1.-max(dot(n,V),0.),2.5); col+=uSpec*.25*fr*vec3(1.,.8,.4); }
+  float shadeAmt=1.-smoothstep(.62,.9,r);                                    // painted shadows: cooler, a touch more saturated
+  vec3 col=base*light*uExp*mix(vec3(1.),vec3(.88,.86,1.06),shadeAmt*.6)+uRim*rim*.6+uRim*rimCel*1.4;
+  if(uSpec>0.){ vec3 V=normalize(uEye-vW); vec3 R=reflect(-Ld,n); float sp=pow(max(dot(R,V),0.),18.); col+=uSpec*(smoothstep(.45,.55,sp)*vec3(1.,.97,.86)+.35*smoothstep(.08,.3,sp)*vec3(1.,.85,.5)); float fr=pow(1.-max(dot(n,V),0.),2.5); col+=uSpec*.25*fr*vec3(1.,.8,.4); }
   col=mix(col,vec3(1.,.97,.9),uFlash);
   o=vec4(clamp(col,0.,1.),1.);
 }`);
@@ -252,6 +259,16 @@ function faceCanvas(kind, closed, talk) { // talk: 0 = expression's own mouth, 1
   const shut = (y, w) => { for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * ex - (w || 28), y); g.quadraticCurveTo(s * ex, y + 16, s * ex + (w || 28), y); g.stroke(); } };
   const smile = (w, h, y, fill) => { g.save(); g.beginPath(); g.moveTo(-w, y); g.lineTo(w, y); g.arc(0, y, w, 0, Math.PI, false); g.closePath(); g.fillStyle = fill; g.fill(); g.lineWidth = 12; g.stroke(); g.restore(); };
   const mouth = !talk; // draw the expression's own mouth?
+  const WH = '#fffaf2', MOUTH = '#5a1712', TONGUE = '#ff7f78', TEETH = '#fff6ee', TEAR = '#7fd3ff', TEARS = '#2a6f9a';
+  const blush = strokes => { for (const s of [-1, 1]) { g.save(); if (strokes) { g.strokeStyle = '#ff7f9a'; g.lineWidth = 6; for (let k = 0; k < 3; k++) line(s * 134 - 14 + k * 12, 34, s * 134 - 22 + k * 12, 54); }
+    else { g.fillStyle = 'rgba(255,120,140,.55)'; g.beginPath(); g.ellipse(s * 134, 44, 30, 17, 0, 0, 7); g.fill(); } g.restore(); } };
+  const tear = (x, y, k) => { g.save(); g.translate(x, y); g.scale(k, k); g.fillStyle = TEAR; g.strokeStyle = TEARS; g.lineWidth = 5; g.beginPath(); g.moveTo(0, -18); g.quadraticCurveTo(16, 6, 0, 16); g.quadraticCurveTo(-16, 6, 0, -18); g.fill(); g.stroke();
+    g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.arc(-4, 4, 4, 0, 7); g.fill(); g.restore(); };
+  const heart = (x, y, k) => { g.save(); g.translate(x, y); g.scale(k, k); g.beginPath(); g.moveTo(0, 14); g.bezierCurveTo(-30, -8, -14, -30, 0, -14); g.bezierCurveTo(14, -30, 30, -8, 0, 14); g.fillStyle = '#ff5a7a'; g.fill(); g.lineWidth = 6; g.strokeStyle = BR; g.stroke(); g.restore(); };
+  const angerVein = (x, y, k) => { g.save(); g.translate(x, y); g.scale(k, k); g.strokeStyle = '#e01b1b'; g.lineWidth = 11; for (let q = 0; q < 4; q++) { g.save(); g.rotate(q * Math.PI / 2 + .785); g.beginPath(); g.moveTo(9, -5); g.quadraticCurveTo(22, -8, 25, -24); g.stroke(); g.restore(); } g.restore(); };
+  const bigEye = (s, rx, ry, px, py, pr, y0) => { g.save(); g.lineWidth = 12; g.fillStyle = WH; g.beginPath(); g.ellipse(s * ex, y0, rx, ry, 0, 0, 7); g.fill(); g.stroke(); g.fillStyle = BR; g.beginPath(); g.arc(s * ex + px, y0 + py, pr, 0, 7); g.fill(); g.restore(); };
+  const laugh = (w, y, teeth) => { g.save(); g.beginPath(); g.moveTo(-w, y); g.lineTo(w, y); g.arc(0, y, w, 0, Math.PI, false); g.closePath(); g.fillStyle = MOUTH; g.fill(); g.save(); g.clip();
+    g.fillStyle = TONGUE; g.beginPath(); g.ellipse(0, y + w * .9, w * .62, w * .45, 0, 0, 7); g.fill(); if (teeth) { g.fillStyle = TEETH; g.fillRect(-w, y - 2, 2 * w, 12); } g.restore(); g.lineWidth = 12; g.stroke(); g.restore(); };
   if (kind === 'datar') {
     line(-ex - 36, -62, -ex + 30, -46); line(ex + 36, -62, ex - 30, -46);
     if (closed) shut(6, 22); else { line(-ex, -16, -ex, 24); line(ex, -16, ex, 24); }
@@ -329,13 +346,119 @@ function faceCanvas(kind, closed, talk) { // talk: 0 = expression's own mouth, 1
     for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * ex - s * 26, -22); g.lineTo(s * ex + s * 20, 0); g.lineTo(s * ex - s * 26, 22); g.stroke(); }
     line(-ex - 30, -62, -ex + 26, -72); line(ex + 30, -62, ex - 26, -72);
     if (mouth) talkMouth(3, true);
+  } else if (kind === 'nangis') { // crying: worried brows, heavy-lidded wet eyes, tear streams, wobbly frown
+    line(-ex - 34, -48, -ex + 30, -72); line(ex + 34, -48, ex - 30, -72);
+    if (closed) shut(10, 26); else for (const s of [-1, 1]) {
+      g.save(); g.beginPath(); g.rect(s * ex - 42, -2, 84, 62); g.clip(); g.lineWidth = 12; g.fillStyle = WH; g.beginPath(); g.ellipse(s * ex, 8, 28, 30, 0, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = BR; g.beginPath(); g.arc(s * ex, 22, 12, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(s * ex - 4, 18, 4, 0, 7); g.fill(); g.restore();
+      line(s * ex - 32, -2, s * ex + 32, -2); }
+    for (const s of [-1, 1]) { g.save(); g.strokeStyle = TEAR; g.globalAlpha = .9; g.lineWidth = 12; g.beginPath(); g.moveTo(s * ex + s * 16, 38); g.quadraticCurveTo(s * ex + s * 24, 84, s * ex + s * 18, 126); g.stroke(); g.restore(); tear(s * ex + s * 34, 74, 1.1); }
+    if (mouth) { g.beginPath(); g.moveTo(-30, 82); g.quadraticCurveTo(-15, 62, 0, 72); g.quadraticCurveTo(15, 62, 30, 82); g.stroke(); }
+  } else if (kind === 'tersedu') { // sobbing T_T: T eyes, rivers of tears, wailing mouth
+    line(-ex - 34, -46, -ex + 28, -66); line(ex + 34, -46, ex - 28, -66);
+    for (const s of [-1, 1]) {
+      g.save(); g.fillStyle = TEAR; g.strokeStyle = TEARS; g.lineWidth = 5; g.beginPath(); g.moveTo(s * ex - 14, 8); g.lineTo(s * ex + 14, 8);
+      g.quadraticCurveTo(s * ex + 20, 90, s * ex + 30, 176); g.lineTo(s * ex - 30, 176); g.quadraticCurveTo(s * ex - 20, 90, s * ex - 14, 8); g.closePath(); g.fill(); g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 4; g.beginPath(); g.moveTo(s * ex - 4, 30); g.quadraticCurveTo(s * ex - 2, 90, s * ex - 10, 150); g.stroke(); g.restore();
+      g.save(); g.lineWidth = 15; line(s * ex - 32, -14, s * ex + 32, -14); line(s * ex, -14, s * ex, 10); g.restore(); }
+    if (mouth) { g.save(); g.beginPath(); g.ellipse(0, 78, 18, 26, 0, 0, 7); g.fillStyle = MOUTH; g.fill(); g.save(); g.clip(); g.fillStyle = TONGUE; g.beginPath(); g.ellipse(0, 100, 14, 10, 0, 0, 7); g.fill(); g.restore(); g.lineWidth = 11; g.stroke(); g.restore(); }
+  } else if (kind === 'girang') { // overjoyed: big sparkly dark eyes, brows high, wide open laugh
+    line(-ex - 30, -84, -ex + 26, -98); line(ex + 30, -84, ex - 26, -98);
+    if (closed) shut(6, 30); else for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * ex, 0, 30, 38, 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(s * ex - 9, -14, 10, 0, 7); g.fill(); g.beginPath(); g.arc(s * ex + 10, 12, 5, 0, 7); g.fill(); g.fillStyle = BR; }
+    if (mouth) laugh(56, 40, true);
+  } else if (kind === 'bahagia') { // blissful: closed ^ ^ eyes, pink blush strokes, open smile with tongue
+    g.save(); g.lineWidth = 16; for (const s of [-1, 1]) { g.beginPath(); g.arc(s * ex, 20, 30, Math.PI * 1.12, Math.PI * 1.88, false); g.stroke(); } g.restore();
+    line(-ex - 28, -60, -ex + 24, -68); line(ex + 28, -60, ex - 24, -68);
+    blush(true);
+    if (mouth) laugh(40, 46, false);
+  } else if (kind === 'cium') { // kissy: eyes shut, blush, "3" lips pushed out, a little heart
+    g.save(); g.lineWidth = 14; for (const s of [-1, 1]) { g.beginPath(); g.arc(s * ex, -6, 28, Math.PI * .12, Math.PI * .88, false); g.stroke(); } g.restore();
+    line(-ex - 30, -58, -ex + 26, -66); line(ex + 30, -58, ex - 26, -66);
+    blush(true);
+    if (mouth) { g.save(); g.lineWidth = 12; g.beginPath(); g.moveTo(-4, 50); g.quadraticCurveTo(24, 52, 12, 66); g.quadraticCurveTo(26, 74, 6, 86); g.stroke(); g.restore(); heart(56, 46, .9); }
+  } else if (kind === 'lega') { // relieved / content: soft closed eyes, blush, small "hah~" mouth
+    for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * ex - 28, 6); g.quadraticCurveTo(s * ex, 22, s * ex + 28, 6); g.stroke(); }
+    line(-ex - 30, -50, -ex + 28, -58); line(ex + 30, -50, ex - 28, -58);
+    blush(true);
+    if (mouth) { g.save(); g.beginPath(); g.moveTo(-18, 62); g.quadraticCurveTo(0, 52, 18, 62); g.quadraticCurveTo(14, 88, 0, 88); g.quadraticCurveTo(-14, 88, -18, 62); g.closePath(); g.fillStyle = MOUTH; g.fill(); g.lineWidth = 11; g.stroke(); g.restore(); }
+  } else if (kind === 'gemas') { // squee >_<: squeezed eyes, round pink cheeks, open mouth with a fang
+    g.save(); g.lineWidth = 16; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * ex - s * 28, -24); g.lineTo(s * ex + s * 22, 2); g.lineTo(s * ex - s * 28, 26); g.stroke(); } g.restore();
+    line(-ex - 30, -64, -ex + 26, -78); line(ex + 30, -64, ex - 26, -78);
+    blush(false);
+    if (mouth) { laugh(36, 50, false); g.save(); g.fillStyle = TEETH; g.lineWidth = 5; g.beginPath(); g.moveTo(-22, 51); g.lineTo(-8, 51); g.lineTo(-15, 66); g.closePath(); g.fill(); g.stroke(); g.restore(); }
+  } else if (kind === 'syok') { // horrified: bulging eyes, pin pupils, eye bags, gaping mouth, sweat
+    for (const s of [-1, 1]) line(s * ex - s * 24, -84, s * ex + s * 24, -96);
+    if (closed) shut(6, 34); else for (const s of [-1, 1]) { bigEye(s, 40, 48, 0, 4, 7, 0); g.save(); g.lineWidth = 6; g.beginPath(); g.arc(s * ex, 36, 30, Math.PI * .25, Math.PI * .75); g.stroke(); g.restore(); }
+    tear(152, -34, 1.0);
+    if (mouth) { g.save(); g.beginPath(); g.moveTo(-26, 56); g.lineTo(26, 56); g.lineTo(36, 108); g.lineTo(-36, 108); g.closePath(); g.fillStyle = MOUTH; g.fill(); g.save(); g.clip(); g.fillStyle = TEETH; g.fillRect(-40, 56, 80, 12); g.fillStyle = TONGUE; g.beginPath(); g.ellipse(0, 110, 26, 14, 0, 0, 7); g.fill(); g.restore(); g.lineWidth = 11; g.stroke(); g.restore(); }
+  } else if (kind === 'kesal') { // annoyed: low thick brows, squinting "=" eyes, clenched teeth, anger vein
+    g.save(); g.lineWidth = 18; line(-ex - 40, -62, -ex + 30, -44); line(ex + 40, -62, ex - 30, -44); g.restore();
+    for (const s of [-1, 1]) { line(s * ex - 30, -2, s * ex + 30, -2); line(s * ex - 24, 16, s * ex + 24, 16); }
+    if (mouth) { g.save(); g.translate(0, 74); g.beginPath(); g.rect(-34, -10, 68, 20); g.fillStyle = TEETH; g.fill(); g.lineWidth = 10; g.stroke(); g.lineWidth = 5; line(-34, 0, 34, 0); for (const x of [-14, 6]) line(x, -10, x, 10); g.restore(); }
+    angerVein(150, -48, 1);
+  } else if (kind === 'ngiler') { // dazed drooling: dot eyes, one brow up, slack wavy mouth, drool
+    line(-ex - 30, -50, -ex + 28, -50); g.beginPath(); g.moveTo(ex - 28, -48); g.lineTo(ex + 10, -48); g.lineTo(ex + 10, -82); g.stroke();
+    if (closed) shut(8, 20); else for (const s of [-1, 1]) { g.beginPath(); g.arc(s * ex, 6, 13, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(s * ex - 4, 2, 4, 0, 7); g.fill(); g.fillStyle = BR; }
+    if (mouth) { g.save(); g.beginPath(); g.moveTo(-40, 62); g.bezierCurveTo(-20, 48, 0, 76, 20, 58); g.bezierCurveTo(30, 52, 38, 60, 40, 66); g.bezierCurveTo(20, 92, -20, 92, -40, 62); g.closePath(); g.fillStyle = MOUTH; g.fill(); g.lineWidth = 11; g.stroke(); g.restore();
+      g.save(); g.strokeStyle = TEAR; g.lineWidth = 9; line(24, 82, 26, 104); g.restore(); tear(26, 114, .8); }
+  } else if (kind === 'merajuk') { // sulking: brows pinched down, lidded eyes looking down, pouted lips, blush
+    line(-ex - 30, -62, -ex + 30, -46); line(ex + 30, -62, ex - 30, -46);
+    for (const s of [-1, 1]) { if (closed) { line(s * ex - 26, 10, s * ex + 26, 10); continue; }
+      g.save(); g.beginPath(); g.rect(s * ex - 40, 4, 80, 60); g.clip(); g.beginPath(); g.ellipse(s * ex, 12, 24, 30, 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(s * ex - 6, 22, 6, 0, 7); g.fill(); g.restore();
+      line(s * ex - 30, 4, s * ex + 30, 4); }
+    blush(false);
+    if (mouth) { g.save(); g.beginPath(); g.ellipse(6, 76, 20, 14, 0, 0, 7); g.fillStyle = '#c9474f'; g.fill(); g.lineWidth = 10; g.stroke(); g.lineWidth = 5; line(-8, 76, 20, 76); g.restore(); }
+  } else if (kind === 'memelas') { // puppy eyes: huge glossy dark eyes, watery rims, worried brows, tiny wobbly mouth
+    line(-ex - 34, -58, -ex + 30, -82); line(ex + 34, -58, ex - 30, -82);
+    if (closed) shut(10, 30); else for (const s of [-1, 1]) {
+      g.beginPath(); g.ellipse(s * ex, 6, 40, 46, 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.ellipse(s * ex - 12, -12, 14, 16, 0, 0, 7); g.fill();
+      g.beginPath(); g.arc(s * ex + 14, 22, 7, 0, 7); g.fill(); g.beginPath(); g.arc(s * ex - 2, 30, 4, 0, 7); g.fill(); g.fillStyle = BR;
+      g.save(); g.strokeStyle = 'rgba(127,211,255,.95)'; g.lineWidth = 7; g.beginPath(); g.arc(s * ex, 6, 34, Math.PI * .22, Math.PI * .78); g.stroke(); g.restore(); }
+    if (mouth) { g.beginPath(); g.moveTo(-16, 80); g.quadraticCurveTo(-8, 70, 0, 77); g.quadraticCurveTo(8, 70, 16, 80); g.stroke(); }
+  } else if (kind === 'bosan') { // bored: flat heavy lids, eyes sunk low, flat mouth
+    line(-ex - 32, -46, -ex + 30, -46); line(ex + 32, -46, ex - 30, -46);
+    for (const s of [-1, 1]) { if (closed) { line(s * ex - 26, 10, s * ex + 26, 10); continue; }
+      g.save(); g.beginPath(); g.rect(s * ex - 40, 2, 80, 60); g.clip(); g.beginPath(); g.ellipse(s * ex, 14, 22, 26, 0, 0, 7); g.fill(); g.restore();
+      g.save(); g.lineWidth = 14; line(s * ex - 32, 2, s * ex + 32, 2); g.restore(); }
+    if (mouth) line(-20, 76, 18, 74);
+  } else if (kind === 'cemas') { // worried: tilted brows, small eyes, wavy mouth, sweat drop
+    line(-ex - 34, -52, -ex + 28, -74); line(ex + 34, -52, ex - 28, -74);
+    if (closed) shut(8, 22); else for (const s of [-1, 1]) { g.beginPath(); g.ellipse(s * ex, 4, 15, 24, 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(s * ex - 4, -6, 5, 0, 7); g.fill(); g.fillStyle = BR; }
+    tear(152, -30, 1.0);
+    if (mouth) { g.beginPath(); g.moveTo(-34, 74); g.quadraticCurveTo(-23, 62, -12, 74); g.quadraticCurveTo(-1, 86, 10, 74); g.quadraticCurveTo(21, 62, 32, 74); g.stroke(); }
+  } else if (kind === 'bangga') { // smug / proud: relaxed high brows, squinting satisfied eyes, side smile
+    line(-ex - 32, -64, -ex + 30, -72); line(ex + 32, -64, ex - 30, -72);
+    for (const s of [-1, 1]) { if (closed) { line(s * ex - 26, 12, s * ex + 26, 12); continue; }
+      g.beginPath(); g.ellipse(s * ex + 4, 2, 26, 26, 0, 0, Math.PI, false); g.closePath(); g.fill();      // lower half: lids at half mast
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(s * ex - 4, 10, 6, 0, 7); g.fill(); g.fillStyle = BR;
+      g.save(); g.lineWidth = 14; line(s * ex - 30, 2, s * ex + 36, 2); g.restore(); }
+    if (mouth) { g.beginPath(); g.moveTo(-22, 68); g.quadraticCurveTo(6, 82, 30, 62); g.stroke(); line(30, 62, 36, 56); }
+  } else if (kind === 'ngamuk') { // raging: zigzag brows, sharp white eyes with pin pupils, yelling mouth, vein
+    g.save(); g.lineWidth = 22; for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * ex + s * 46, -84); g.lineTo(s * ex + s * 4, -66); g.lineTo(s * ex - s * 40, -34); g.stroke(); } g.restore(); // inner ends dive down
+    for (const s of [-1, 1]) { if (closed) { line(s * ex - 26, 8, s * ex + 26, 8); continue; }
+      g.save(); g.beginPath(); g.moveTo(s * ex + s * 36, -24); g.lineTo(s * ex - s * 34, -2); g.lineTo(s * ex - s * 26, 30); g.lineTo(s * ex + s * 30, 28); g.closePath(); g.fillStyle = WH; g.fill(); g.lineWidth = 12; g.stroke();
+      g.fillStyle = BR; g.beginPath(); g.arc(s * ex - s * 4, 12, 11, 0, 7); g.fill(); g.restore(); }
+    if (mouth) { g.save(); g.beginPath(); g.moveTo(-30, 56); g.quadraticCurveTo(0, 46, 30, 56); g.lineTo(52, 110); g.quadraticCurveTo(0, 118, -52, 110); g.closePath(); g.fillStyle = MOUTH; g.fill(); g.save(); g.clip();
+      g.fillStyle = TEETH; g.fillRect(-60, 44, 120, 18); g.fillStyle = TONGUE; g.beginPath(); g.ellipse(0, 112, 30, 14, 0, 0, 7); g.fill(); g.restore(); g.lineWidth = 12; g.stroke(); g.restore(); }
+    angerVein(150, -52, 1.15);
+  } else if (kind === 'santai') { // vibing: music-note eyes, one brow cocked, toothy grin
+    for (const s of [-1, 1]) { g.save(); g.translate(s * ex - 8, 0); g.beginPath(); g.ellipse(0, 20, 17, 13, -.4, 0, 7); g.fill(); g.lineWidth = 10; line(14, 16, 14, -40); g.beginPath(); g.moveTo(14, -40); g.quadraticCurveTo(36, -30, 36, -10); g.stroke(); g.restore(); }
+    line(-ex - 30, -66, -ex + 26, -72); g.beginPath(); g.moveTo(ex - 28, -70); g.quadraticCurveTo(ex, -88, ex + 30, -72); g.stroke();
+    if (mouth) { g.save(); g.beginPath(); g.moveTo(-46, 56); g.quadraticCurveTo(0, 64, 46, 52); g.quadraticCurveTo(10, 104, -46, 56); g.closePath(); g.fillStyle = TEETH; g.fill(); g.lineWidth = 11; g.stroke();
+      g.lineWidth = 5; g.beginPath(); g.moveTo(-40, 64); g.quadraticCurveTo(0, 74, 42, 60); g.stroke(); for (const x of [-18, 2, 22]) line(x, 62, x + 1, 80 - Math.abs(x) * .3); g.restore(); }
+  } else if (kind === 'soktahu') { // "well, actually": big round eyes looking up, brows raised, buck teeth, freckles (+ nerd glasses)
+    line(-ex - 30, -94, -ex + 26, -102); line(ex + 30, -100, ex - 26, -108);
+    if (closed) shut(6, 30); else for (const s of [-1, 1]) { g.save(); g.lineWidth = 12; g.fillStyle = WH; g.beginPath(); g.arc(s * ex, 4, 34, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = BR; g.beginPath(); g.arc(s * ex + 13, 15, 16, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(s * ex + 8, 9, 6, 0, 7); g.fill(); g.restore(); } // looking down at the book
+    g.save(); g.fillStyle = '#b8481f'; for (const s of [-1, 1]) for (const [dx, dy] of [[-12, 0], [8, 8], [0, -10], [18, -4]]) { g.beginPath(); g.arc(s * 138 + dx, 52 + dy, 4.5, 0, 7); g.fill(); } g.restore();
+    if (mouth) { g.beginPath(); g.moveTo(-28, 64); g.quadraticCurveTo(0, 72, 28, 64); g.stroke(); g.save(); g.fillStyle = TEETH; g.lineWidth = 7; for (const x of [-16, 1]) { g.beginPath(); g.rect(x, 67, 15, 22); g.fill(); g.stroke(); } g.restore(); }
   }
-  if (talk) talkMouth(talk, kind === 'senang' || kind === 'imut' || kind === 'ngakak' || kind === 'duit');
+  if (talk) talkMouth(talk, ['senang', 'imut', 'ngakak', 'duit', 'girang', 'bahagia', 'gemas', 'santai', 'bangga', 'soktahu', 'lega'].includes(kind));
   return c;
 
   function talkMouth(lvl, happy) {
-    const sly = kind === 'curiga' || kind === 'datar' || kind === 'sinis' || kind === 'pusing' || kind === 'ragu' || kind === 'licik', round = kind === 'kaget' || kind === 'sakit';
-    if (kind === 'marah') { // shouting: wide, square-ish, teeth top and bottom
+    const sly = ['curiga', 'datar', 'sinis', 'pusing', 'ragu', 'licik', 'kesal', 'bosan', 'merajuk', 'bangga'].includes(kind), round = ['kaget', 'sakit', 'syok', 'tersedu', 'nangis', 'cemas', 'memelas', 'ngiler', 'cium'].includes(kind);
+    if (kind === 'marah' || kind === 'ngamuk') { // shouting: wide, square-ish, teeth top and bottom
       const w = 30 + lvl * 9, h = 10 + lvl * 13; g.save(); g.translate(0, 70); g.beginPath(); g.rect(-w, -h / 2, 2 * w, h); g.fillStyle = '#5a1712'; g.fill(); g.fillStyle = '#fff6ee'; g.fillRect(-w, -h / 2, 2 * w, Math.min(12, h * .3)); g.fillRect(-w, h / 2 - Math.min(10, h * .25), 2 * w, Math.min(10, h * .25)); g.lineWidth = 11; g.strokeRect(-w, -h / 2, 2 * w, h); g.restore(); return; }
     const w = [0, 22, 30, 36][lvl] * (happy ? 1.45 : round ? .8 : 1) * (kind === 'ngakak' ? 1.3 : 1);
     const h = [0, 14, 28, 42][lvl] * (sly ? .72 : round ? 1.25 : 1) * (kind === 'ngakak' ? 1.25 : 1);
@@ -355,6 +478,15 @@ function glassesCanvas() { // round detective glasses in face UV space
     g.lineWidth = 5; g.strokeStyle = '#c8962e'; g.stroke(); g.fillStyle = 'rgba(255,255,255,.75)'; g.save(); g.translate(s * 92 - 22, -16); g.rotate(-.7); g.beginPath(); g.ellipse(0, 0, 18, 6, 0, 0, 7); g.fill(); g.restore(); }
   g.lineWidth = 12; g.strokeStyle = '#2b1a10'; g.beginPath(); g.moveTo(-36, 0); g.quadraticCurveTo(0, -18, 36, 0); g.stroke();
   for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * 148, -2); g.lineTo(s * 230, -12); g.stroke(); }
+  return c;
+}
+function nerdGlassesCanvas() { // thick square "well, actually" glasses (expression soktahu)
+  const c = document.createElement('canvas'); c.width = 2048; c.height = 1024; const g = c.getContext('2d'); g.scale(2, 2); g.translate(256, 250);
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  for (const s of [-1, 1]) { rr(s * 92 - 60, -42, 120, 92, 18); g.fillStyle = 'rgba(255,248,215,.2)'; g.fill(); g.lineWidth = 20; g.strokeStyle = '#3b2416'; g.stroke();
+    g.save(); rr(s * 92 - 60, -42, 120, 92, 18); g.clip(); g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.moveTo(s * 92 - 40, -42); g.lineTo(s * 92 - 14, -42); g.lineTo(s * 92 - 54, 50); g.lineTo(s * 92 - 70, 50); g.closePath(); g.fill(); g.restore(); }
+  g.lineWidth = 18; g.strokeStyle = '#3b2416'; g.beginPath(); g.moveTo(-32, -10); g.quadraticCurveTo(0, -20, 32, -10); g.stroke();
+  for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * 152, -16); g.lineTo(s * 232, -24); g.stroke(); }
   return c;
 }
 function monocleCanvas() { // single monocle on the right eye + gold chain hanging down
@@ -446,8 +578,9 @@ M.magLens = new Mesh(cylinder(.3, .3, .03, 32, false));
 M.magHandle = new Mesh(cylinder(.06, .075, .55, 12, false));
 M.fingerTip = new Mesh(sphere(.085, 10, 8));
 const TEX = { erm: texFromCanvas(ermineCanvas(), true) };
-const EXPRS = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik'];
-const BLINKABLE = ['datar', 'senang', 'kaget', 'penasaran', 'sinis', 'marah', 'sakit', 'ragu', 'licik']; // the others already have closed / slit eyes
+const EXPRS = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
+  'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu'];
+const BLINKABLE = ['datar', 'senang', 'kaget', 'penasaran', 'sinis', 'marah', 'sakit', 'ragu', 'licik', 'nangis', 'girang', 'syok', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'soktahu']; // the others already have closed / slit eyes
 const FACE_CACHE = {};
 function faceTexture(kind, closed, talk) { // lazily built: expression x blink x mouth-open level
   if (!EXPRS.includes(kind)) kind = 'datar';
@@ -459,6 +592,7 @@ const GLOSS = texFromCanvas(glossCanvas(), false);
 const HURT = texFromCanvas(hurtCanvas(), false);
 const GLASSES = texFromCanvas(glassesCanvas(), false);
 const MONOCLE = texFromCanvas(monocleCanvas(), false);
+const NERD = texFromCanvas(nerdGlassesCanvas(), false);
 TEX.plaid = texFromCanvas(plaidCanvas('#b8874f', '#5a3a1e', '#e8cfa0'), true);
 TEX.tweed = texFromCanvas(plaidCanvas('#8a5e34', '#3e2614', '#c49a64'), true);
 const blobMesh = new Mesh((() => { const g = G(); g.pos.push(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1); for (let i = 0; i < 4; i++) { g.nrm.push(0, 1, 0); g.col.push(1, 1, 1); g.uv.push(0, 0); } g.idx.push(0, 2, 1, 0, 3, 2); return fin(g); })());
@@ -482,7 +616,7 @@ function physStep(vx, vy, vz, dt) { // velocities in "skill units" (pion height 
     // (cx / cz = the crown's own roll / pitch in the world; it chases the head's roll -.7 hx / pitch .7 hz)
     stepSpring(PH.cx, -.7 * PH.hx.p + clamp(vx * .025, -.14, .14), 95, 5.5, h);
     stepSpring(PH.cz, .7 * PH.hz.p + clamp(-vz * .025, -.12, .12), 95, 5.5, h);
-    stepSpring(PH.cy, clamp(-vy * .012, -.03, .05), 160, 9, h);
+    stepSpring(PH.cy, clamp(-vy * .014, -.035, .06), 150, 7.5, h);   // crown height: lags and lifts a little on landings
   }
 }
 function deformCape(time) {
@@ -505,8 +639,12 @@ function buildArm(mesh, S, E, Hh, rad0, rad1) { // quadratic bezier S->Hh with c
   for (let i = 0; i < ARM_N; i++) {
     const p = pts[i], a = pts[Math.max(i - 1, 0)], b = pts[Math.min(i + 1, ARM_N - 1)];
     let t = [b[0] - a[0], b[1] - a[1], b[2] - a[2]]; const tl = Math.hypot(...t) || 1; t = t.map(v => v / tl);
-    let ref = Math.abs(t[1]) > .9 ? [1, 0, 0] : [0, 1, 0];
-    let s = [t[1] * ref[2] - t[2] * ref[1], t[2] * ref[0] - t[0] * ref[2], t[0] * ref[1] - t[1] * ref[0]]; const sl = Math.hypot(...s) || 1; s = s.map(v => v / sl);
+    // rotation-minimising frame: carry the previous ring's side vector along the arm (a fixed reference
+    // vector flips when the arm passes vertical, which twists the tube and spikes its outline)
+    let s;
+    if (i && buildArm.ps) { const q = buildArm.ps, dq = q[0] * t[0] + q[1] * t[1] + q[2] * t[2]; s = [q[0] - dq * t[0], q[1] - dq * t[1], q[2] - dq * t[2]]; }
+    if (!s || Math.hypot(...s) < 1e-4) { const ref = Math.abs(t[1]) > .9 ? [1, 0, 0] : [0, 1, 0]; s = [t[1] * ref[2] - t[2] * ref[1], t[2] * ref[0] - t[0] * ref[2], t[0] * ref[1] - t[1] * ref[0]]; }
+    const sl = Math.hypot(...s) || 1; s = s.map(v => v / sl); buildArm.ps = s;
     const u = [t[1] * s[2] - t[2] * s[1], t[2] * s[0] - t[0] * s[2], t[0] * s[1] - t[1] * s[0]];
     const rad = lerp(rad0, rad1, i / (ARM_N - 1));
     for (let j = 0; j <= ARM_R; j++) { const ang = j / ARM_R * Math.PI * 2, c = Math.cos(ang), sn = Math.sin(ang); P[vi * 3] = p[0] + (s[0] * c + u[0] * sn) * rad; P[vi * 3 + 1] = p[1] + (s[1] * c + u[1] * sn) * rad; P[vi * 3 + 2] = p[2] + (s[2] * c + u[2] * sn) * rad; vi++; }
@@ -522,6 +660,8 @@ function drawToon(Msh, model, VP, L, o) {
   const P = toon; gl.useProgram(P.p);
   gl.uniformMatrix4fv(P.u.uVP, false, VP); gl.uniformMatrix4fv(P.u.uM, false, model); gl.uniformMatrix3fv(P.u.uNM, false, normalMat(model));
   gl.uniform3fv(P.u.uColor, o.color || [1, 1, 1]); gl.uniform1f(P.u.uUseVC, o.vc ? 1 : 0); gl.uniform1f(P.u.uUseTex, o.tex ? 1 : 0); gl.uniform1f(P.u.uDouble, o.dbl ? 1 : 0);
+  if (L.pos) { const dx = L.pos[0], dy = L.pos[1] - 3.0, dz = L.pos[2]; gl.uniform4f(P.u.uLPos, L.pos[0], L.pos[1], L.pos[2], 1.5); gl.uniform1f(P.u.uLAtt, dx * dx + dy * dy + dz * dz); }
+  else gl.uniform4f(P.u.uLPos, 0, 0, 0, 0);
   gl.uniform3fv(P.u.uLDir, L.dir); gl.uniform3fv(P.u.uKey, L.key); gl.uniform3fv(P.u.uAmb, L.amb); gl.uniform3fv(P.u.uSky, L.sky); gl.uniform3fv(P.u.uGnd, L.gnd); gl.uniform1f(P.u.uExp, L.exp); gl.uniform3fv(P.u.uRim, L.rim); gl.uniform1f(P.u.uFlash, FLASH); gl.uniform1f(P.u.uSpec, o.spec || 0); gl.uniform1f(P.u.uCut, o.cut ? 1 : 0); gl.uniform1f(P.u.uSoot, o.noSoot ? 0 : SOOT); gl.uniform1f(P.u.uSootK, o.sootK || 1); gl.uniform3fv(P.u.uEye, window.EYE || [0, 10, 20]);
   const ao = o.ao || [9, 10, 9, 10, 0]; gl.uniform4fv(P.u.uAO, ao.slice(0, 4)); gl.uniform1f(P.u.uAOs, ao[4]);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, o.tex || RAMP); gl.uniform1i(P.u.uTex, 0);

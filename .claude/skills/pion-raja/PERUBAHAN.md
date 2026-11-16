@@ -1,5 +1,44 @@
 # Pion Raja: catatan perubahan
 
+## Tambahan sesi shampoo (proj5)
+- **`gest crownlift [dur] [kiri|kanan]`**: tangan meraih mahkota (.28 s), mengangkatnya (.32 s), tahan, lalu memasang
+  lagi (.45 s terakhir). Kepala botak berkilau "ting", tangan lain menunjuk kepala, AO dahi dari mahkota ikut hilang.
+- **Lengan**: tabung lengan memakai frame rotation-minimising. Sebelumnya frame berbalik saat lengan melewati
+  vertikal, tabung terpuntir dan muncul duri gelap di outline (terlihat di gesture tangan ke atas).
+
+## v3: 33 ekspresi, pose soktahu, istana 3D dengan cahaya per emosi
+- **18 ekspresi baru** (dari desain Pion 2D lama, digambar ulang dengan gaya wajah engine): `nangis` `tersedu`
+  `girang` `bahagia` `cium` `lega` `gemas` `syok` `kesal` `ngiler` `merajuk` `memelas` `bosan` `cemas` `bangga`
+  `ngamuk` `santai` `soktahu`. Semua punya mulut bicara sendiri dan yang bermata terbuka ikut berkedip. Lihat `EKSPRESI.jpg`.
+- **Pose `soktahu`** (otomatis, atau `gest nerd`): kacamata kotak tebal, telunjuk kanan ke atas, tangan kiri membuka buku
+  "THE BOOK OF LARP" seperti sedang dibaca, mata melirik ke buku. Lihat `SOKTAHU.jpg`.
+- **Efek pencerahan**: saat `soktahu`, buku menyala emas sekitar 1,5 detik (cahaya ke wajah, bloom, garis silau,
+  partikel naik) lalu meredup.
+- **Cue `light`**: atur arah/warna cahaya toon Pion supaya cocok dengan background 3D.
+- **Mode 3 `castle3d/`**: istana 3D di Blender (gaya game AAA) untuk Pion asli: bayangan asli dari model bayangan
+  tak terlihat, peta cahaya ruangan yang dikalikan ke Pion dalam tingkat cel, 8 mood cahaya per emosi
+  (hangat, marah, sedih, kaget, licik, duit, misteri, pencerahan), tahta emas besar, langit-langit kotak-kotak emas,
+  patung batu catur, lampu gantung kap kuningan, garis tinta hitam di semua benda, framing Pion sekitar 60% frame.
+  Panduan: `castle3d/PANDUAN_ISTANA3D.md`.
+- **Micro zoom otomatis**: cue `autozoom` (zoom snap tiap N kata, level bergantian, punch di kata dengan `!`, pusat di
+  wajah) dan `engine/microzoom.py` untuk video yang sudah jadi.
+- **Kamera baru (`camplan.js`)**: zoom bertahap sampai 1,5x yang halus tanpa momentum/getar dan ditahan sampai kata
+  berikutnya, sudut + kemiringan per atmosfer, zoom out tiap ganti mood. Dipakai engine dan Remotion.
+- **Gerakan otomatis (`acting`)**: goyang, condong, memantul, lompat di "!", "take" saat ganti ekspresi, melirik saat diam.
+- **Video istana `castle_video.py` + Remotion**: plate bersih per mood, bayangan Pion dan cahaya di badannya ikut
+  bergerak bersama Pion, crossfade antar mood, kamera halus + motion blur kamera, audio.
+- **Model istana lebih detail** (blender-modeling): kolom marmer beralur dengan alas dan kepala pilar, bingkai jendela
+  berbatu kunci, list dinding, alas patung bertingkat dengan plakat emas, cincin di patung catur, list dan paku emas di tahta.
+- **Studio preview 3D di browser** (`castle3d/studio`, three.js): istana real-time, Pion 2D, cahaya per mood,
+  rencana kamera, timeline, kamera bebas, klik benda untuk melihat namanya.
+- **Shading kartun Pion**: pita cel analitik yang halus di semua zoom, bayangan bernuansa sejuk seperti cat tangan,
+  rim light tegas berwarna cahaya ruangan.
+- **Render lebih cepat**: compositing hanya di area Pion dan bayangannya dengan plate yang di-cache (sekitar 1,5x),
+  engine memakai semua core, dan cache plate otomatis dibuat ulang kalau script berubah.
+- **Pencahayaan diukur dan diperbaiki** (`light_check.py`, skill lighting): pemisahan nilai Pion dari latar di semua
+  8 mood sekarang ≥ 0,10 (sebelumnya hanya pencerahan yang lolos). Lihat `pion3d/cahaya_sebelum_sesudah.jpg`.
+- **Subtitle karaoke dihapus** dari engine. Cue `word` tetap ada sebagai penanda waktu kata (untuk `autozoom`).
+
 ## v2: gerak lebih halus, bayangan lebih bagus, menyatu dengan video
 Lihat `PERBANDINGAN_V2.jpg` untuk sebelum/sesudah.
 - **Motion blur** di mode video (`drive.js`, env `BLUR`, `SHUTTER`) dan mode reaksi (`--blur`, `--shutter`).
