@@ -200,7 +200,7 @@ def ring_layer(H, W, cx, cy, R, ry, wob, t, lumpy, alpha, thick):
     shine = np.clip(1 - np.abs(d + tw * 0.45) / (tw * 0.35), 0, 1) * np.clip(np.sin(th - 2.3) * 1.2, 0, 1)   # highlight on the upper-left of the tube
     ink = np.clip(1 - np.abs(np.abs(d) - tw) / (tw * 0.22), 0, 1) * 0.7
     body = np.array([.82, .96, 1.0], np.float32)
-    A = np.clip(rim * 0.62 + shine * 0.9, 0, 1) * alpha
+    A = np.clip(rim * (0.62 + 0.25 * lumpy) + shine * 0.9, 0, 1) * alpha
     E = ink * alpha
     sl = (slice(y0, y1), slice(x0, x1))
     col[sl] = np.array([.04, .26, .36], np.float32) * E[..., None]
@@ -557,7 +557,7 @@ def frame(f):
                 if e < life:
                     u = e / life
                     R = SW * (0.06 + 0.11 * (1 - (1 - u) ** 2))
-                    c, a = ring_layer(SH, SW, ox + SW * 0.20 * u, oy + SH * 0.03 * u, R, 0.8, 1, t, 1.0, min(1, u * 6), SW * 0.016)
+                    c, a = ring_layer(SH, SW, ox + SW * 0.20 * u, oy + SH * 0.03 * u, R, 0.8, 1, t, 1.0, min(1, u * 6), SW * 0.026)
                     over(out, c, a)
                 else:
                     pe = e - life

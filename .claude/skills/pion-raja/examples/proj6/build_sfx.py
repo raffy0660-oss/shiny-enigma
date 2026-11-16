@@ -113,42 +113,37 @@ def cues():
     blub_lo = np.interp(np.arange(0, len(blub), .78), np.arange(len(blub)), blub)          # pitched down: sloppy failed ring
     ring = norm(P.LIB["woosh_long"]() * .7 + np.pad(P.LIB["sparkle"](), (int(.15 * SR), 0))[:len(P.LIB["woosh_long"]())] * .5, .8)
     ring = np.concatenate([ring, np.zeros(SR)]); bb = bubbles(1.6, 16); ring[:len(bb)] += bb * .5
+    E = {n: load(n) for n in ["leak", "crack", "burst", "torrent", "blub", "submerge", "flail", "uw_amb", "whoosh_uw", "tongue", "puff",
+                               "zoomout", "failring", "pop", "awkward", "angry", "button", "windup", "ring", "ringcam", "sparkle"]}
     L = [
         # ---- white 1
-        (4.60, leak(6.0), -15, None),
-        (5.95, crack, -10, None),                        # stress cracks before the break
-        (6.78, burst, -3, None),
-        (6.92, torrent, -4, None),
-        (7.30, sub, -8, None),
-        (7.25, splashes(2.8), -10, 1500),
-        (7.32, blub, -2, 2600),                          # blubuk-blubuk
-        (8.15, blub, -6, 2200),
-        (8.70, uw_amb(2.0), -10, None),
-        (9.00, bubbles(1.4, 18), -12, 1600),
-        (10.30, whoosh, -6, None),                       # into the diver clip
+        (4.60, E["leak"], -14, None),                    # small leak, he has not noticed yet
+        (5.95, E["crack"], -9, None),                    # stress cracks before the break
+        (6.74, E["burst"], -2, None),                    # the wall bursts
+        (7.10, E["torrent"], -6, None),
+        (7.20, E["submerge"], -6, None),                 # the water closes over him
+        (7.25, E["flail"], -8, 1800),
+        (7.32, E["blub"], -2, 2600),                     # blubuk-blubuk
+        (8.10, blub, -6, 2200),
+        (8.40, E["uw_amb"][:int(2.2 * SR)], -10, None),
+        (9.00, bubbles(1.4, 18), -13, 1600),
+        (10.30, E["whoosh_uw"], -6, None),               # into the diver clip
         # ---- white 2 (underwater the whole time)
-        (25.00, uw_amb(12.94), -11, None),
-        (24.92, whoosh, -8, None),
-        (27.30, P.LIB["pop"](), -8, None),               # tongue out (blep)
-        (27.32, P.LIB["boing"](), -14, None),
-        (28.70, P.LIB["stretch"](), -10, None),          # cheeks puff up
-        (29.16, P.LIB["woosh_down"](), -16, None),       # slow zoom out on "aaand"
-        (30.08, blub_lo, -4, 2400),                      # sloppy failed ring...
-        (30.48, P.LIB["pop"](), -6, None),               # ...pop, gone
-        (30.52, bubbles(.5, 30, 600, 1600), -10, None),
-        (30.75, cricket(), -12, None),                   # awkward silence
-        (31.50, P.LIB["sizzle"](), -14, None),           # steaming mad
-        (32.88, P.LIB["bonk"](), -10, None),             # button press
-        (32.90, P.LIB["ting"](), -9, None),
-        (33.80, P.LIB["stretch"](), -11, None),          # wind-up
-        (34.20, P.LIB["rise"](), -14, None),
-        (34.55, P.LIB["stretch"](), -13, None),          # breath in
-        (35.05, P.LIB["woosh"](), -9, None),             # blow!
-        (35.10, ring, -5, None),                         # perfect ring
-        (36.60, whoosh, -4, None),                       # ring rushes the lens
-        (36.70, bubbles(1.0, 26, 500, 1500), -9, None),
-        (35.70, P.LIB["sparkle"](), -9, None),           # pose
-        (35.75, P.LIB["ting"](), -12, None),
+        (25.00, E["uw_amb"][:int(12.94 * SR)], -11, None),
+        (24.92, E["whoosh_uw"], -8, None),
+        (27.30, E["tongue"], -5, None),                  # tongue out (blep)
+        (28.72, E["puff"], -6, None),                    # cheeks puff up
+        (29.16, E["zoomout"], -12, None),                # slow zoom out on "aaand"
+        (30.08, E["failring"], -3, 2800),                # sloppy failed ring...
+        (30.46, E["pop"], -5, None),                     # ...pop, gone
+        (30.70, E["awkward"], -11, None),                # awkward silence
+        (31.50, E["angry"], -10, None),                  # steaming mad
+        (32.86, E["button"], -6, None),                  # button press
+        (33.80, E["windup"], -8, None),                  # wind-up
+        (34.55, E["puff"], -10, None),                   # breath in
+        (35.08, E["ring"], -4, None),                    # perfect ring
+        (36.55, E["ringcam"], -4, None),                 # ring rushes the lens
+        (35.70, E["sparkle"], -8, None),                 # pose
     ]
     return L
 
