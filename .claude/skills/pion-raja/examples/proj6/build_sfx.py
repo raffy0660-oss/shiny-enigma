@@ -98,6 +98,25 @@ def cricket():
     return norm(x, .5)
 
 
+def boom():
+    d = 1.6; t = np.arange(int(d * SR)) / SR
+    f = 55 * np.exp(-t * 1.2) + 28
+    x = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 2.2)
+    x += lowpass(R.standard_normal(len(t)), 220) * np.exp(-t * 6) * 0.6
+    return norm(np.tanh(x * 2.5), .95)
+
+
+def flood_rush(x):
+    """full-band roar for the first ~0.45 s, then muffled (he is under water), fading out before the cut"""
+    n0 = int(0.45 * SR); n = len(x)
+    lo = lowpass(x, 900) * 1.4
+    k = np.clip((np.arange(n) - n0) / (0.25 * SR), 0, 1)
+    y = x * (1 - k) + lo * k
+    end = int(3.4 * SR)
+    y = y[:end] if n > end else y
+    return fade(np.tanh(y * 1.6) / np.tanh(1.6), .005, .6)
+
+
 # ---------------- the cue sheet: (time, source, gain dB, lowpass Hz or None)
 def cues():
     torrent, blub, crack, whoosh = load("torrent"), load("blub"), load("crack"), load("whoosh_uw")
@@ -114,14 +133,19 @@ def cues():
     ring = norm(P.LIB["woosh_long"]() * .7 + np.pad(P.LIB["sparkle"](), (int(.15 * SR), 0))[:len(P.LIB["woosh_long"]())] * .5, .8)
     ring = np.concatenate([ring, np.zeros(SR)]); bb = bubbles(1.6, 16); ring[:len(bb)] += bb * .5
     E = {n: load(n) for n in ["leak", "crack", "burst", "torrent", "blub", "submerge", "flail", "uw_amb", "whoosh_uw", "tongue", "puff",
-                               "zoomout", "failring", "pop", "awkward", "angry", "button", "windup", "ring", "ringcam", "sparkle"]}
+                               "zoomout", "failring", "pop", "awkward", "angry", "button", "windup", "ring", "ringcam", "sparkle", "burst2", "torrent2", "slam", "roar_uw"]}
     L = [
         # ---- white 1
         (4.60, E["leak"], -14, None),                    # small leak, he has not noticed yet
-        (5.95, E["crack"], -9, None),                    # stress cracks before the break
-        (6.74, E["burst"], -2, None),                    # the wall bursts
-        (7.10, E["torrent"], -6, None),
-        (7.20, E["submerge"], -6, None),                 # the water closes over him
+        (5.95, E["crack"], -7, None),                    # stress cracks before the break
+        (6.70, E["burst2"], 0, None),                    # BRUTAL: the wall explodes
+        (6.74, E["burst"], -5, None),
+        (6.76, boom(), -1, None),                        # sub-bass hit
+        (6.95, flood_rush(E["torrent2"]), 0, None),      # the wall of water: full roar, goes muffled as he goes under
+        (6.90, E["torrent"], -7, None),
+        (7.18, E["slam"], -1, None),                     # the wave slams into him
+        (7.25, E["roar_uw"], -3, None),
+        (7.25, E["submerge"], -7, None),
         (7.25, E["flail"], -8, 1800),
         (7.32, E["blub"], -2, 2600),                     # blubuk-blubuk
         (8.10, blub, -6, 2200),
@@ -161,7 +185,8 @@ def main():
         mix[i:i + len(x)] += x[:len(mix) - i]
     mix = mix[:int(dur * SR)]
     mix = np.tanh(mix * 1.05) / np.tanh(1.05)
-    P.write_wav(out, mix * .95)
+    mix = mix / max(1.0, np.max(np.abs(mix))) * .97
+    P.write_wav(out, mix)
     print("sfx ->", out, f"peak {np.max(np.abs(mix)):.2f}")
 
 

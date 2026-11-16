@@ -24,6 +24,12 @@ SFX = {
  "ringcam":   ("big bubble whoosh rushing past the camera, airy swoosh with bubbly splash", 1.2, .6, False),
  "sparkle":   ("bright cartoon sparkle shine ding, cool pose", 0.9, .7, False),
 }
+SFX.update({
+ "burst2":   ("catastrophic dam burst inside a stone castle hall, colossal explosion of bricks, thunderous deep boom, a gigantic wall of water smashing through, cinematic and brutal", 4.0, .7, False),
+ "torrent2": ("enormous violent flood of water roaring into a room, massive crashing whitewater, thundering rush, churning, overwhelming and loud, cinematic", 5.0, .7, False),
+ "slam":     ("huge heavy water impact slam, massive wave crashing hard against a body, deep and violent splash", 1.5, .75, False),
+ "roar_uw":  ("deep violent underwater roar and rumble as a room floods, turbulent bubbles and pressure, muffled thunder", 3.5, .65, False),
+})
 def gen(name):
     text, dur, pi, loop = SFX[name]
     body = json.dumps({"text": text, "model_id": "eleven_text_to_sound_v3", "duration_seconds": dur, "prompt_influence": pi, "loop": loop}).encode()

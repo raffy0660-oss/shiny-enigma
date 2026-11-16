@@ -45,7 +45,7 @@ def main():
     total = int(round((W2[1] + TAIL) * FPS))
     enc = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
                             "-i", SRC, "-i", sfx, "-filter_complex",
-                            f"[1:a]apad=pad_dur={TAIL + 1},atrim=0:{W2[1] + TAIL},aresample=48000[vo];[2:a]volume=1.0[s];[vo][s]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[a]",
+                            f"[1:a]apad=pad_dur={TAIL + 1},atrim=0:{W2[1] + TAIL},aresample=48000,aformat=channel_layouts=stereo,asplit=2[vo][vok];[2:a][vok]sidechaincompress=threshold=0.04:ratio=5:attack=15:release=350:makeup=1[s];[vo][s]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.95[a]",
                             "-map", "0:v", "-map", "[a]", "-c:v", "libx264", "-crf", "15", "-preset", "medium", "-pix_fmt", "yuv420p",
                             "-c:a", "aac", "-b:a", "256k", "-movflags", "+faststart", out], stdin=subprocess.PIPE)
     last_pion = None
