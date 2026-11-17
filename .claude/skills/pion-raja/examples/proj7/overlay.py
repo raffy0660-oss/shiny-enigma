@@ -26,10 +26,10 @@ else:
     shutil.copy(os.path.join(P, "interior", "w2i.mp4"), os.path.join(pub, "w2i.mp4"))
     items = [
         {"type": "counter", "t0": 2.62, "t1": 4.95, "at": "sheet", "value": 160000, "unit": "SQ FT", "label": "SCREEN AREA", "dy": -0.16},
-        {"type": "pop", "t0": 5.05, "t1": 7.90, "at": "field1", "text": "1"},
-        {"type": "pop", "t0": 5.60, "t1": 7.90, "at": "field2", "text": "2"},
-        {"type": "pop", "t0": 6.15, "t1": 7.90, "at": "field3", "text": "3"},
-        {"type": "caption", "t0": 6.30, "t1": 7.95, "text": "ALMOST 3 FOOTBALL FIELDS", "label": "THAT'S", "pos": "bottom"},
+        {"type": "pop", "t0": 5.05, "t1": 6.95, "at": "field1", "text": "1"},
+        {"type": "pop", "t0": 5.60, "t1": 6.95, "at": "field2", "text": "2"},
+        {"type": "pop", "t0": 6.15, "t1": 6.95, "at": "field3", "text": "3"},
+        {"type": "caption", "t0": 6.90, "t1": 7.95, "text": "ALMOST 3 FOOTBALL FIELDS", "label": "THAT'S", "pos": "bottom"},
     ]
     props = {"frames": n, "fps": fps, "width": 1080, "height": 1920, "seq": w, "pts": pts, "items": items, "cuts": [1.15],
              "intro": {"src": "w2i.mp4", "until": 1.15}}
