@@ -58,6 +58,20 @@ const inkPass = new ShaderPass({
 composer.addPass(inkPass);
 composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.16, 0.3, 1.8));
 composer.addPass(new OutputPass());
+// Pion layer (his engine render + a soft contact shadow), composited after AgX so he keeps his own colours,
+// but BEFORE the grade, so the punchy grade and the vignette treat him like the rest of the picture
+const pionRT = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType });
+const pionComp = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, tPion: { value: pionRT.texture } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse, tPion; varying vec2 vUv;
+    vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+    void main(){ vec4 b = texture2D(tDiffuse, vUv), p = texture2D(tPion, vUv);
+      vec3 pc = p.a > 1e-4 ? toSRGB(clamp(p.rgb / p.a, 0.0, 1.0)) : vec3(0.0);
+      gl_FragColor = vec4(mix(b.rgb, pc, p.a), 1.0); }`,
+});
+pionComp.uniforms.tPion.value = pionRT.texture;   // ShaderPass clones its uniforms: point at the live render target again
+composer.addPass(pionComp);
 composer.addPass(new ShaderPass({   // punchy grade + vignette (display space, after AgX)
   uniforms: { tDiffuse: { value: null } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -397,7 +411,12 @@ const pion = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMa
 pion.castShadow = true; pion.layers.set(1); sun.shadow.camera.layers.enable(1);
 pion.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5 });
 scene.add(pion);
-const pionScene = new THREE.Scene(), pionShow = new THREE.Mesh(pion.geometry, pionMat); pionScene.add(pionShow);   // Pion keeps his own colours: drawn after tone mapping
+const pionScene = new THREE.Scene(), pionShow = new THREE.Mesh(pion.geometry, pionMat); pionShow.renderOrder = 2; pionScene.add(pionShow);
+const contactTex = canvasTex(256, 256, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+  gr.addColorStop(0, "rgba(0,0,0,.72)"); gr.addColorStop(0.45, "rgba(0,0,0,.42)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, null);
+contactTex.colorSpace = THREE.NoColorSpace;
+const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: contactTex, transparent: true, depthTest: false, depthWrite: false, color: 0x1a120a }));
+contact.rotation.x = -Math.PI / 2; contact.renderOrder = 1; pionScene.add(contact);   // grounds him: soft occlusion right under his base
 let PION = null;
 const texLoader = new THREE.TextureLoader();
 let curTex = null;
@@ -498,11 +517,13 @@ window.renderFrame = async (which, f, fps, pionUrl) => {
   placePion(anchor, height, mode);
   for (const k in WP) pts[k] = project(WP[k]);
   pts.head = project(pion.localToWorld(V(0, 0.25, 0)));
+  pionShow.position.copy(pion.position); pionShow.quaternion.copy(pion.quaternion); pionShow.scale.copy(pion.scale);
+  const air = Math.max(0, anchor.y), cw = height * 0.62 / (1 + air / (height * 0.25));
+  contact.visible = mode !== "full" || air < 1; contact.scale.set(cw, cw * 0.55, 1); contact.material.opacity = 1 / (1 + air / (height * 0.15));
+  contact.position.set(anchor.x, (which === "w1" && t >= SHOTS.w1.cut ? 0.9 : 0.8) + air, anchor.z);
+  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(pionScene, camera); renderer.setRenderTarget(null);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture; inkPass.uniforms.near.value = camera.near; inkPass.uniforms.far.value = camera.far;
   composer.render();
-  pionShow.position.copy(pion.position); pionShow.quaternion.copy(pion.quaternion); pionShow.scale.copy(pion.scale);
-  const tm = renderer.toneMapping; renderer.toneMapping = THREE.NoToneMapping; renderer.autoClear = false;
-  renderer.setRenderTarget(null); renderer.render(pionScene, camera); renderer.autoClear = true; renderer.toneMapping = tm;
   return { img: renderer.domElement.toDataURL("image/jpeg", 0.93), pts };
 };
 window.__ready = true;
