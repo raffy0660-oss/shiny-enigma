@@ -4,7 +4,11 @@ Video sumber 1080x1920 30 fps, dua layar putih: 7,10-15,00 dan 21,933-29,90.
 
 1. Pion engine (PNG transparan, 1080x1920, `frame full`, cahaya siang): `react_render.js --cues cues/eng_w1.txt --png --bg black`.
    Fitur baru: `gest kantong` (tangan di saku, pose The Notebook), `booktitle deathnote` (buku soktahu jadi Death Note).
-2. Dunia luar istana (three.js r186, toon + garis tinta layar, Pion billboard yang menjatuhkan bayangan):
+2. Dunia luar istana, versi REALISTIS (`scene/scene.js`; versi kartun lama di `scene/scene_toon.js`): three.js r186, material PBR,
+   langit fisik (Sky), HDRI kota CC0 dari `@pmndrs/assets` untuk cahaya + pantulan, ACES, bloom untuk LED. Kota: plaza, jalan aspal
+   bermarka, mobil, lampu jalan, palem, hotel/gedung kaca, piramida kaca, menara rangka besi, menara jarum observasi, bianglala.
+   Pion digambar setelah tone mapping (warnanya tetap), bayangannya tetap jatuh di dunia 3D.
+   `npm install three@0.186.0 @pmndrs/assets@1.7.0`, lalu:
    `cd scene && npm install three@0.186.0 && node render_scene.js w1 ../out/w1` (juga menulis `pts.json`: titik 3D di layar).
    Shot: Pion dekat + Sphere sebagian, zoom out, Pion membesar, kastil The Notebook; Sphere meleleh jadi layar datar
    480 x 333 ft (~160.000 sq ft), 3 lapangan football jatuh bergantian dengan gempa + debu, Pion terbang ke atas.
