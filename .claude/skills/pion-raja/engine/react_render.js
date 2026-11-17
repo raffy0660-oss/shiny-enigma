@@ -67,7 +67,7 @@ function analyse(file) {
 //   <t> hover off|on                 gentle floating (on by default)
 const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
   'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu', 'melet', 'gembung', 'tiup', 'malu', 'sewot'];
-const GEST = ['flail', 'tread', 'cough', 'windup', 'blow', 'gaya', 'up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click', 'toss', 'cointhrow', 'pouch', 'deathnote'];
+const GEST = ['kantong', 'flail', 'tread', 'cough', 'windup', 'blow', 'gaya', 'up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click', 'toss', 'cointhrow', 'pouch', 'deathnote'];
 function parseCues(txt) {
   const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], float: [], panic: [], bg: null, frame: null, frameOverride: null }, warn = [];
   const time = s => { const m = s.split(':').map(Number); return m.length > 1 ? m[0] * 60 + m[1] : m[0]; };
@@ -83,6 +83,7 @@ function parseCues(txt) {
     if (w[1] === 'light' && !isNaN(+w[0])) { // timed light: <t> light dir .. key .. -> crossfades (0.4 s) from the previous light
       const L = {}; for (let i = 2; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; L[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
       (C.lights = C.lights || []).push({ t: +w[0], L }); return; }
+    if (w[0] === 'booktitle' || w[0] === 'judulbuku') { C.bookTitle = (w[1] || '').toLowerCase(); return; }   // booktitle deathnote: the soktahu book becomes the Death Note
     if (w[0] === 'hurt') { C.hurt = +(w[1] ?? 1); return; }
     if (w[0] === 'frame') { const v = w[1] || 'close'; if (v.includes(',')) { const [cy, vh, cx, tilt] = v.split(',').map(Number); C.frameOverride = { cy, vh, cx: cx || 0 }; if (!isNaN(tilt)) C.frameOverride.tiltDeg = tilt; } else C.frame = v; return; } // frame cy,vh[,cx[,tilt°]]: tilt = camera elevation (6 = default, 50 = looking down on the head)
     const t = time(w[0]) - (arg('local') ? 0 : START), cmd = (w[1] || '').toLowerCase();
@@ -201,7 +202,7 @@ async function openPage(data) {
   const off0 = arg('local') ? 0 : START, fr0 = t => Math.round((t - off0) * FPS);
   const bangF = (cues.subs || []).filter(([, txt]) => /!/.test(txt)).map(([t]) => fr0(t));
   const ex = cues.expr.slice().sort((p, q) => p[0] - q[0]), takeF = ex.filter((e, i) => i > 0 && e[1] !== ex[i - 1][1]).map(([t]) => fr0(t));
-  const data = { fps: FPS, n: au.n, camz, acting: cues.acting ?? 1, bangF, takeF, lights: (cues.lights || []).sort((p, q) => p.t - q.t), env: au.env, onset: au.onset, jelly: JELLY, float: cues.float, panic: cues.panic, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
+  const data = { fps: FPS, n: au.n, camz, acting: cues.acting ?? 1, bangF, takeF, lights: (cues.lights || []).sort((p, q) => p.t - q.t), env: au.env, onset: au.onset, jelly: JELLY, float: cues.float, panic: cues.panic, bookTitle: cues.bookTitle, frame: cues.frame || 'mid', frameOverride: cues.frameOverride, expr: cues.expr, gest: cues.gest, startle: cues.startle, look: cues.look, fly: cues.fly, hover: cues.hover, cams: cues.cams, shakes: cues.shakes, turns: cues.turns, fx: cues.fx, bg: cues.bg, light: cues.light || null, hurt: cues.hurt || 0, subs: (cues.subs || []).sort((a, b) => a[0] - b[0]) };
   for (const [bt, s] of cues.boing) { const f = Math.round(bt * FPS); if (f >= 0 && f < data.n) data.onset[f] = Math.max(data.onset[f], s); }
   for (const S of cues.say || []) { // speech bubble: fake syllables drive the mouth + jelly
     const syl = Math.max(2, Math.round(S.text.replace(/[^a-z]/gi, '').length / 2.2)), f0 = Math.round(S.t * FPS), f1 = Math.round((S.t + S.dur) * FPS);

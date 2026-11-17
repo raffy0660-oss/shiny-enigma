@@ -22,7 +22,7 @@ window.setReact = d => {
   RX.fr = Object.assign({ cx: 0, yaw: 0, tiltDeg: 6 }, FRAMES[d.frame] || FRAMES.mid, d.frameOverride || {});
   RX.fly = (d.fly || []).slice().sort((p, q) => p.t0 - q.t0); RX.hover = d.hover || [];
   RX.cams = (d.cams || []).slice().sort((p, q) => p.t - q.t); RX.shakes = d.shakes || []; RX.turns = (d.turns || []).slice().sort((p, q) => p.t - q.t);
-  RX.fxl = d.fx || []; RX.floatK = (d.float || []).slice().sort((p, q) => p.t - q.t); RX.panicK = (d.panic || []).slice().sort((p, q) => p.t - q.t);
+  RX.fxl = d.fx || []; RX.bookTitle = d.bookTitle || null; RX.floatK = (d.float || []).slice().sort((p, q) => p.t - q.t); RX.panicK = (d.panic || []).slice().sort((p, q) => p.t - q.t);
   RX.imgs = {}; for (const E of RX.fxl) if (E.type === 'photo' && !RX.imgs[E.src]) { const im = new Image(); im.src = E.src; RX.imgs[E.src] = im; }
   rLast = -10; RS.clear(); return RX.n;
 };
@@ -267,12 +267,13 @@ function drawProps(t, PP, base, VP, L, cam) {
     }
     if (G.type === 'nerd' && hands[1]) { // open book in his left hand, pages toward his face, covers (a V) toward the camera
       const sc = clamp(env * 1.3, 0, 1), B = mat.chain(hands[1].M, mat.T(-.1, .36, .28), mat.RX(-.2), mat.RY(-.12), mat.S(sc, sc, sc));
-      drawToon(PROP.bookSpine, mat.chain(B, mat.T(0, 0, .02)), VP, L, { color: [.22, .06, .13] });
+      drawToon(PROP.bookSpine, mat.chain(B, mat.T(0, 0, .02)), VP, L, { color: RX.bookTitle === 'deathnote' ? [.05, .05, .055] : [.22, .06, .13] });
       for (const sd of [-1, 1]) { // sd 1 = front cover on the camera's right (he reads it left-to-right)
         const H = mat.chain(B, mat.RY(sd * .7)), C = mat.chain(H, mat.T(sd * .33, 0, 0));
-        drawOutline(PROP.bookCover, mat.mul(C, mat.S(1.06, 1.05, 1.6)), VP, 0); drawToon(PROP.bookCover, C, VP, L, { color: [.29, .08, .19], spec: .12 });
+        const DN = RX.bookTitle === 'deathnote', X4 = DN ? props4() : null;   // cue `booktitle deathnote`: the black Death Note instead of THE BOOK OF LARP
+        drawOutline(PROP.bookCover, mat.mul(C, mat.S(1.06, 1.05, 1.6)), VP, 0); drawToon(PROP.bookCover, C, VP, L, { color: DN ? [.07, .07, .075] : [.29, .08, .19], spec: .12 });
         const gl0 = nerdGlow(t); drawToon(PROP.bookPages, mat.chain(H, mat.T(sd * .31, 0, -.045)), VP, L, { color: [.98 + 1.4 * gl0, .93 + 1.1 * gl0, .8 + .5 * gl0] });
-        tex(mat.chain(C, mat.T(0, 0, .019), mat.S(.58, .8, 1)), sd > 0 ? PROP.bookFront : PROP.bookBack, { color: [1.1, 1.1, 1.1] });
+        tex(mat.chain(C, mat.T(0, 0, .019), mat.S(.58, .8, 1)), DN ? (sd > 0 ? X4.coverFull : X4.coverR) : sd > 0 ? PROP.bookFront : PROP.bookBack, { color: [1.1, 1.1, 1.1] });
       }
     }
     if (G.type === 'write') { // sheet held at the chest, pen in the right hand

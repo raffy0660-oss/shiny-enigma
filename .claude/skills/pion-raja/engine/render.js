@@ -298,6 +298,9 @@ function gestureState(t, o) {
     else if (G.type === 'blow') { // both hands frame the mouth as he pushes the air out
       for (let k = 0; k < 2; k++) { const sd = k ? 1 : -1, o = smooth(G.t0 + .12, G.t0 + .3, t); res[k] = { env, h: [sd * (.5 + .55 * o), 2.35 + .1 * o, 1.15 - .25 * o], head: true }; }
     }
+    else if (G.type === 'kantong') { // hands in the front pockets (The Notebook pose): hands sink into the body at the hips, elbows a little out
+      for (let k = 0; k < 2; k++) { const sd = k ? 1 : -1; res[k] = { env, h: [sd * .62, .98 + .01 * Math.sin(ph * 1.3 + k), .3], hs: .6 }; }
+    }
     else if (G.type === 'gaya') { // showing off: finger gun at the camera, other hand on the hip
       const d = [-.18, .06, 1], dl = Math.hypot(...d); res[k0] = { env, h: [sd0 * .85, 2.35, 1.35], point: true, dir: d.map(v => v / dl) }; res[1 - k0] = HIP(-sd0);
     }
@@ -323,6 +326,7 @@ function bodyPose(t) { // extra sway from gestures
     if (G.type === 'cough') lean += (.08 + .05 * Math.max(0, Math.sin(ph * 14))) * env;
     if (G.type === 'windup') { const u = clamp((t - G.t0) / Math.max(.1, G.t1 - G.t0), 0, 1); lean += (-.14 * smooth(0, .4, u) + .3 * smooth(.78, 1, u)) * env; }
     if (G.type === 'blow') lean += .1 * env;
+    if (G.type === 'kantong') { lean += -.05 * env; roll += .035 * env; }
     if (G.type === 'gaya') { roll += -(G.side || 1) * .1 * env; yaw += (G.side || 1) * .18 * env; }
     if (G.type === 'crownlift') { roll += -(G.side || 1) * .05 * env; lean += -.05 * env; }
     if (G.type === 'knock') lean += .06 * env * Math.max(0, Math.sin((t - G.t0) * Math.PI * 2 * 3.5));
@@ -357,7 +361,7 @@ function posePion(base, t, gs, look, hurt) {
     const Hh = [lerp(start[0], gh[0], e), lerp(start[1], gh[1], e), lerp(start[2], gh[2], e)];
     const mid = [(S[0] + Hh[0]) / 2 + side * .3, (S[1] + Hh[1]) / 2 - .25, (S[2] + Hh[2]) / 2 + .2];
     buildArm(M.arm[k], S, mid, Hh, .15 * g.env, .13 * g.env);
-    const hsz = clamp(g.env * 1.1, 0, 1);
+    const hsz = clamp(g.env * 1.1, 0, 1) * (g.hs ?? 1); // hs < 1: a hand half hidden (hands in pockets)
     const handM = mat.chain(base, mat.T(...Hh), mat.S(hsz, hsz, hsz));
     let fing = null, tip = null;
     if (g.point) { const d = g.dir; const R = rotFromY(d); fing = mat.chain(base, mat.T(Hh[0] + d[0] * .32, Hh[1] + d[1] * .32, Hh[2] + d[2] * .32), R, mat.S(hsz, hsz, hsz)); tip = mat.chain(base, mat.T(Hh[0] + d[0] * .53, Hh[1] + d[1] * .53, Hh[2] + d[2] * .53), mat.S(hsz, hsz, hsz)); }

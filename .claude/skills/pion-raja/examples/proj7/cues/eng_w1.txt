@@ -1,0 +1,16 @@
+frame full
+light dir -.55 .75 .55 key 1 .94 .84 amb .44 .52 .64 rim .6 .55 .48 exp 1.02
+0.00 bangga
+0.00 look 6 0 3
+0.76 kaget
+0.76 look 25 -18 0
+1.55 boing 1.2
+1.60 senang
+1.60 look 0
+1.76 gest point 1.6 kanan 980 220
+3.50 penasaran
+3.94 gest present 1.7
+5.70 bangga
+5.85 datar
+5.85 gest kantong 2.1
+5.85 look 10 -2 5

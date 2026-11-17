@@ -1,0 +1,17 @@
+frame full
+light dir -.55 .75 .55 key 1 .94 .84 amb .44 .52 .64 rim .6 .55 .48 exp 1.02
+0.00 senang
+1.15 senang
+1.15 gest point 1.5 kanan 980 300
+2.55 kaget
+2.55 look 22 16 0
+4.20 senang
+4.20 look 10 8 0
+5.05 kaget
+5.05 startle
+5.60 startle
+6.15 startle
+6.80 girang
+6.80 gest up 1.1
+6.80 look 0 20 0
+7.40 bangga

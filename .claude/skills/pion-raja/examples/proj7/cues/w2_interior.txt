@@ -1,0 +1,8 @@
+0.00 mood hangat
+booktitle deathnote
+0.00 soktahu
+0.00 glow 0.15
+0.00 autozoom 1 0.8 pola
+0.09 word And
+0.43 word fun
+0.69 word fact,
