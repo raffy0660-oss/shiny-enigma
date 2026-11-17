@@ -350,7 +350,8 @@ const fields = FIELD_X.map(() => { const m = new THREE.Mesh(new THREE.BoxGeometr
 const dustTex = canvasTex(128, 128, (g, w, h) => { for (let i = 0; i < 26; i++) { const x = w / 2 + (rnd() - .5) * w * .5, y = h / 2 + (rnd() - .5) * h * .5, r = 20 + rnd() * 30;
   const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, "rgba(205,190,165,.35)"); gr.addColorStop(1, "rgba(205,190,165,0)"); g.fillStyle = gr; g.fillRect(0, 0, w, h); } }, null);
 const PUFFS = 40;
-const puffs = FIELD_X.map(() => Array.from({ length: PUFFS }, () => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dustTex, transparent: true, depthWrite: false, opacity: 0 })); s.visible = false; scene.add(s); return s; }));
+const dustScene = new THREE.Scene();   // dust lives on the Pion layer: no AO, no ink lines on the soft sprites
+const puffs = FIELD_X.map(() => Array.from({ length: PUFFS }, () => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: dustTex, transparent: true, depthWrite: false, depthTest: false, opacity: 0 })); s.visible = false; dustScene.add(s); return s; }));
 const puffSeeds = Array.from({ length: PUFFS }, () => [rnd(), rnd(), rnd()]);
 
 // ------------------------------------------------------------------ the Pion kingdom castle (The Notebook shot), a quiet lawn west of the city
@@ -521,7 +522,7 @@ window.renderFrame = async (which, f, fps, pionUrl) => {
   const air = Math.max(0, anchor.y), cw = height * 0.62 / (1 + air / (height * 0.25));
   contact.visible = mode !== "full" || air < 1; contact.scale.set(cw, cw * 0.55, 1); contact.material.opacity = 1 / (1 + air / (height * 0.15));
   contact.position.set(anchor.x, (which === "w1" && t >= SHOTS.w1.cut ? 0.9 : 0.8) + air, anchor.z);
-  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(pionScene, camera); renderer.setRenderTarget(null);
+  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.autoClear = false; renderer.render(dustScene, camera); renderer.render(pionScene, camera); renderer.autoClear = true; renderer.setRenderTarget(null);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture; inkPass.uniforms.near.value = camera.near; inkPass.uniforms.far.value = camera.far;
   composer.render();
   return { img: renderer.domElement.toDataURL("image/jpeg", 0.93), pts };

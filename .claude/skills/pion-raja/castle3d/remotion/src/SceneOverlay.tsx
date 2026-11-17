@@ -15,7 +15,7 @@ type Item =
   | { type: "dim"; t0: number; t1: number; a: string; b: string; axis: "v" | "h"; value: number; unit: string; label: string; offset?: number }
   | { type: "counter"; t0: number; t1: number; at: string; value: number; unit: string; label: string; dy?: number }
   | { type: "pop"; t0: number; t1: number; at: string; text: string }
-  | { type: "caption"; t0: number; t1: number; text: string; label?: string };
+  | { type: "caption"; t0: number; t1: number; text: string; label?: string; pos?: "top" | "bottom" };
 export type SceneOverlayProps = {
   frames: number; fps: number; width: number; height: number;
   seq: string; seqFrom?: number; intro?: { src: string; until: number } | null;
@@ -116,7 +116,7 @@ const Caption: React.FC<{ it: Extract<Item, { type: "caption" }> }> = ({ it }) =
   const op = inOut(f, fps, it.t0, it.t1); if (op <= 0) return null;
   const size = W * 0.075, rise = interpolate(f, [it.t0 * fps, it.t0 * fps + 0.4 * fps], [20, 0], { ...C, easing: ease });
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-start", alignItems: "center", paddingTop: "9%", opacity: op, translate: `0px ${rise}px` }}>
+    <AbsoluteFill style={{ justifyContent: it.pos === "bottom" ? "flex-end" : "flex-start", alignItems: "center", paddingTop: it.pos === "bottom" ? 0 : "9%", paddingBottom: it.pos === "bottom" ? "11%" : 0, opacity: op, translate: `0px ${rise}px` }}>
       {it.label ? <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 800, fontSize: size * 0.32, letterSpacing: "0.3em", color: GOLD, textShadow: `0 2px 0 ${INK}` }}>{it.label}</div> : null}
       <div style={{ fontFamily: "'Inter Display', Inter, sans-serif", fontWeight: 900, fontSize: size, color: "#fffaf0", textAlign: "center",
         textShadow: `0 ${size * 0.06}px 0 ${INK}, 0 0 ${size * 0.3}px rgba(0,0,0,.45)`, WebkitTextStroke: `${size * 0.03}px ${INK}`, maxWidth: "90%" }}>{it.text}</div>

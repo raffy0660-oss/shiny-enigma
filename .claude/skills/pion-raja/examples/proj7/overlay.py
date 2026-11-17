@@ -29,7 +29,7 @@ else:
         {"type": "pop", "t0": 5.05, "t1": 7.90, "at": "field1", "text": "1"},
         {"type": "pop", "t0": 5.60, "t1": 7.90, "at": "field2", "text": "2"},
         {"type": "pop", "t0": 6.15, "t1": 7.90, "at": "field3", "text": "3"},
-        {"type": "caption", "t0": 6.30, "t1": 7.95, "text": "ALMOST 3 FOOTBALL FIELDS", "label": "THAT'S"},
+        {"type": "caption", "t0": 6.30, "t1": 7.95, "text": "ALMOST 3 FOOTBALL FIELDS", "label": "THAT'S", "pos": "bottom"},
     ]
     props = {"frames": n, "fps": fps, "width": 1080, "height": 1920, "seq": w, "pts": pts, "items": items, "cuts": [1.15],
              "intro": {"src": "w2i.mp4", "until": 1.15}}
