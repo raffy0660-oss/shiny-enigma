@@ -1,5 +1,20 @@
 # Pion Raja: catatan perubahan
 
+## v5: Mode 4, dunia 3D three.js dengan gaya istana (proj7, Sphere Las Vegas)
+- **Dunia 3D animasi** (`examples/proj7/scene`): kota dengan plaza, jalan, mobil, palem, gedung kartun
+  (RoundedBox, warna cerah, atap kubah/kerucut), monumen (piramida kaca, menara rangka besi, menara jarum,
+  bianglala), Sphere LED dengan emoji yang bisa meleleh jadi layar datar, lapangan football yang jatuh dengan gempa
+  dan debu, kastil Pion untuk pose The Notebook. Render frame per frame lewat Playwright (`render_scene.js`).
+- **Tampilan setara istana**: AgX + grade punchy, GTAO, garis tinta ala Freestyle dari tepi depth/normal,
+  matahari golden hour, kabut, HDRI kota CC0, bump map, bloom hanya untuk emissive, vignette.
+- **Pion di dunia 3D**: billboard frame engine, bayangan matahari asli (layer 1), bayangan kontak di kaki,
+  digabung setelah AgX dan sebelum grade. Cahaya Pion lewat cue `light` searah matahari scene.
+- **Remotion `SceneOverlay`**: garis ukur yang menempel ke titik 3D (`pts.json`), angka menghitung, lencana pop
+  dengan gempa, caption atas/bawah, zoom-blur di potongan, video intro.
+- **Engine**: `gest kantong` (tangan di saku), `booktitle deathnote` (buku soktahu jadi Death Note), ukuran tangan
+  per gesture (`hs`).
+- Panduan `PANDUAN_DUNIA3D.md` dan perintah siap-pakai untuk AI `PROMPT_AI_DUNIA3D.md`.
+
 ## v4.1: banjir, bawah air, baju renang (proj6, bubble ring)
 - **Air di istana (`castle3d/water_fx.py`)**, dijalankan otomatis oleh `castle_video.py` kalau cue berisi perintah air.
   Efeknya dibuat di ruang scene (sebelum kamera Remotion), jadi ikut zoom, miring, dan motion blur kamera:

@@ -5,7 +5,9 @@ description: >
   collar) for their semi-AI YouTube Shorts. Use whenever the user asks to put Pion Raja / "pion" into a video,
   make Pion react or talk over a voice-over (green screen), render a castle/hospital commentary scene,
   add Pion sound effects, continue a Pion project (proj1/proj2/proj4 style), or put the original Pion in the
-  3D "AAA" throne room (Blender background, real shadows, room light and per-emotion lighting on Pion: castle3d/).
+  3D "AAA" throne room (Blender background, real shadows, room light and per-emotion lighting on Pion: castle3d/),
+  flood / underwater scenes (water_fx), or an animated three.js 3D world with Remotion explainer text (Mode 4:
+  city, landmarks, morphing objects, falling objects, camera moves; PANDUAN_DUNIA3D.md, examples/proj7).
   Renders locally with WebGL2 + Playwright + ffmpeg (+ Blender's bpy for castle3d); no AI image/video API needed.
 ---
 
@@ -39,7 +41,11 @@ no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesia
 | `PERBANDINGAN_V2.jpg` | Before/after of the v2 motion & shading upgrade |
 | `castle3d/studio/` | Browser studio (three.js): live 3D castle + 2D Pion video plane, mood lights, the camera plan, timeline scrub, free orbit cam (`make_studio.py`) |
 | `castle3d/` | Mode 3: 3D throne room in Blender + relight of the engine Pion (`build_castle.py`, `comp_pion.py`, `emotion_sheet.py`, `setup.sh`, guide `PANDUAN_ISTANA3D.md`, examples in `contoh/`) |
-| `EKSPRESI.jpg`, `SOKTAHU.jpg` | All 33 expressions; the soktahu pose (glasses, finger up, open book) |
+| `EKSPRESI.jpg`, `SOKTAHU.jpg` | All 33 expressions (+5 new in v4.1: melet gembung tiup malu sewot); the soktahu pose |
+| `castle3d/water_fx.py` | Leak, wall burst, flood, underwater look, mouth bubbles, bubble rings (cues in the castle cue file) |
+| `castle3d/remotion/src/SceneOverlay.tsx` | Remotion explainer layer: dimension lines glued to 3D points, counters, pops, captions, cut flashes |
+| `PANDUAN_DUNIA3D.md`, `PROMPT_AI_DUNIA3D.md` | Mode 4 guide (three.js world in the castle style) and a ready-to-paste prompt for a future AI |
+| `examples/proj6`, `examples/proj7` | Flood/underwater project; Las Vegas Sphere project (three.js city, Remotion overlay, SFX, assembly) |
 
 ## Setup (once per machine/session)
 
@@ -139,6 +145,19 @@ Full guide (Indonesian): `castle3d/PANDUAN_ISTANA3D.md`.
    Freestyle black ink on every object. Framing: Pion about 60 % of the frame (9:16 and 4:5 each framed).
 5. Video: camera static per scene, so render each mood plate + light pass once and composite every engine frame.
    Keep the Blender proxy at engine proportions (crown not enlarged), or a dark dot appears mid-face.
+
+## Mode 4: animated 3D world (three.js) + Remotion text
+
+For white screens that need a moving 3D world (camera zoom-outs, objects that morph or fall, Pion growing or
+flying). Read `PANDUAN_DUNIA3D.md` first; `examples/proj7` is the template.
+1. Engine Pion frames (`--png --bg black --size 1080x1920`, `frame full`) with a `light` cue that matches the scene sun.
+2. `examples/proj7/scene`: `npm install three@0.186.0 @pmndrs/assets@1.7.0`, edit `scene.js` (world + SHOTS
+   timeline), `node render_scene.js w1 out/w1` (frames + `pts.json` with tracked 3D points on screen).
+   Castle-style look: AgX + punchy grade, GTAO, Freestyle-like ink from depth/normal edges, golden-hour sun,
+   bump maps, bloom on emissives only, vignette; cartoon shapes (RoundedBox, bright colours).
+   Pion = billboard of the engine frames, shadow on layer 1, composited after AgX and before the grade.
+3. `overlay.py` -> Remotion `SceneOverlay` (dimension lines, counters, pops, captions, zoom-blur cuts, intro video).
+4. `sfx/gen.py` (ElevenLabs SFX v3, one request at a time) + `sfx/build_sfx.py`; `assemble.py` puts it all in the video.
 
 ## What the engine does automatically (v2)
 
