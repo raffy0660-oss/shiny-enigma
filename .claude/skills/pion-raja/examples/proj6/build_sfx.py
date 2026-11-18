@@ -1,0 +1,194 @@
+"""SFX for proj6 (bubble rings / flood): ElevenLabs takes where we have them, procedural sounds for the rest.
+   python3 build_sfx.py out_sfx.wav --dur 37.94
+Times are in the FINAL video timeline (white 1 = 4.60-10.50, white 2 = 25.00-37.94)."""
+import os
+import sys
+import wave
+
+import numpy as np
+
+sys.path.insert(0, os.path.expanduser("~/pion/eng_dev"))
+import sfx as P  # noqa: E402  procedural library (engine/sfx.py)
+
+SR = 48000
+HERE = os.path.dirname(os.path.abspath(__file__))
+R = np.random.default_rng(21)
+
+
+def load(name):
+    w = wave.open(os.path.join(HERE, name + ".wav"))
+    x = np.frombuffer(w.readframes(w.getnframes()), np.int16).astype(np.float32) / 32768
+    x = x.reshape(-1, w.getnchannels()).mean(1)
+    return x
+
+
+def lowpass(x, fc):
+    X = np.fft.rfft(x); f = np.fft.rfftfreq(len(x), 1 / SR)
+    return np.fft.irfft(X / (1 + (f / fc) ** 4), len(x))
+
+
+def fade(x, a=.01, b=.08):
+    n = len(x); e = np.ones(n)
+    na, nb = int(a * SR), int(b * SR)
+    if na: e[:na] = np.linspace(0, 1, na)
+    if nb: e[-nb:] *= np.linspace(1, 0, nb)
+    return x * e
+
+
+def norm(x, p=.9):
+    return x / (np.max(np.abs(x)) or 1) * p
+
+
+# ---------------- synthesized water sounds
+def drip(f0=1400):
+    d = .09; t = np.arange(int(d * SR)) / SR
+    return np.sin(2 * np.pi * np.cumsum(f0 * (1 + 1.4 * t / d)) / SR) * np.exp(-t * 55)
+
+
+def leak(d=6.0):
+    n = int(d * SR); t = np.arange(n) / SR
+    base = P.bandpass(R.standard_normal(n), 1800, 7000)
+    am = 0.55 + 0.25 * np.sin(2 * np.pi * 3.1 * t) + 0.2 * np.sin(2 * np.pi * 7.3 * t + 1)
+    x = base * am * 0.35
+    for k in range(int(d * 9)):                     # droplets splashing on the floor
+        i = int(R.random() * (n - 5000)); s = drip(900 + R.random() * 1600) * (0.3 + 0.7 * R.random())
+        x[i:i + len(s)] += s
+    x = fade(x, .4, .3)
+    return norm(x, .6)
+
+
+def uw_amb(d=14.0):
+    n = int(d * SR); t = np.arange(n) / SR
+    brown = np.cumsum(R.standard_normal(n)); brown -= np.convolve(brown, np.ones(4801) / 4801, "same")
+    x = lowpass(brown, 380); x = x / (np.max(np.abs(x)) or 1) * .5
+    x *= 0.8 + 0.2 * np.sin(2 * np.pi * .23 * t)
+    for k in range(int(d * 4)):                     # soft bubble blips
+        i = int(R.random() * (n - 8000)); dd = .05 + R.random() * .07; tt = np.arange(int(dd * SR)) / SR
+        f0 = 280 + R.random() * 500
+        s = np.sin(2 * np.pi * np.cumsum(f0 * (1 + 2.2 * tt / dd)) / SR) * np.exp(-tt * 30) * (0.08 + 0.12 * R.random())
+        x[i:i + len(s)] += s
+    return norm(fade(x, .3, .5), .55)
+
+
+def bubbles(d=1.2, rate=22, lo=350, hi=1100):
+    n = int(d * SR); x = np.zeros(n)
+    for k in range(int(d * rate)):
+        i = int(R.random() * (n - 6000)); dd = .03 + R.random() * .06; tt = np.arange(int(dd * SR)) / SR
+        f0 = lo + R.random() * (hi - lo)
+        s = np.sin(2 * np.pi * np.cumsum(f0 * (1 + 2.5 * tt / dd)) / SR) * np.exp(-tt * 40) * (0.4 + 0.6 * R.random())
+        x[i:i + len(s)] += s
+    return norm(fade(x, .01, .15), .7)
+
+
+def splashes(d=2.5, rate=7):
+    n = int(d * SR); x = np.zeros(n)
+    for k in range(int(d * rate)):
+        i = int(R.random() * (n - 12000)); dd = .12 + R.random() * .15; m = int(dd * SR); tt = np.arange(m) / SR
+        s = P.bandpass(R.standard_normal(m), 300, 3500) * np.minimum(1, tt / .005) * np.exp(-tt * 18)
+        x[i:i + m] += s * (0.5 + 0.5 * R.random())
+    return norm(lowpass(x, 1800), .7)
+
+
+def cricket():
+    x = np.zeros(int(1.0 * SR))
+    for k in range(3):
+        d = .045; t = np.arange(int(d * SR)) / SR
+        s = np.sin(2 * np.pi * 4300 * t) * np.sin(np.pi * t / d) * (1 + .5 * np.sin(2 * np.pi * 60 * t))
+        i = int((.05 + k * .085) * SR); x[i:i + len(s)] += s
+    return norm(x, .5)
+
+
+def boom():
+    d = 1.6; t = np.arange(int(d * SR)) / SR
+    f = 55 * np.exp(-t * 1.2) + 28
+    x = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 2.2)
+    x += lowpass(R.standard_normal(len(t)), 220) * np.exp(-t * 6) * 0.6
+    return norm(np.tanh(x * 2.5), .95)
+
+
+def flood_rush(x):
+    """full-band roar for the first ~0.45 s, then muffled (he is under water), fading out before the cut"""
+    n0 = int(0.45 * SR); n = len(x)
+    lo = lowpass(x, 900) * 1.4
+    k = np.clip((np.arange(n) - n0) / (0.25 * SR), 0, 1)
+    y = x * (1 - k) + lo * k
+    end = int(3.4 * SR)
+    y = y[:end] if n > end else y
+    return fade(np.tanh(y * 1.6) / np.tanh(1.6), .005, .6)
+
+
+# ---------------- the cue sheet: (time, source, gain dB, lowpass Hz or None)
+def cues():
+    torrent, blub, crack, whoosh = load("torrent"), load("blub"), load("crack"), load("whoosh_uw")
+    burst = np.zeros(int(3.0 * SR))
+    burst[:len(crack)] += crack * .9
+    th = P.LIB["thud"](); rb = P.LIB["rumble"]()
+    i0 = int(.45 * SR)
+    burst[i0:i0 + len(rb)] += rb[:len(burst) - i0] * .9
+    for k in range(7):                                   # bricks crashing down
+        i = int((.5 + R.random() * 1.6) * SR); s = th * (0.4 + 0.5 * R.random()); burst[i:i + len(s)] += s[:len(burst) - i]
+    burst[i0:i0 + len(torrent)] += torrent[:len(burst) - i0] * .8
+    sub = lowpass(np.concatenate([torrent[int(1.0 * SR):], np.zeros(SR)]), 700)
+    blub_lo = np.interp(np.arange(0, len(blub), .78), np.arange(len(blub)), blub)          # pitched down: sloppy failed ring
+    ring = norm(P.LIB["woosh_long"]() * .7 + np.pad(P.LIB["sparkle"](), (int(.15 * SR), 0))[:len(P.LIB["woosh_long"]())] * .5, .8)
+    ring = np.concatenate([ring, np.zeros(SR)]); bb = bubbles(1.6, 16); ring[:len(bb)] += bb * .5
+    E = {n: load(n) for n in ["leak", "crack", "burst", "torrent", "blub", "submerge", "flail", "uw_amb", "whoosh_uw", "tongue", "puff",
+                               "zoomout", "failring", "pop", "awkward", "angry", "button", "windup", "ring", "ringcam", "sparkle", "burst2", "torrent2", "slam", "roar_uw"]}
+    L = [
+        # ---- white 1
+        (4.60, E["leak"], -14, None),                    # small leak, he has not noticed yet
+        (5.95, E["crack"], -7, None),                    # stress cracks before the break
+        (6.70, E["burst2"], 0, None),                    # BRUTAL: the wall explodes
+        (6.74, E["burst"], -5, None),
+        (6.76, boom(), -1, None),                        # sub-bass hit
+        (6.95, flood_rush(E["torrent2"]), 0, None),      # the wall of water: full roar, goes muffled as he goes under
+        (6.90, E["torrent"], -7, None),
+        (7.18, E["slam"], -1, None),                     # the wave slams into him
+        (7.25, E["roar_uw"], -3, None),
+        (7.25, E["submerge"], -7, None),
+        (7.25, E["flail"], -8, 1800),
+        (7.32, E["blub"], -2, 2600),                     # blubuk-blubuk
+        (8.10, blub, -6, 2200),
+        (8.40, E["uw_amb"][:int(2.2 * SR)], -10, None),
+        (9.00, bubbles(1.4, 18), -13, 1600),
+        (10.30, E["whoosh_uw"], -6, None),               # into the diver clip
+        # ---- white 2 (underwater the whole time)
+        (25.00, E["uw_amb"][:int(12.94 * SR)], -11, None),
+        (24.92, E["whoosh_uw"], -8, None),
+        (27.30, E["tongue"], -5, None),                  # tongue out (blep)
+        (28.72, E["puff"], -6, None),                    # cheeks puff up
+        (29.16, E["zoomout"], -12, None),                # slow zoom out on "aaand"
+        (30.08, E["failring"], -3, 2800),                # sloppy failed ring...
+        (30.46, E["pop"], -5, None),                     # ...pop, gone
+        (30.70, E["awkward"], -11, None),                # awkward silence
+        (31.50, E["angry"], -10, None),                  # steaming mad
+        (32.86, E["button"], -6, None),                  # button press
+        (33.80, E["windup"], -8, None),                  # wind-up
+        (34.55, E["puff"], -10, None),                   # breath in
+        (35.08, E["ring"], -4, None),                    # perfect ring
+        (36.55, E["ringcam"], -4, None),                 # ring rushes the lens
+        (35.70, E["sparkle"], -8, None),                 # pose
+    ]
+    return L
+
+
+def main():
+    out = sys.argv[1]
+    dur = float(sys.argv[sys.argv.index("--dur") + 1]) if "--dur" in sys.argv else 37.94
+    mix = np.zeros(int(dur * SR) + SR)
+    for t, x, gdb, lp in cues():
+        x = np.asarray(x, np.float64)
+        if lp:
+            x = lowpass(x, lp)
+        x = fade(x, .003, .05) * 10 ** (gdb / 20)
+        i = int(t * SR)
+        mix[i:i + len(x)] += x[:len(mix) - i]
+    mix = mix[:int(dur * SR)]
+    mix = np.tanh(mix * 1.05) / np.tanh(1.05)
+    mix = mix / max(1.0, np.max(np.abs(mix))) * .97
+    P.write_wav(out, mix)
+    print("sfx ->", out, f"peak {np.max(np.abs(mix)):.2f}")
+
+
+if __name__ == "__main__":
+    main()

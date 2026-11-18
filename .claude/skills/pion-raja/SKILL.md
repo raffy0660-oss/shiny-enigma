@@ -4,8 +4,11 @@ description: >
   Pion Raja: the user's own 3D cartoon mascot (an orange chess pawn with a gold crown, red robe and ermine
   collar) for their semi-AI YouTube Shorts. Use whenever the user asks to put Pion Raja / "pion" into a video,
   make Pion react or talk over a voice-over (green screen), render a castle/hospital commentary scene,
-  add Pion sound effects, or continue a Pion project (proj1/proj2/proj4 style). Renders locally with
-  WebGL2 + Playwright + ffmpeg; no AI image/video API needed.
+  add Pion sound effects, continue a Pion project (proj1/proj2/proj4 style), or put the original Pion in the
+  3D "AAA" throne room (Blender background, real shadows, room light and per-emotion lighting on Pion: castle3d/),
+  flood / underwater scenes (water_fx), or an animated three.js 3D world with Remotion explainer text (Mode 4:
+  city, landmarks, morphing objects, falling objects, camera moves; PANDUAN_DUNIA3D.md, examples/proj7).
+  Renders locally with WebGL2 + Playwright + ffmpeg (+ Blender's bpy for castle3d); no AI image/video API needed.
 ---
 
 # Pion Raja
@@ -16,7 +19,7 @@ thick dark toon outline, white-glove hands that appear only for gestures. See `r
 
 **Read `ATURAN.md` before starting any new project.** It holds the creator's mandatory rules
 (4K output, frame-by-frame review, eye placement on the focus point, no teleport spam, maximal interaction,
-karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesian.
+no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesian.
 
 ## Files
 
@@ -26,6 +29,8 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
 | `engine/drive.js` | Renders an in-video plan to transparent PNG frames, in parallel |
 | `engine/react_render.js` | Reaction mode: voice-over + cue file -> talking Pion video |
 | `engine/preview.js` | Quick contact sheet of the character with no video |
+| `engine/camplan.js`, `engine/moods.json` | Camera plan (zoom/corner/roll per atmosphere) and the expression -> mood map, shared by engine and castle3d |
+| `engine/microzoom.py` | Micro zoom (punch-in every few words) on any finished video, same rules as the `autozoom` cue |
 | `engine/sfx.py` | Procedural cartoon SFX (no samples) + mixer |
 | `engine/smooth_track.py` | Removes tracking jitter from `anchors.json` / `track.json` without sliding (keeps cuts, frozen frames, sudden moves) |
 | `engine/integrate.py` | Composites Pion into footage: matches sharpness, light wrap, matching grain (used by the example `composite*.py`) |
@@ -34,6 +39,13 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
 | `PERUBAHAN.md` | Changelog of the engine |
 | `examples/proj1`, `proj2`, `proj4` | Finished projects: `plan_pN.py`, `cues/`, `sfx_events.txt`, `composite*.py`, helper grids. Copy one as a template |
 | `PERBANDINGAN_V2.jpg` | Before/after of the v2 motion & shading upgrade |
+| `castle3d/studio/` | Browser studio (three.js): live 3D castle + 2D Pion video plane, mood lights, the camera plan, timeline scrub, free orbit cam (`make_studio.py`) |
+| `castle3d/` | Mode 3: 3D throne room in Blender + relight of the engine Pion (`build_castle.py`, `comp_pion.py`, `emotion_sheet.py`, `setup.sh`, guide `PANDUAN_ISTANA3D.md`, examples in `contoh/`) |
+| `EKSPRESI.jpg`, `SOKTAHU.jpg` | All 33 expressions (+5 new in v4.1: melet gembung tiup malu sewot); the soktahu pose |
+| `castle3d/water_fx.py` | Leak, wall burst, flood, underwater look, mouth bubbles, bubble rings (cues in the castle cue file) |
+| `castle3d/remotion/src/SceneOverlay.tsx` | Remotion explainer layer: dimension lines glued to 3D points, counters, pops, captions, cut flashes |
+| `PANDUAN_DUNIA3D.md`, `PROMPT_AI_DUNIA3D.md` | Mode 4 guide (three.js world in the castle style) and a ready-to-paste prompt for a future AI |
+| `examples/proj6`, `examples/proj7` | Flood/underwater project; Las Vegas Sphere project (three.js city, Remotion overlay, SFX, assembly) |
 
 ## Setup (once per machine/session)
 
@@ -51,10 +63,24 @@ karaoke subtitles, dramatic hook, SFX on every action). Talk to the user in Indo
 
 1. User sends VO audio and tells what is said and when. Claude cannot hear audio; ask for the script/timing.
 2. Write a cue file (format in `PANDUAN_REAKSI.md`): `frame`, expressions, `gest`, `look`, `fly`/`flyout`,
-   `cam`, `shake`, `photo`, `say`, `word` (karaoke), effects (`aha`, `ask`, `sweat`, `anger`, `money`, `stamp`, `poof`...).
+   `cam`, `shake`, `photo`, `say`, `word` (word timing only, never drawn; drives `autozoom`), effects (`aha`, `ask`, `sweat`, `anger`, `money`, `stamp`, `poof`...).
    - Expressions: datar imut senang kaget penasaran curiga pusing sinis ngakak duit marah sakit kecewa ragu licik
-   - Gestures: up cheer present shrug wave point press clap lookout dance facepalm knock cross think phone paper throw hang fist write magnify
+     nangis tersedu girang bahagia cium lega gemas syok kesal ngiler merajuk memelas bosan cemas bangga ngamuk santai soktahu
+     (`soktahu` = "well, actually" face: puts thick nerd glasses on and, unless another gesture covers it,
+     takes the `nerd` pose by itself: right index finger up, an open "THE BOOK OF LARP" in the left hand, as if reading it)
+   - Gestures: up cheer present shrug wave point press clap lookout dance facepalm knock cross think phone paper throw hang fist write magnify nerd crownlift
+     (`crownlift`: one hand lifts the crown off, the bald head glints, the other hand points at it, then the crown goes back on)
    - `bg castle` / `bg hospital` puts Pion in a full commentary scene instead of green screen.
+   - `light dir x y z key r g b amb r g b sky .. gnd .. rim .. exp v` overrides the toon light (to match a 3D plate).
+   - `soktahu` also brings the "enlightenment" glow: the open book flares gold onto his face for ~1.5 s, then dims.
+   - `<t> autozoom [N] [strength]` / `<t> autozoom off`: camera plan (`engine/camplan.js`, shared with Remotion):
+     smooth eased step zooms 1.18 -> 1.34 -> 1.5x every N `word` cues, held until the next key (no overshoot or
+     settle), "!" words go straight to 1.5x; each lighting mood ("atmosphere", `engine/moods.json`) holds its own
+     corner offset + dutch angle; every mood change zooms back out to normal first.
+   - `acting <0..2>` (default 1): automatic acting layer (weight-shift sway, lean-in while talking, bounce/nod on
+     stressed syllables, hop on "!" words, a head-tilt "take" on every expression change, idle glances).
+   - `<t> light ...` (timed light cue, 0.4 s crossfade). `react_render.js` also writes `<out>_track.json`
+     (Pion's base/ground/head in screen pixels per frame) and `--camplan file.json` dumps the camera keys.
 3. Check first: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --preview 1,2.5,4` and look at the sheet.
 4. Render: `node react_render.js --audio vo.m4a --cues cues.txt --out out/r1 --size 2160x3840` (4K).
    `--bg green,black`, `--alpha` (ProRes 4444 .mov), `--png`, `--start/--dur/--local` for a section.
@@ -87,6 +113,52 @@ Follow `examples/proj4` (newest). Per project folder with `src/input.mp4` (1080x
    Pion looks shot by the same phone. For an older project's composite, replace its plain alpha blend with it.
 9. **Review every frame of the result** (contact sheets, `compcheck.py`) and fix before delivering.
 
+## Mode 3: original Pion in the 3D castle (castle3d/)
+
+Pion stays the engine character; Blender renders only the room, his real shadow and the room's light on him.
+Full guide (Indonesian): `castle3d/PANDUAN_ISTANA3D.md`.
+
+1. Setup once: `bash .claude/skills/pion-raja/castle3d/setup.sh` (EGL libs, `bpy==5.2.4` in `/opt/bpyenv`, engine copy,
+   Remotion packages).
+   Finished video in one command: `python3 castle_video.py --cues cues.txt --audio vo.wav --out pion.mp4 --res 1080x1350`
+   Props v4: `<t> coin <dur>` + `gest toss` / `gest cointhrow` (teal "!!" brilliant coin flipped, then thrown at the lens
+   until it fills the frame), `gest pouch` (empty coin purse, moth + dust), `<t> hearteyes <dur>` (jelly heart eyes),
+   `gest deathnote <dur>` (book appears, torn from the middle, halves thrown down) + `<t> stomp <dur>` (hops on them),
+   `<t> stat <dur> "LABEL" <value> from=.. prefix=$` (Remotion counting card), `<t> autozoom N amt pola` (3 in, 1 out).
+   Camera centring: while Pion talks his tracked FACE is the exact centre of every zoom (no corner offsets);
+   `<t> zoomitem <coin|pouch|book|floorbook|sebum|button|handL|handR> [z] [dur]` centres a held item (positions are in
+   the engine's `_track.json` `items`), then `<t> zoomto 1.0 0 0 0 0.3` zooms back out to the face/whole scene.
+   Term titles: `<t> callout <dur> "TERM" ["subtitle"] [top|bottom] [label="..."]` (Remotion `Callouts.tsx`, above the
+   camera layer: gold label, letter-by-letter reveal, sweeping gold rule, subtitle). Also `<t> mood X` pins the lighting
+   mood, `<t> zoomto z oy ox roll dur` adds a manual camera key, defaults are 60 fps and `--eframe auto` (nothing cut).
+   (per-mood clean plate + moving shadow pass + light pass, engine frames with timed mood lights and a position track,
+   per-frame composite where Pion's floor shadow and the room light follow him, mood crossfades, then the Remotion
+   finisher `castle3d/remotion` applies the camera plan with camera motion blur, vignette and audio).
+2. Fast path, one frame per mood: `cd castle3d && python3 emotion_sheet.py --out out.png --res 1080x1350 --samples 48 --only hangat,marah`
+   (moods: hangat marah sedih kaget licik duit misteri pencerahan; `--res 432x540 --samples 16` to check quickly).
+3. Manual: `build_castle.py --proxy --bbox b.json --lightpass lp.png --mood chandelier --emotion <mood|expression>`
+   renders the plate (hidden Blender Pion casts the shadow), Pion's screen box and the light pass; render the engine
+   Pion with the matching `light` cue (`emotion_sheet.PRESETS`); `comp_pion.py` places it on the proxy, multiplies
+   the light pass in cel bands (majority-vote cleanup), adds light wrap, contact shadow, grain and the mood grade.
+4. Room: marble chessboard floor, red carpet, big gold throne whose crest and crown clear Pion's head, coffered gold
+   barrel vault, stained glass, brass chandelier facing down, torches, chests and coins, stone chess statues, haze,
+   Freestyle black ink on every object. Framing: Pion about 60 % of the frame (9:16 and 4:5 each framed).
+5. Video: camera static per scene, so render each mood plate + light pass once and composite every engine frame.
+   Keep the Blender proxy at engine proportions (crown not enlarged), or a dark dot appears mid-face.
+
+## Mode 4: animated 3D world (three.js) + Remotion text
+
+For white screens that need a moving 3D world (camera zoom-outs, objects that morph or fall, Pion growing or
+flying). Read `PANDUAN_DUNIA3D.md` first; `examples/proj7` is the template.
+1. Engine Pion frames (`--png --bg black --size 1080x1920`, `frame full`) with a `light` cue that matches the scene sun.
+2. `examples/proj7/scene`: `npm install three@0.186.0 @pmndrs/assets@1.7.0`, edit `scene.js` (world + SHOTS
+   timeline), `node render_scene.js w1 out/w1` (frames + `pts.json` with tracked 3D points on screen).
+   Castle-style look: AgX + punchy grade, GTAO, Freestyle-like ink from depth/normal edges, golden-hour sun,
+   bump maps, bloom on emissives only, vignette; cartoon shapes (RoundedBox, bright colours).
+   Pion = billboard of the engine frames, shadow on layer 1, composited after AgX and before the grade.
+3. `overlay.py` -> Remotion `SceneOverlay` (dimension lines, counters, pops, captions, zoom-blur cuts, intro video).
+4. `sfx/gen.py` (ElevenLabs SFX v3, one request at a time) + `sfx/build_sfx.py`; `assemble.py` puts it all in the video.
+
 ## What the engine does automatically (v2)
 
 - Motion blur (both modes): centred shutter, sample count adapts to how far Pion moves; still frames stay sharp.
@@ -102,4 +174,4 @@ Follow `examples/proj4` (newest). Per project folder with `src/input.mp4` (1080x
 - Size: not too small, not too big; bigger only for the hook and close-ups.
 - Entrances: jump, drop from above, slide, fly. Scene changes: fly to camera + zoom-blur.
 - Interact with people/objects in the shot; Pion never floats in empty space or sits in a corner.
-- When Pion speaks: karaoke subtitle + mouth/jelly driven by audio.
+- When Pion speaks: mouth/jelly driven by audio. The engine draws no subtitles (removed on the creator's request).

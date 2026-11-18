@@ -1,0 +1,16 @@
+# demo Mona Lisa 5.4 s; VO starts 0.25 s. Light = scene sun (golden hour from the left)
+frame 2.4,8.2
+light dir -.78 .42 .46 key 1.15 .82 .55 amb .21 .27 .42 rim .6 .72 1.0 exp 1.0
+0.00 penasaran
+0.00 look -18 -4 4
+1.36 kaget
+1.36 look -25 -10 0
+1.40 boing 1.1
+1.80 ngakak
+1.95 gest point 1.9 kiri 150 760
+2.30 look -12 0 -4
+3.40 senang
+3.70 look -20 -2 5
+3.95 gest present 1.4 kiri
+4.60 bangga
+4.60 look 6 -2 4
