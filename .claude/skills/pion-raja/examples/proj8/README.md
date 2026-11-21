@@ -18,3 +18,16 @@ pohon, lampu Paris, turis). Satuan meter. Fakta: 77 x 53 cm (cat minyak di panel
 Jebakan baru: plane tanah luar terlalu dekat dengan plane plaza (5 cm) -> z-fighting, tekstur plaza hilang di sebagian
 posisi kamera. Taruh plane luar 1,5 m di bawah dan near kamera 0,1. Ambient (HDRI + hemisphere) terlalu kuat menghapus
 bayangan matahari: matahari 4,6, hemisphere 0,2, environment 0,28.
+
+## v2: Pion terasa di dalam dunia (bukan kartu 2D)
+
+- Cue `light ... soft 1`: shading engine halus (sisi yang membelakangi matahari benar-benar gelap), kilau matahari di
+  tepi tubuh sisi matahari, garis luar 45% lebih tipis. Tanpa `soft` engine tetap cel seperti biasa.
+- Matahari backlight golden hour dari kiri-belakang (`SUN_DIR -0.62 .42 -0.66`, cue Pion arah sama): bayangan jatuh ke
+  arah kamera sehingga terlihat. Matahari dari samping dengan kamera rendah membuat bayangan cuma garis tipis.
+- Bayangan Pion dari kartu terpisah yang menghadap matahari (`pionSh`), bukan kartu yang menghadap kamera.
+- HDRI kota punya matahari sendiri dan menghapus bayangan: dipakai hanya untuk pantulan logam/kaca
+  (`environmentIntensity 0.04`), bayangan diisi HemisphereLight biru langit.
+- Lukisan membelakangi matahari, jadi diberi lampu lukisan kuningan + SpotLight.
+- Awan kartun 3D (gugus bola), Sky `cloudCoverage 0`, mie rendah (tanpa silau), bloom threshold 6 (hanya lampu).
+- Kabut linear `Fog(0xd8dde6, 12, 1500)`: jernih di sekitar Pion, tipis di istana, pekat di kota jauh. Turis 36 saja.

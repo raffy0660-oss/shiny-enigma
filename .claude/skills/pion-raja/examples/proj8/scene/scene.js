@@ -28,7 +28,7 @@ document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 6000);
-scene.fog = new THREE.FogExp2(0xe2c8a4, 0.00085);
+scene.fog = new THREE.Fog(0xd8dde6, 12, 1500);   // depth haze: clear around Pion, soft on the palace, strong on the far city
 
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
@@ -55,7 +55,7 @@ const inkPass = new ShaderPass({
       gl_FragColor = vec4(mix(c.rgb, ink * c.rgb * 0.35 + ink * 0.65, e * 0.9 * fade), c.a); }`,
 });
 composer.addPass(inkPass);
-composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.35, 0.35, 1.6));   // high threshold: only the lamps glow
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.35, 0.35, 6.0));   // high threshold: only the lamps glow
 composer.addPass(new OutputPass());
 const pionRT = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType });
 const pionComp = new ShaderPass({
@@ -83,15 +83,15 @@ const rnd = (s => () => (s = (s * 16807) % 2147483647) / 2147483647)(13579);
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
 // ------------------------------------------------------------------ sky, sun, environment (shared with the Pion `light` cue)
-const SUN_DIR = V(-0.78, 0.42, 0.46).normalize();   // golden hour from the left: long shadows, warm key, cool fill
+const SUN_DIR = V(-0.62, 0.42, -0.66).normalize();   // golden-hour backlight from the left: shadows fall toward the camera, rim light on Pion   // golden hour from the left: long shadows, warm key, cool fill
 const sky = new Sky(); sky.scale.setScalar(4500); scene.add(sky);
-sky.material.uniforms.turbidity.value = 2.6; sky.material.uniforms.rayleigh.value = 1.9;
-sky.material.uniforms.mieCoefficient.value = 0.004; sky.material.uniforms.mieDirectionalG.value = 0.82;
+sky.material.uniforms.turbidity.value = 2.0; sky.material.uniforms.cloudCoverage.value = 0.0; sky.material.uniforms.rayleigh.value = 1.9;
+sky.material.uniforms.mieCoefficient.value = 0.0012; sky.material.uniforms.mieDirectionalG.value = 0.6;
 sky.material.uniforms.sunPosition.value.copy(SUN_DIR);
-const sun = new THREE.DirectionalLight(0xffc888, 4.6);
-sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0002; sun.shadow.normalBias = 0.02; sun.shadow.radius = 3;
+const sun = new THREE.DirectionalLight(0xffc888, 5.4);
+sun.castShadow = true; sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0002; sun.shadow.normalBias = 0.02; sun.shadow.radius = 1.6;
 scene.add(sun, sun.target);
-scene.add(new THREE.HemisphereLight(0x8fb8ff, 0x6a5440, 0.2));
+scene.add(new THREE.HemisphereLight(0x9cc2ff, 0x7a6248, 0.62));   // blue sky fill in the shadows, warm bounce from the plaza
 function aimSun(center, radius) {
   sun.target.position.copy(center); sun.position.copy(center).addScaledVector(SUN_DIR, radius * 3);
   const c = sun.shadow.camera; c.left = c.bottom = -radius; c.right = c.top = radius; c.near = radius * 0.2; c.far = radius * 7; c.updateProjectionMatrix();
@@ -99,7 +99,9 @@ function aimSun(center, radius) {
 const envReady = (async () => {
   const hdr = await new EXRLoader().loadAsync(cityHdr);
   hdr.mapping = THREE.EquirectangularReflectionMapping;
-  scene.environment = hdr; scene.environmentIntensity = 0.28;
+  scene.environment = hdr; scene.environmentIntensity = 0.04;   // the city HDRI has its own sun: keep it out of the diffuse light (it erased the shadows)
+  scene.traverse(o => { const m = o.material; if (!m || Array.isArray(m) || !m.isMeshStandardMaterial) return;      // ...but metals and glass still reflect the city
+    if (m.metalness >= 0.5 || m.isMeshPhysicalMaterial) { m.envMap = hdr; m.envMapIntensity = m.metalness >= 0.9 ? 0.9 : 0.7; m.needsUpdate = true; } });
 })();
 
 // ------------------------------------------------------------------ procedural textures
@@ -275,6 +277,18 @@ for (let i = 0; i < 150; i++) {
   domeAt(0, 50, 0, 17, 1.5); domeAt(-24, 36, 12, 7, 1.4); domeAt(24, 36, 12, 7, 1.4); domeAt(0, 50, -26, 9, 1.4);
   const bell = new THREE.Mesh(new RoundedBoxGeometry(10, 70, 10, 2, 2).translate(0, 35, 0), white); bell.position.set(B.x + 6, B.y, B.z - 34); scene.add(bell); }
 
+
+// ------------------------------------------------------------------ cartoon cumulus clouds (3D puffs: sunlit tops, soft warm-grey bellies)
+{ const geo = new THREE.IcosahedronGeometry(1, 4), mat = new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0xfff6ea, emissiveIntensity: 0.95, fog: false });
+  const N = 160, im = new THREE.InstancedMesh(geo, mat, N), d = new THREE.Object3D(); let n = 0;
+  const cloud = (cx, cy, cz, sc) => { const k = 9 + ((rnd() * 6) | 0);
+    for (let i = 0; i < k && n < N; i++) { const u = i / (k - 1) - 0.5, r = sc * (0.55 + 0.45 * Math.cos(u * Math.PI)) * (0.8 + rnd() * 0.4);
+      d.position.set(cx + u * sc * 3.6 + (rnd() - .5) * sc * 0.5, cy + r * 0.35 + (rnd() * 0.3) * sc, cz + (rnd() - .5) * sc * 0.9); d.scale.set(r, r * 0.82, r); d.updateMatrix(); im.setMatrixAt(n, d.matrix);
+      im.setColorAt(n++, new THREE.Color().setHSL(0.6, 0.1, 0.94 + rnd() * 0.06)); }
+    d.position.set(cx, cy - sc * 0.05, cz); d.scale.set(sc * 2.1, sc * 0.35, sc * 0.8); d.updateMatrix(); im.setMatrixAt(n, d.matrix); im.setColorAt(n++, new THREE.Color(0xdfe4ec)); };   // flat belly
+  for (const [x, y, z, s] of [[-430, 900, -3400, 80], [360, 1080, -3600, 95], [-60, 1350, -3800, 70], [700, 760, -3200, 60], [-780, 1150, -3500, 75]]) cloud(x, y, z, s);
+  im.count = n; im.instanceColor.needsUpdate = true; scene.add(im); }
+
 // ------------------------------------------------------------------ chestnut trees, Paris lamps, tourists
 { const canopy = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 3), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.75, bumpMap: noiseTex, bumpScale: 0.5 }), 700);
   const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22, 0.35, 1, 10).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: 0x7a5236, roughness: 0.85 }), 100);
@@ -285,7 +299,7 @@ for (let i = 0; i < 150; i++) {
   for (let z = -10; z > -140; z -= 11) for (const x of [-72, -64, 64, 72]) tree(x + (rnd() - .5), z, 1.3 + rnd() * 0.3);
   for (let i = 0; i < 14; i++) tree(-40 - rnd() * 20, 10 - i * 8, 1.2 + rnd() * 0.3);
   trunks.count = ti; canopy.count = li; canopy.instanceColor.needsUpdate = true; scene.add(trunks, canopy); }
-const lampGlow = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffc070, emissiveIntensity: 5.0 });
+const lampGlow = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffc070, emissiveIntensity: 16.0 });
 function lamp(x, z) {
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.13, 3.6, 12).translate(0, 1.8, 0), ironGreen); post.position.set(x, 0, z); post.castShadow = true; scene.add(post);
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.28, 0.5, 12), ironGreen); base.position.set(x, 0.25, z); scene.add(base);
@@ -293,11 +307,11 @@ function lamp(x, z) {
   const cap = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.32, 12), ironGreen); cap.position.set(x, 4.38, z); scene.add(cap);
 }
 for (const [x, z] of [[-4.2, -7], [4.6, -9], [-7, -24], [7.5, -26], [-10, -44], [10, -46], [-14, -64], [14, -66]]) lamp(x, z);
-{ const N = 180, body = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.21, 0.62, 4, 12).translate(0, 0.52, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }), N);
+{ const N = 36, body = new THREE.InstancedMesh(new THREE.CapsuleGeometry(0.21, 0.62, 4, 12).translate(0, 0.52, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }), N);
   const head = new THREE.InstancedMesh(new THREE.SphereGeometry(0.16, 16, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }), N);
   body.castShadow = head.castShadow = true; const d = new THREE.Object3D(); let n = 0;
   const cols = [0xff5a5f, 0x2ec4b6, 0xffbf3f, 0x5b8def, 0xa06cd5, 0xf7f7f2, 0x7bd389, 0xff8fab, 0x3d405b, 0xf28c28], skin = [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0xffdbac];
-  while (n < N) { const x = (rnd() - .5) * 60, z = -9 - rnd() * 75; if (Math.abs(x) < 3 && z > -14) continue; if (Math.hypot(x - PYR.x, z - PYR.z) < 27) continue;
+  while (n < N) { const x = (rnd() - .5) * 50, z = -14 - rnd() * 70; if (Math.abs(x) < 3 && z > -14) continue; if (Math.hypot(x - PYR.x, z - PYR.z) < 27) continue;
     const s = 0.9 + rnd() * 0.25; d.position.set(x, 0, z); d.rotation.set(0, rnd() * 6, 0); d.scale.setScalar(s); d.updateMatrix(); body.setMatrixAt(n, d.matrix); body.setColorAt(n, new THREE.Color(cols[(rnd() * cols.length) | 0]));
     d.position.set(x, 1.34 * s, z); d.updateMatrix(); head.setMatrixAt(n, d.matrix); head.setColorAt(n, new THREE.Color(skin[(rnd() * skin.length) | 0])); n++; }
   body.instanceColor.needsUpdate = head.instanceColor.needsUpdate = true; scene.add(body, head); }
@@ -384,6 +398,11 @@ const display = new THREE.Group(); scene.add(display);
   const plaque = new THREE.Mesh(new RoundedBoxGeometry(0.34, 0.08, 0.012, 2, 0.004), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 0.9, roughness: 0.3,
     map: canvasTex(512, 128, (g, w, h) => { g.fillStyle = "#d4a645"; g.fillRect(0, 0, w, h); g.fillStyle = "#3a2810"; g.font = "800 40px Georgia, serif"; g.textAlign = "center"; g.fillText("LEONARDO DA VINCI", w / 2, 54); g.font = "italic 34px Georgia, serif"; g.fillText("Mona Lisa", w / 2, 100); }, null) }));
   plaque.position.set(PC.x, PC.y - PH / 2 - fw - 0.12, 0.128); display.add(plaque);
+  { const brassL = new THREE.MeshStandardMaterial({ color: 0xd8a948, metalness: 1, roughness: 0.25 });   // brass picture light: the painting is backlit by the sun, so it gets its own lamp
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.16, 8), brassL); arm.rotation.x = Math.PI / 2; arm.position.set(PC.x, PC.y + PH / 2 + fw + 0.03, 0.2); display.add(arm);
+    const hood = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.42, 20, 1, false, 0, Math.PI), brassL); hood.rotation.set(0, 0, Math.PI / 2); hood.rotation.x = -0.5; hood.position.set(PC.x, PC.y + PH / 2 + fw + 0.04, 0.28); display.add(hood);
+    const glow = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.006, 0.03), new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffe2b0, emissiveIntensity: 3 })); glow.position.set(PC.x, PC.y + PH / 2 + fw + 0.03, 0.28); display.add(glow);
+    const spot = new THREE.SpotLight(0xffe2b0, 1.5, 2.5, 0.85, 0.9, 2); spot.position.set(PC.x, PC.y + PH / 2 + fw + 0.02, 0.32); spot.target.position.set(PC.x, PC.y - 0.15, PC.z); display.add(spot, spot.target); }
   const brass = new THREE.MeshStandardMaterial({ color: 0xd8a948, metalness: 1, roughness: 0.25 });
   const posts = [V(-1.05, 0, 0.8), V(-0.35, 0, 0.9), V(0.3, 0, 0.8)];
   for (const p of posts) { const po = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.95, 16).translate(0, 0.475, 0), brass); po.position.copy(p); po.castShadow = true; display.add(po);
@@ -395,13 +414,14 @@ const display = new THREE.Group(); scene.add(display);
 
 // ------------------------------------------------------------------ Pion billboard (engine frames), shadow + contact shadow
 const pionMat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.04, depthWrite: false, depthTest: false, toneMapped: false, fog: false });
-const pion = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));   // shadow caster only
-pion.castShadow = true; pion.layers.set(1); sun.shadow.camera.layers.enable(1);
-pion.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5 });
-scene.add(pion);
-const pionScene = new THREE.Scene(), pionShow = new THREE.Mesh(pion.geometry, pionMat); pionShow.renderOrder = 2; pionScene.add(pionShow);
+const pion = new THREE.Object3D(); scene.add(pion);   // placement only (the visible card lives in pionScene)
+const pionSh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));   // shadow caster, turned to face the sun
+pionSh.castShadow = true; pionSh.layers.set(1); sun.shadow.camera.layers.enable(1);
+pionSh.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, alphaTest: 0.5, side: THREE.DoubleSide });
+pionSh.material.side = THREE.DoubleSide; scene.add(pionSh);
+const pionScene = new THREE.Scene(), pionShow = new THREE.Mesh(pionSh.geometry, pionMat); pionShow.renderOrder = 2; pionScene.add(pionShow);
 const contactTex = canvasTex(256, 256, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-  gr.addColorStop(0, "rgba(0,0,0,.75)"); gr.addColorStop(0.45, "rgba(0,0,0,.42)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, null);
+  gr.addColorStop(0, "rgba(0,0,0,.92)"); gr.addColorStop(0.35, "rgba(0,0,0,.6)"); gr.addColorStop(0.7, "rgba(0,0,0,.18)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, null);
 contactTex.colorSpace = THREE.NoColorSpace;
 const contact = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: contactTex, transparent: true, depthTest: true, depthWrite: false, color: 0x1a120a }));
 contact.rotation.x = -Math.PI / 2; contact.renderOrder = 1; pionScene.add(contact);
@@ -410,14 +430,15 @@ const texLoader = new THREE.TextureLoader();
 let curTex = null;
 async function pionFrame(url) {
   const t = await texLoader.loadAsync(url); t.colorSpace = THREE.SRGBColorSpace;
-  if (curTex) curTex.dispose(); curTex = t; pionMat.map = t; pion.customDepthMaterial.map = t; pionMat.needsUpdate = true; pion.customDepthMaterial.needsUpdate = true;
+  if (curTex) curTex.dispose(); curTex = t; pionMat.map = t; pionSh.customDepthMaterial.map = t; pionMat.needsUpdate = true; pionSh.customDepthMaterial.needsUpdate = true;
 }
 function placePion(anchor, height) {
   const k = height / (4.65 * PION.ppu), pw = PION.w * k, ph = PION.h * k;
   pion.scale.set(pw, ph, 1);
   const off = V((PION.w / 2 - PION.base[0]) * k, (PION.base[1] - PION.h / 2) * k, 0);
   const d = V(0, 0, 0).subVectors(camera.position, anchor); pion.rotation.set(0, Math.atan2(d.x, d.z), 0);   // upright, turned to the camera
-  off.applyQuaternion(pion.quaternion); pion.position.copy(anchor).add(off);
+  const offS = off.clone(); off.applyQuaternion(pion.quaternion); pion.position.copy(anchor).add(off);
+  pionSh.scale.set(pw, ph, 1); pionSh.rotation.set(0, Math.atan2(SUN_DIR.x, SUN_DIR.z), 0); offS.applyQuaternion(pionSh.quaternion); pionSh.position.copy(anchor).add(offS);
 }
 
 // ------------------------------------------------------------------ shot: close on the painting -> whoosh out -> Pion beside it
@@ -470,7 +491,7 @@ window.renderFrame = async (which, f, fps, pionUrl) => {
   for (const k in WP) pts[k] = project(WP[k]);
   pts.head = project(pion.localToWorld(V(0, 0.25, 0)));
   pionShow.position.copy(pion.position); pionShow.quaternion.copy(pion.quaternion); pionShow.scale.copy(pion.scale);
-  const cw = height * 0.55; contact.scale.set(cw, cw * 0.5, 1); contact.position.set(anchor.x, 0.012, anchor.z); contact.material.opacity = 1;
+  const cw = height * 0.78; contact.scale.set(cw, cw * 0.5, 1); contact.position.set(anchor.x, 0.012, anchor.z); contact.material.opacity = 1;
   renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.autoClear = false;
   renderer.render(pionScene, camera); renderer.autoClear = true; renderer.setRenderTarget(null);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture; inkPass.uniforms.near.value = camera.near; inkPass.uniforms.far.value = camera.far;

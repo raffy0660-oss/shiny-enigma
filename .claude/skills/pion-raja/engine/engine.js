@@ -60,7 +60,7 @@ float h3(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
 float vn(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z); }
 uniform vec3 uColor; uniform float uUseVC; uniform sampler2D uTex; uniform float uUseTex; uniform sampler2D uRamp;
 uniform vec3 uLDir; uniform vec3 uKey; uniform vec3 uAmb; uniform vec3 uSky; uniform vec3 uGnd; uniform float uDouble; uniform float uExp;
-uniform vec3 uRim; uniform float uFlash; uniform float uCut;
+uniform vec3 uRim; uniform float uFlash; uniform float uCut; uniform float uSoft; // uSoft: 0 = cel bands, 1 = smooth sun shading (3D worlds)
 uniform vec4 uLPos; uniform float uLAtt; // optional point key light fixed in the room (xyz, w=on): shading changes as he moves
 uniform vec4 uAO; uniform float uAOs; // soft contact occlusion bands in object space (under the collar, under the crown)
 void main(){
@@ -71,6 +71,7 @@ void main(){
   if(uLPos.w>.5){ vec3 tl=uLPos.xyz-vW; Ld=normalize(mix(uLDir, normalize(tl), uLPos.w-.5)); att=clamp(uLAtt/max(dot(tl,tl),.01),.4,2.2); }
   float d=dot(n,Ld), x=d*.5+.5, aw=max(fwidth(x)*.75,.002); // analytic cel bands, anti-aliased (crisp at any zoom)
   float r=.549+.137*smoothstep(.2-aw,.2+aw,x)+.157*smoothstep(.4-aw,.4+aw,x)+.118*smoothstep(.6-aw,.6+aw,x)+.039*smoothstep(.8-aw,.8+aw,x);
+  if(uSoft>0.){ float lam=smoothstep(-.35,1.,d); r=mix(r,.1+.9*lam,uSoft); }   // real terminator: the side away from the sun goes dark
   float hemi=n.y*.5+.5;
   vec3 light=uAmb+mix(uGnd,uSky,hemi)+uKey*r*att;
   if(uAOs>0.){ vec2 q=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q=q*q*(3.-2.*q); float occ=q.x+q.y; /* edges may be reversed (GLSL smoothstep may not) */ light*=1.-uAOs*clamp(occ,0.,1.)*(.55+.45*(1.-max(n.y,0.))); }
@@ -79,7 +80,8 @@ void main(){
   float rimCel=smoothstep(.6-aw*4.,.6+aw*4.,fres)*smoothstep(-.15,.2,d);   // crisp lit-side rim band, coloured by the room light
   if(uSoot>0.){ vec3 q=vO*uSootK; float nz=vn(q*2.3)*.65+vn(q*5.1)*.35; base*=mix(1.,.28,uSoot*smoothstep(.52,.72,nz)); }
   float shadeAmt=1.-smoothstep(.62,.9,r);                                    // painted shadows: cooler, a touch more saturated
-  vec3 col=base*light*uExp*mix(vec3(1.),vec3(.88,.86,1.06),shadeAmt*.6)+uRim*rim*.6+uRim*rimCel*1.4;
+  vec3 col=base*light*uExp*mix(vec3(1.),vec3(.88,.86,1.06),shadeAmt*.6)+uRim*rim*.6*(1.-uSoft*.7)+uRim*rimCel*1.4*(1.-uSoft*.5);
+  if(uSoft>0.){ vec2 nl=normalize(n.xy+1e-4), ll=normalize(Ld.xy+1e-4); col+=uKey*uSoft*.85*pow(fres,2.4)*max(dot(nl,ll),0.); }   // sun glint on the lit edge
   if(uSpec>0.){ vec3 V=normalize(uEye-vW); vec3 R=reflect(-Ld,n); float sp=pow(max(dot(R,V),0.),18.); col+=uSpec*(smoothstep(.45,.55,sp)*vec3(1.,.97,.86)+.35*smoothstep(.08,.3,sp)*vec3(1.,.85,.5)); float fr=pow(1.-max(dot(n,V),0.),2.5); col+=uSpec*.25*fr*vec3(1.,.8,.4); }
   col=mix(col,vec3(1.,.97,.9),uFlash);
   o=vec4(clamp(col,0.,1.),1.);
@@ -720,7 +722,7 @@ function drawToon(Msh, model, VP, L, o) {
   gl.uniform3fv(P.u.uColor, o.color || [1, 1, 1]); gl.uniform1f(P.u.uUseVC, o.vc ? 1 : 0); gl.uniform1f(P.u.uUseTex, o.tex ? 1 : 0); gl.uniform1f(P.u.uDouble, o.dbl ? 1 : 0);
   if (L.pos) { const dx = L.pos[0], dy = L.pos[1] - 3.0, dz = L.pos[2]; gl.uniform4f(P.u.uLPos, L.pos[0], L.pos[1], L.pos[2], 1.5); gl.uniform1f(P.u.uLAtt, dx * dx + dy * dy + dz * dz); }
   else gl.uniform4f(P.u.uLPos, 0, 0, 0, 0);
-  gl.uniform3fv(P.u.uLDir, L.dir); gl.uniform3fv(P.u.uKey, L.key); gl.uniform3fv(P.u.uAmb, L.amb); gl.uniform3fv(P.u.uSky, L.sky); gl.uniform3fv(P.u.uGnd, L.gnd); gl.uniform1f(P.u.uExp, L.exp); gl.uniform3fv(P.u.uRim, L.rim); gl.uniform1f(P.u.uFlash, FLASH); gl.uniform1f(P.u.uSpec, o.spec || 0); gl.uniform1f(P.u.uCut, o.cut ? 1 : 0); gl.uniform1f(P.u.uSoot, o.noSoot ? 0 : SOOT); gl.uniform1f(P.u.uSootK, o.sootK || 1); gl.uniform3fv(P.u.uEye, window.EYE || [0, 10, 20]);
+  gl.uniform3fv(P.u.uLDir, L.dir); gl.uniform3fv(P.u.uKey, L.key); gl.uniform3fv(P.u.uAmb, L.amb); gl.uniform3fv(P.u.uSky, L.sky); gl.uniform3fv(P.u.uGnd, L.gnd); gl.uniform1f(P.u.uExp, L.exp); gl.uniform3fv(P.u.uRim, L.rim); if (P.u.uSoft) gl.uniform1f(P.u.uSoft, L.soft || 0); window.OUTK = L.soft ? 1 - .45 * L.soft : 1; gl.uniform1f(P.u.uFlash, FLASH); gl.uniform1f(P.u.uSpec, o.spec || 0); gl.uniform1f(P.u.uCut, o.cut ? 1 : 0); gl.uniform1f(P.u.uSoot, o.noSoot ? 0 : SOOT); gl.uniform1f(P.u.uSootK, o.sootK || 1); gl.uniform3fv(P.u.uEye, window.EYE || [0, 10, 20]);
   const ao = o.ao || [9, 10, 9, 10, 0]; gl.uniform4fv(P.u.uAO, ao.slice(0, 4)); gl.uniform1f(P.u.uAOs, ao[4]);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, o.tex || RAMP); gl.uniform1i(P.u.uTex, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, RAMP); gl.uniform1i(P.u.uRamp, 1);
@@ -731,7 +733,7 @@ const OUTCOL = [.2, .05, .04];
 let FLASH = 0, SOOT = 0; // SOOT: 0..1 burn smudges on the toon materials (hurt state)
 function drawOutline(Msh, model, VP, thick, radial, dbl, col) {
   const P = outl; gl.useProgram(P.p);
-  gl.uniformMatrix4fv(P.u.uVP, false, VP); gl.uniformMatrix4fv(P.u.uM, false, model); gl.uniform1f(P.u.uThick, thick); gl.uniform1f(P.u.uRadial, radial ? 1 : 0); gl.uniform3fv(P.u.uCol, col || OUTCOL); gl.uniform1f(P.u.uFlash, FLASH);
+  gl.uniformMatrix4fv(P.u.uVP, false, VP); gl.uniformMatrix4fv(P.u.uM, false, model); gl.uniform1f(P.u.uThick, thick * (window.OUTK || 1)); gl.uniform1f(P.u.uRadial, radial ? 1 : 0); gl.uniform3fv(P.u.uCol, col || OUTCOL); gl.uniform1f(P.u.uFlash, FLASH);
   if (dbl) gl.disable(gl.CULL_FACE); else { gl.enable(gl.CULL_FACE); gl.cullFace(gl.FRONT); }
   Msh.draw();
 }

@@ -76,12 +76,12 @@ function parseCues(txt) {
     const w = line.split(/\s+/);
     if (w[0] === 'bg') { C.bg = w[1] || null; return; }
     if (w[0] === 'light') { // match a 3D background: light dir x y z | key r g b | amb | sky | gnd | rim | exp v
-      C.light = C.light || {}; for (let i = 1; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; C.light[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
+      C.light = C.light || {}; for (let i = 1; i < w.length;) { const k = w[i], n = (k === 'exp' || k === 'soft') ? 1 : 3; C.light[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
       return; }
     if (w[0] === 'face') { C.faceCy = +w[1]; return; }
     if (w[0] === 'acting' || w[0] === 'gerak') { C.acting = +(w[1] ?? 1); return; }  // automatic acting layer strength (0 = off, default 1)
     if (w[1] === 'light' && !isNaN(+w[0])) { // timed light: <t> light dir .. key .. -> crossfades (0.4 s) from the previous light
-      const L = {}; for (let i = 2; i < w.length;) { const k = w[i], n = k === 'exp' ? 1 : 3; L[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
+      const L = {}; for (let i = 2; i < w.length;) { const k = w[i], n = (k === 'exp' || k === 'soft') ? 1 : 3; L[k] = n === 1 ? +w[i + 1] : w.slice(i + 1, i + 4).map(Number); i += n + 1; }
       (C.lights = C.lights || []).push({ t: +w[0], L }); return; }
     if (w[0] === 'booktitle' || w[0] === 'judulbuku') { C.bookTitle = (w[1] || '').toLowerCase(); return; }   // booktitle deathnote: the soktahu book becomes the Death Note
     if (w[0] === 'hurt') { C.hurt = +(w[1] ?? 1); return; }
