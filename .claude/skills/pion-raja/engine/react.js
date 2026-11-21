@@ -185,6 +185,8 @@ function initProps() {
     g.fillStyle = '#e1262c'; const bx = 60, by = 110, bw = w - 120, bh = 160; g.beginPath(); g.moveTo(bx + 30, by); g.arcTo(bx + bw, by, bx + bw, by + bh, 30); g.arcTo(bx + bw, by + bh, bx, by + bh, 30); g.arcTo(bx, by + bh, bx, by, 30); g.arcTo(bx, by, bx + bw, by, 30); g.fill();
     g.fillStyle = '#fff'; g.font = '900 78px Inter, Arial Black, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SUBSCRIBE', w / 2, by + bh / 2 + 4);
     g.fillStyle = '#2a0f08'; g.font = '800 34px Inter, sans-serif'; g.fillText('👑 ROYAL ORDER 👑', w / 2, 60); g.fillText('tap it. now.', w / 2, 330); });
+  if (RX.paperImg) { const im = new Image(); im.onload = () => { PROP.paper = canvasTex(600, 400, (g, w, h) => { g.fillStyle = '#fffaf0'; g.fillRect(0, 0, w, h);
+      const r = Math.max((w - 24) / im.width, (h - 24) / im.height), dw = im.width * r, dh = im.height * r; g.save(); g.beginPath(); g.rect(12, 12, w - 24, h - 24); g.clip(); g.drawImage(im, (w - dw) / 2, (h - dh) / 2, dw, dh); g.restore(); }); }; im.src = RX.paperImg; }   // cue `paperimg file`: a photo on the sheet
   PROP.splat = canvasTex(512, 512, (g, w, h) => { // white egg-splat sculpture with a QR in the middle (like the one in the video)
     const R = rng(5), pts = []; for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, r = 200 + R() * 46; pts.push([w / 2 + Math.cos(a) * r, h / 2 + Math.sin(a) * r]); }
     const path = () => { g.beginPath(); for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2; if (!i) g.moveTo(mx, my); else g.quadraticCurveTo(p[0], p[1], mx, my); } const p = pts[0], q = pts[1]; g.quadraticCurveTo(p[0], p[1], (p[0] + q[0]) / 2, (p[1] + q[1]) / 2); g.closePath(); };
@@ -265,6 +267,22 @@ function drawProps(t, PP, base, VP, L, cam) {
       const scanned = RX.fxl.some(e => e.type === 'scan' && t > e.t1 - .05);
       tex(mat.chain(M0, mat.T(0, 0, -.037), mat.RY(Math.PI), mat.S(.31, .6, 1)), scanned ? PROP.screenOK : PROP.screenScan, { color: [1.15, 1.15, 1.15] });
       drawToon(PROP.phone, mat.chain(M0, mat.T(-.1, .24, .04), mat.S(.18, .1, .3)), VP, L, { color: [.3, .3, .34] }); // camera bump
+    }
+    if (G.type === 'call' && Hd) { // phone pressed to the ear, screen glowing toward the camera side
+      const sd = (G.side || 1) > 0 ? 1 : -1, sc = clamp(env * 1.3, 0, 1), M0 = mat.chain(Hd.M, mat.T(-sd * .02, .22, .2), mat.RZ(sd * .2), mat.RY(sd * 1.15), mat.S(sc, sc, sc));
+      drawOutline(PROP.phone, mat.mul(M0, mat.S(1.12, 1.06, 1.5)), VP, 0); drawToon(PROP.phone, M0, VP, L, { color: [.12, .12, .16], spec: .4 });
+    }
+    if (G.type === 'gun') { // cartoon assault rifle held diagonally across the chest (barrel up-left), pops in
+      const sc = clamp(env * 1.25, 0, 1) * (1 + .12 * Math.max(0, Math.sin(clamp((t - G.t0) / .35, 0, 1) * Math.PI))), Gm = mat.chain(base, mat.T(.3, 2.1, 1.75), mat.RZ(-.46), mat.S(1.35 * sc, 1.35 * sc, 1.35 * sc));
+      const BX = PROP.box || (PROP.box = new Mesh(boxGeo(1, 1, 1))), part = (x, y, w, h, d, col, rz) => { const M1 = mat.chain(Gm, mat.T(x, y, 0), mat.RZ(rz || 0), mat.S(w, h, d));
+        drawOutline(BX, mat.mul(M1, mat.S(1 + .05 / w, 1 + .05 / h, 1 + .05 / d)), VP, 0); drawToon(BX, M1, VP, L, { color: col, spec: .25 }); };
+      const DK = [.16, .16, .18], WD = [.62, .3, .12], WD2 = [.52, .24, .09];
+      part(.92, -.07, .62, .2, .12, WD, .12); part(1.2, -.12, .1, .32, .14, WD2, .12);            // stock + butt
+      part(.32, -.25, .12, .3, .12, WD2, .32);                                                   // pistol grip
+      part(0, 0, .9, .22, .15, DK); part(.05, .13, .7, .06, .12, [.24, .24, .27]);                // receiver + cover
+      part(-.1, -.29, .16, .34, .11, [.85, .38, .12], -.2); part(-.2, -.56, .16, .28, .11, [.85, .38, .12], -.5);   // curved magazine
+      part(-.72, 0, .52, .2, .17, WD); part(-.72, .14, .5, .07, .09, DK);                       // handguard + gas tube
+      part(-1.3, .02, .7, .07, .07, DK); part(-1.55, .11, .05, .14, .05, DK); part(-1.67, .02, .1, .1, .1, DK);   // barrel, sight, muzzle
     }
     if (G.type === 'nerd' && hands[1]) { // open book in his left hand, pages toward his face, covers (a V) toward the camera
       const sc = clamp(env * 1.3, 0, 1), B = mat.chain(hands[1].M, mat.T(-.1, .36, .28), mat.RX(-.2), mat.RY(-.12), mat.S(sc, sc, sc));
@@ -653,7 +671,7 @@ function drawReact(f, u) {
   const glasses = swim ? 3 : fxActive('glasses', t).length ? 1 : exNow === 'soktahu' ? 2 : 0, det = fxActive('detective', t).length ? 1 : 0;
   const ng = nerdGlow(t), Lg = ng > .01 ? glowLight(L, ng) : L;
   const doc = fxActive('costume', t).some(e => e.kind === 'doc') ? 1 : 0, hE = RX.fxl.find(e => e.type === 'hair' && t >= e.t0), hairAmt = hE ? easeOutBack(clamp((t - hE.t0) / .38, 0, 1)) : 0;
-  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, doc, swim, hair: hairAmt, t });
+  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, doc, swim, hair: hairAmt, t, piece: (fxActive('piece', t)[0] || {}).kind || null });
   drawProps(t, PP, base, VP, Lg, cam);
   drawExtras(t, PP, base, VP, Lg, cam);
   drawProps4(t, PP, base, VP, Lg, cam);
@@ -687,7 +705,7 @@ function drawReact(f, u) {
   for (const E of fxActive('money', t)) drawMoney(trailCtx, fx, t, E, cam);
   for (const G of TL.gest) if (G.type === 'crownlift' && t >= G.t0 + .5 && t < G.t0 + 1.2) { // crown is up: shine on the bald scalp
     const q = pix(PP.headM, [.32, .82, .45]); drawGlint(fx, q[0], q[1], cam.ppu * .55, t - G.t0 - .55); }
-  for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw' || G.type === 'nerd') && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears
+  for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw' || G.type === 'nerd' || G.type === 'gun' || G.type === 'call') && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears
     const Hd = PP.hands[(G.side || 1) > 0 ? 1 : 0] || PP.hands[0]; if (!Hd) continue; const w = mat.xform(Hd.M, [0, 0, 0, 1]), q = cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]);
     drawSparkle(fx, q[0], q[1], cam.ppu * 1.1, t - G.t0 - .1); }
 }

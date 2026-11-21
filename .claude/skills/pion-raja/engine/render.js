@@ -257,6 +257,8 @@ function gestureState(t, o) {
       if (show > .02) { const hp = [-sd0 * 1.42, 3.3, .75], tg = [-sd0 * .1, 4.05, .3], dd = tg.map((v, i) => v - hp[i]), dl = Math.hypot(...dd);
         res[1 - k0] = { env: env * show, h: hp, point: true, dir: dd.map(v => v / dl) }; }
     }
+    else if (G.type === 'call') { res[k0] = { env, h: [sd0 * .98, 2.72 + .02 * Math.sin(ph * 4), .42], head: true }; res[1 - k0] = HIP(-sd0); }   // phone held to the ear
+    else if (G.type === 'gun') { const b = .02 * Math.sin(ph * 3); res[1] = { env, h: [.54, 1.63 + b, 1.95] }; res[0] = { env, h: [-.57, 2.53 + b, 1.95] }; }   // cartoon rifle across the chest
     else if (G.type === 'phone') { res[k0] = { env, h: [sd0 * .95, 2.95 + .03 * Math.sin(ph * 5), .85] }; }      // holding a phone up beside the head (visible from front and back)
     else if (G.type === 'paper') { const b = .03 * Math.sin(ph * 4); res[0] = { env, h: [-.92, 2.0 + b, 1.0] }; res[1] = { env, h: [.92, 2.0 + b, 1.0] }; } // showing a sheet with both hands
     else if (G.type === 'throw') { // wind up behind the head, fling forward, follow through
@@ -370,8 +372,94 @@ function posePion(base, t, gs, look, hurt) {
   }
   return { headM, crownM: crownH, collarM, arms, hands, crownLift: CLf.u };
 }
+/* ---------- other chess pieces (cast for the detective series): same rig, arms and face as Pion, own silhouette + palette ---------- */
+const PALS = {   // dark -> light gradient stops, bottom of the body to the top of the head (never red: red belongs to Pion)
+  knight: [[.06, .06, .09], [.14, .15, .2], [.25, .27, .34], [.43, .46, .56]],
+  bishop: [[.2, .07, .33], [.38, .16, .58], [.57, .32, .82], [.8, .6, .97]],
+  rook:   [[.05, .14, .34], [.11, .3, .6], [.24, .5, .84], [.56, .78, .99]],
+  queen:  [[.02, .24, .21], [.05, .44, .39], [.15, .66, .57], [.52, .9, .8]],
+  pawn:   [[.6, .56, .5], [.8, .77, .7], [.93, .91, .85], [1, .99, .95]],
+};
+const PDEF = {
+  pawn:   { sp: [[0, 0], [1.3, 0], [1.3, .12], [1.15, .2], [1.15, .32], [.9, .5], [.62, 1.05], [.46, 1.6], [.42, 1.95]], collar: [.58, .2], head: [1, 1, 1] },
+  rook:   { sp: [[0, 0], [1.45, 0], [1.45, .14], [1.3, .22], [1.3, .36], [1.1, .55], [.98, 1.1], [.94, 1.6], [.98, 1.95]], collar: [.98, .2], head: [1.18, .84, 1.18] },
+  bishop: { sp: [[0, 0], [1.25, 0], [1.25, .12], [1.1, .2], [1.1, .32], [.8, .5], [.5, 1.05], [.37, 1.6], [.36, 1.95]], collar: [.55, .18], head: [.9, 1.2, .9] },
+  queen:  { sp: [[0, 0], [1.32, 0], [1.32, .12], [1.16, .2], [1.16, .32], [.9, .52], [.56, 1.1], [.4, 1.6], [.4, 1.95]], collar: [.6, .19], head: [.98, 1, .98] },
+  knight: { sp: [[0, 0], [1.3, 0], [1.3, .12], [1.15, .2], [1.15, .32], [.9, .5], [.62, 1.05], [.48, 1.6], [.46, 1.95]], collar: [.62, .2], head: [.96, 1, 1.06] },
+};
+const palCol = P => y => { const t = clamp(y / 4.1, 0, 1), st = [0, .35, .65, 1]; for (let i = 0; i < 3; i++) if (t <= st[i + 1]) { const f = (t - st[i]) / (st[i + 1] - st[i]); return P[i].map((v, k) => lerp(v, P[i + 1][k], f)); } return P[3]; };
+function boxGeo() { const g = G(), S = [.5, .5, .5];
+  const F = [[[0, 0, 1], [1, 0, 0], [0, 1, 0]], [[0, 0, -1], [-1, 0, 0], [0, 1, 0]], [[1, 0, 0], [0, 0, -1], [0, 1, 0]], [[-1, 0, 0], [0, 0, 1], [0, 1, 0]], [[0, 1, 0], [1, 0, 0], [0, 0, -1]], [[0, -1, 0], [1, 0, 0], [0, 0, 1]]];
+  for (const [n, u, v] of F) { const b = g.pos.length / 3; for (const [su, sv] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { for (let i = 0; i < 3; i++) g.pos.push(n[i] * S[i] + u[i] * su * S[i] + v[i] * sv * S[i]); g.nrm.push(...n); g.col.push(1, 1, 1); g.uv.push(0, 0); } g.idx.push(b, b + 1, b + 2, b, b + 2, b + 3); }
+  return fixWinding(fin(g)); }
+const PK = {};
+function pieceKit(type) {
+  if (PK[type]) return PK[type];
+  const D = PDEF[type], cf = palCol(PALS[type]), sp = spline2D(D.sp, 64);
+  const K = PK[type] = { D, P: PALS[type], body: new Mesh(lathe(sp, 64, 0, Math.PI * 2, cf)), rings: D.sp.slice(2, 6).map(([r, y]) => ({ y, mesh: new Mesh(torus(r, .035, 48, 8)) })),
+    collar: new Mesh(torus(D.collar[0], D.collar[1], 40, 14, y => cf(2.05 + y))), head: new Mesh(sphere(1, 48, 32, y => cf(2.95 + y * .9))) };
+  K.box = PK.box || (PK.box = new Mesh(lathe([[0, -.5], [.7071, -.5], [.7071, .5], [0, .5]], 4, Math.PI / 4, Math.PI * 2))); K.ball = PK.ball || (PK.ball = new Mesh(sphere(1, 20, 14)));
+  K.cone = PK.cone || (PK.cone = new Mesh(cone(1, 1, 14)));
+  if (type === 'rook') { K.turret = new Mesh(lathe([[0, -.2], [1.12, -.2], [1.06, .2], [1.06, .24], [0, .24]], 44, 0, Math.PI * 2)); K.badge = new Mesh(lathe([[0, -.04], [.17, -.04], [.21, 0], [.17, .04], [0, .04]], 28, 0, Math.PI * 2)); }
+  if (type === 'queen') { K.band = new Mesh(cylinder(.84, .76, .3, 40, true)); K.ring = new Mesh(torus(.84, .07, 40, 8)); }
+  return K;
+}
+function drawPiece(PP, base, VP, L, face) {
+  const type = face.piece, K = pieceKit(type), D = K.D, P = K.P, { headM, collarM, arms } = PP, { ex, blink, talk, exp, tint } = face;
+  const hM = mat.mul(headM, mat.S(...D.head)), cM = mat.chain(base, mat.T(0, 2.05, 0), mat.S(1, 1, .8));
+  const MID = P[2], LIGHT = P[3], DARK = P[0], SILVER = [.86, .89, .95], PEARL = [1, .98, .93];
+  const parts = [];   // [mesh, matrix, fill opts, outline width]
+  const add = (mesh, M, o, th = .05) => parts.push([mesh, M, o, th]);
+  if (type === 'rook') {
+    add(K.turret, mat.mul(headM, mat.T(0, .8, 0)), { color: MID }, .06);
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + Math.PI / 6; add(K.box, mat.chain(headM, mat.RY(a), mat.T(0, 1.2, .84), mat.S(.5, .38, .34)), { color: MID }, .05); }
+    const ang = .42; add(K.badge, mat.chain(base, mat.T(.94 * Math.sin(ang), 1.5, .94 * Math.cos(ang) + .02), mat.RY(ang), mat.RX(Math.PI / 2)), { color: GOLD, spec: .85 }, .03);
+  }
+  if (type === 'bishop') {
+    add(K.ball, mat.chain(headM, mat.T(0, 1.3, 0), mat.S(.2, .2, .2)), { color: LIGHT }, .04);
+  }
+  if (type === 'queen') {
+    const cr = mat.mul(headM, mat.T(0, .62, 0));
+    add(K.band, cr, { color: SILVER, dbl: true, spec: .9 }, .04); add(K.ring, mat.mul(cr, mat.T(0, .15, 0)), { color: SILVER, spec: .9 }, .04);
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2, h = k % 2 ? .42 : .62, m = mat.chain(cr, mat.RY(a), mat.T(0, .14, .8), mat.RX(.18));
+      add(K.cone, mat.mul(m, mat.S(.13, h, .1)), { color: SILVER, spec: .9 }, .04); add(K.ball, mat.chain(m, mat.T(0, h, 0), mat.S(.12, .12, .12)), { color: PEARL, spec: 1 }, .035); }
+    for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; add(K.ball, mat.chain(base, mat.T(Math.sin(a) * .5, 1.86 - .05 * Math.cos(a), Math.cos(a) * .5), mat.S(.085, .085, .085)), { color: PEARL, spec: 1 }, .03); }
+  }
+  if (type === 'knight') {
+    for (const s of [-1, 1]) add(K.cone, mat.chain(headM, mat.T(s * .4, .74, -.1), mat.RZ(-s * .3), mat.RX(-.2), mat.S(.22, .66, .15)), { color: MID }, .05);
+    const mane = [[0, 1.0, .25], [0, 1.06, -.08], [0, .96, -.42], [0, .74, -.72], [0, .44, -.94], [0, .1, -1.06], [0, -.26, -1.04]];
+    mane.forEach(([x, y, z], i) => add(K.ball, mat.chain(headM, mat.T(x, y, z), mat.RX(.5 - i * .32), mat.S(.2, .36, .26)), { color: DARK }, .05));
+    add(K.ball, mat.chain(headM, mat.T(0, -.72, .7), mat.S(.6, .4, .58)), { color: LIGHT }, .06);
+    for (const s of [-1, 1]) add(K.ball, mat.chain(headM, mat.T(s * .19, -.64, 1.24), mat.S(.08, .055, .04)), { color: DARK }, 0);
+  }
+  // ---- outlines
+  gl.disable(gl.BLEND); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.clear(gl.DEPTH_BUFFER_BIT);
+  const TH = .09;
+  drawOutline(K.body, base, VP, TH); drawOutline(K.collar, cM, VP, TH * .8); drawOutline(K.head, hM, VP, TH);
+  for (const [m, M, , th] of parts) if (th > 0) drawOutline(m, M, VP, th);
+  for (const A of arms) { drawOutline(A.mesh, base, VP, .06); drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
+  // ---- fills
+  drawToon(K.body, base, VP, L, { vc: true, ao: [1.55, 2.02, 9, 10, .32] });
+  for (const r of K.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: DARK.map(v => v * .6) });
+  drawToon(K.collar, cM, VP, L, { vc: true });
+  drawToon(K.head, hM, VP, L, { vc: true, ao: [-.5, -.86, .36, .64, .2] });
+  for (const [m, M, o] of parts) drawToon(m, M, VP, L, Object.assign({ noSoot: true }, o));
+  for (const A of arms) { drawToon(A.mesh, base, VP, L, { color: MID, noSoot: true }); drawToon(M.shoulder, A.shM, VP, L, { color: MID, noSoot: true }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE }); } }
+  // ---- face (same expression textures as Pion)
+  const glasses = face.glasses || 0, faceTex = k => faceTexture(k, blink, talk);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -2);
+  gl.useProgram(faceP.p); gl.uniformMatrix4fv(faceP.u.uVP, false, VP); gl.uniformMatrix4fv(faceP.u.uM, false, hM); gl.uniformMatrix3fv(faceP.u.uNM, false, normalMat(hM));
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.a)); gl.uniform1i(faceP.u.uA, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.b)); gl.uniform1i(faceP.u.uB, 1);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, GLOSS); gl.uniform1i(faceP.u.uGloss, 2);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, glasses === 2 ? NERD : glasses ? GLASSES : HURT); gl.uniform1i(faceP.u.uHurt, 3); gl.uniform1f(faceP.u.uHurtA, glasses ? 1 : 0);
+  gl.uniform1f(faceP.u.uMix, ex.m); gl.uniform1f(faceP.u.uSq, ex.sq); gl.uniform1f(faceP.u.uFlash, FLASH); gl.uniform1f(faceP.u.uExp, clamp(exp * 1.05, .5, 1)); gl.uniform3fv(faceP.u.uTint, tint.map(v => lerp(1, v, .3)));
+  gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); M.face.draw();
+  gl.disable(gl.POLYGON_OFFSET_FILL); gl.depthMask(true); gl.disable(gl.BLEND);
+}
 // face: {ex: exprAt(), blink, talk: 0..3, exp, tint}
 function drawPion(PP, base, VP, L, face) {
+  if (face.piece) return drawPiece(PP, base, VP, L, face);
   const { headM, crownM, collarM, arms } = PP, { ex, blink, talk, exp, tint, backView } = face, hurt = face.hurt || 0, glasses = face.glasses || 0, det = face.det || 0, doc = face.doc || 0, hair = face.hair || 0, swim = face.swim || 0;
   SOOT = .7 * hurt;
   const BAND = [.98, .97, .93], PLST = [.97, .8, .6], NS = { noSoot: true };

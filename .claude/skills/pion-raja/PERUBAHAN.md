@@ -1,5 +1,14 @@
 # Pion Raja: catatan perubahan
 
+## v6: detektif + gaya sinematik referensi (Nov 2026)
+- **Bidak lain** (`drawPiece` di `render.js`, cue `piece <knight|rook|bishop|queen|pawn>`): kuda hitam arang (telinga, surai, moncong),
+  benteng biru (puncak bergerigi, lencana emas), gajah ungu (kepala lonjong + bola), ratu toska (mahkota perak bermutiara, kalung),
+  pion korban gading. Rig, lengan, sarung tangan, dan semua ekspresi wajah sama dengan Pion. Warnanya sengaja tidak ada yang merah.
+- Gesture baru `call` (telepon di telinga) dan `gun` (senapan kartun di dada), dipakai di proj9 v2.
+- Remotion: item `rage` (burst marah bergerigi), tag diklamp ke layar, `inOut` aman untuk item pendek, `GreenFX.tsx`
+  (kata keluar dari mulut, semprotan ludah), `CastSheet.tsx` (cast sheet detektif).
+- **`PANDUAN_SINEMATIK.md`**: hasil analisis frame per frame 15 video referensi user (cahaya, warna, kamera, struktur cerita, caption).
+
 ## v5: Mode 4, dunia 3D three.js dengan gaya istana (proj7, Sphere Las Vegas)
 - **Dunia 3D animasi** (`examples/proj7/scene`): kota dengan plaza, jalan, mobil, palem, gedung kartun
   (RoundedBox, warna cerah, atap kubah/kerucut), monumen (piramida kaca, menara rangka besi, menara jarum,

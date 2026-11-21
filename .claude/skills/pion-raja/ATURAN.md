@@ -42,3 +42,6 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     di-track engine per frame), lalu langsung zoom out (`<t> zoomto 1.0 0 0 0 0.3`) dan kamera kembali ke muka.
     Jangan pakai offset `zoomto` kira-kira untuk barang.
 19. **Pion sedikit lebih besar** di istana: `castle_video.py --pscale 1.12` (diskalakan dari titik alasnya).
+20. **Gaya sinematik referensi user wajib** untuk video full animasi / dunia 3D: ikuti `PANDUAN_SINEMATIK.md` (spotlight saat hook,
+    malam biru + 1 lampu hangat saat "But / Until one night", flash putih lalu hangat saat payoff, kamera terbang kontinu tiap ~1,65 dtk
+    dengan ease sinus 0,6 dtk dan drift push-in 2%/dtk, lampu praktis + god ray + DOF, bayangan biru bukan hitam).

@@ -17,7 +17,7 @@ Pion Raja is the creator's own character, rendered procedurally (no external ass
 Look: orange round head, gold five-point crown, red pawn body, white ermine collar and robe edges,
 thick dark toon outline, white-glove hands that appear only for gestures. See `reference.png`.
 
-**Read `ATURAN.md` before starting any new project.** It holds the creator's mandatory rules
+**Read `ATURAN.md` before starting any new project**, and `PANDUAN_SINEMATIK.md` for any full-animation or 3D-world video. It holds the creator's mandatory rules
 (4K output, frame-by-frame review, eye placement on the focus point, no teleport spam, maximal interaction,
 no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesian.
 
@@ -45,6 +45,9 @@ no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesia
 | `castle3d/water_fx.py` | Leak, wall burst, flood, underwater look, mouth bubbles, bubble rings (cues in the castle cue file) |
 | `castle3d/remotion/src/SceneOverlay.tsx` | Remotion explainer layer: dimension lines glued to 3D points, counters, pops, captions, cut flashes |
 | `PANDUAN_DUNIA3D.md`, `PROMPT_AI_DUNIA3D.md` | Mode 4 guide (three.js world in the castle style) and a ready-to-paste prompt for a future AI |
+| `PANDUAN_SINEMATIK.md`, `REFERENSI_CAHAYA.jpg`, `REFERENSI_KAMERA.jpg` | **Cinematic style learned from the user's 15 reference Shorts** (measured frame by frame): story beats, hook spotlight, night shift on "But/Until one night", white-flash payoff, practical lights, god rays, DOF, continuous fly-through camera (a move every ~1.65 s, 0.6 s sine ease, +2%/s drift), one-word captions. Read before any full-animation project |
+| `engine/render.js` `drawPiece` + cue `piece <knight\|rook\|bishop\|queen\|pawn>` | Other chess pieces for the detective series, same rig/face/arms as Pion, never red. `castle3d/remotion/src/CastSheet.tsx` makes the cast sheet |
+| `castle3d/remotion/src/GreenFX.tsx` | Green-screen FX: words flying out of a mouth (`BossWords`), spit spray at the camera (`BossSpit`) |
 | `examples/proj6`, `examples/proj7` | Flood/underwater project; Las Vegas Sphere project (three.js city, Remotion overlay, SFX, assembly) |
 
 ## Setup (once per machine/session)

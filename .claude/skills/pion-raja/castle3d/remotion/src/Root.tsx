@@ -2,6 +2,8 @@ import React from "react";
 import { Composition } from "remotion";
 import { PionCastle, PionCastleProps } from "./PionCastle";
 import { SceneOverlay, SceneOverlayProps } from "./SceneOverlay";
+import { BossWords, BossSpit } from "./GreenFX";
+import { CastSheet, CastSheetProps } from "./CastSheet";
 
 const defaults: PionCastleProps = {
   frames: 30, fps: 30, width: 1080, height: 1350, sceneW: 1620, sceneH: 2026,
@@ -13,6 +15,9 @@ const overlayDefaults: SceneOverlayProps = { frames: 60, fps: 60, width: 1080, h
 
 export const Root: React.FC = () => (
   <>
+  <Composition id="CastSheet" component={CastSheet} durationInFrames={1} fps={60} width={1080} height={1920} defaultProps={{ top: [], suspects: [], k: 1 } as CastSheetProps} />
+  <Composition id="BossWords" component={BossWords} durationInFrames={127} fps={60} width={1080} height={1920} />
+  <Composition id="BossSpit" component={BossSpit} durationInFrames={136} fps={60} width={1080} height={1920} />
   <Composition
     id="SceneOverlay"
     component={SceneOverlay}
