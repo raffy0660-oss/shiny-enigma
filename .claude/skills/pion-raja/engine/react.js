@@ -138,7 +138,8 @@ function rStep(f) {
 /* portrait camera: long lens aimed at the pion, slightly above eye level */
 function reactCam(fr) {
   const fov = 28 * Math.PI / 180, dist = fr.vh / 2 / Math.tan(fov / 2), tl = fr.tiltDeg * Math.PI / 180;
-  const tgt = [fr.cx, fr.cy, 0], eye = [fr.cx, fr.cy + Math.sin(tl) * dist, Math.cos(tl) * dist];
+  const az = (fr.orbit || 0) * Math.PI / 180;   // orbit: the camera circles Pion (world-space light stays put, so the lit side changes with the view)
+  const tgt = [fr.cx, fr.cy, 0], eye = [fr.cx + Math.sin(az) * Math.cos(tl) * dist, fr.cy + Math.sin(tl) * dist, Math.cos(az) * Math.cos(tl) * dist];
   const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], nrm = a => { const l = Math.hypot(...a); return a.map(v => v / l); };
   const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
   const fw = nrm(sub(tgt, eye)), r0 = nrm(cross(fw, [0, 1, 0])), u0 = cross(r0, fw), ro = (fr.roll || 0) * Math.PI / 180, cr = Math.cos(ro), sr = Math.sin(ro);
@@ -606,7 +607,10 @@ function drawReact(f, u) {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
   for (const g of [fx, trailCtx, bgCtx]) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, g.canvas.width, g.canvas.height); }
   fx.setTransform(fx.canvas.width / W, 0, 0, fx.canvas.height / H, 0, 0); trailCtx.setTransform(trailCtx.canvas.width / W, 0, 0, trailCtx.canvas.height / H, 0, 0);
-  const fr = camAt(t), cam = reactCam(fr), VP = cam.VP; window.EYE = cam.eye;
+  let fr = camAt(t);
+  if (RX.view && RX.view.length) { const x = Math.max(0, Math.min(RX.view.length - 1, t * RX.fps)), i = Math.floor(x), j = Math.min(i + 1, RX.view.length - 1), u = x - i;   // --view: per-frame orbit/tilt from the 3D world camera
+    fr = Object.assign({}, fr, { orbit: lerp(RX.view[i][0], RX.view[j][0], u), tiltDeg: lerp(RX.view[i][1], RX.view[j][1], u) }); }
+  const cam = reactCam(fr), VP = cam.VP; window.EYE = cam.eye;
   const castle = RX.bg === 'castle' || RX.bg === 'hospital', L0 = RX.bg === 'castle' ? LIGHT_CASTLE : LIGHT;
   const L = lightAt(t, RX.light ? Object.assign({}, L0, RX.light) : L0); // cue `light ...` / `<t> light ...`: match the 3D background's mood
   const fl = flyPos(t), fv = flyVel(t);

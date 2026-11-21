@@ -31,3 +31,11 @@ bayangan matahari: matahari 4,6, hemisphere 0,2, environment 0,28.
 - Lukisan membelakangi matahari, jadi diberi lampu lukisan kuningan + SpotLight.
 - Awan kartun 3D (gugus bola), Sky `cloudCoverage 0`, mie rendah (tanpa silau), bloom threshold 6 (hanya lampu).
 - Kabut linear `Fog(0xd8dde6, 12, 1500)`: jernih di sekitar Pion, tipis di istana, pekat di kota jauh. Turis 36 saja.
+
+## v3: Pion ikut sudut kamera (orbit), bukan kartu yang selalu menghadap depan
+
+- Engine: `react_render.js --view view.json` = `[orbit°, tilt°]` per frame. Kamera engine mengitari Pion, cahaya `light`
+  tetap di ruang dunia, jadi saat kamera dunia berputar, sisi Pion yang tersorot ikut berubah (seperti benda 3D asli).
+- Dunia: `node render_scene.js mona x --view ../eng/view_mona.json --n 324` menulis track itu dari kamera shot
+  (Pion menghadap +z). Render engine SESUDAH track ini, lalu dunia. `renderFrame` memakai base/ppu per frame.
+- Shot: setelah zoom out kamera mengorbit 30° (2,05-5,4 dtk).

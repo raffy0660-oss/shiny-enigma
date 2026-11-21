@@ -460,7 +460,7 @@ const SHOTS = {
       { t: 0.00, pos: V(-0.35, 1.45, 1.62), tgt: V(-0.35, 1.45, 0), fov: 40, roll: 0 },
       { t: 1.36, pos: V(-0.35, 1.46, 1.40), tgt: V(-0.35, 1.46, 0), fov: 40, roll: 0 },
       { t: 2.05, pos: V(0.30, 1.30, 7.4), tgt: V(0.30, 1.62, 0), fov: 40, roll: -1.6, ease: "out" },
-      { t: 5.40, pos: V(0.62, 1.34, 6.9), tgt: V(0.32, 1.60, 0), fov: 40, roll: -2.2 },
+      { t: 5.40, pos: V(3.70, 1.45, 6.45), tgt: V(0.22, 1.60, 0.25), fov: 40, roll: -2.2 },   // slow 30 deg orbit: Pion is seen from a new side, his lit side turns away
     ],
     hits: [2.05],
   },
@@ -474,8 +474,13 @@ function shake(t, hits) {
 const project = v => { const p = v.clone().project(camera); return [+((p.x + 1) / 2).toFixed(4), +((1 - p.y) / 2).toFixed(4), +p.z.toFixed(4)]; };
 
 window.setup = async (pionInfo) => { PION = pionInfo; await envReady; return true; };
-window.renderFrame = async (which, f, fps, pionUrl) => {
-  const t = f / fps, S = SHOTS[which], pts = {};
+// per-frame engine camera for react_render.js --view: [orbit deg, tilt deg] of the world camera around Pion (Pion faces +z)
+window.viewTrack = (which, fps, n) => { const out = [];
+  for (let f = 0; f < n; f++) { const C = keyed(SHOTS[which].cam, f / fps), d = C.pos.clone().sub(PANCHOR), hz = Math.hypot(d.x, d.z);
+    out.push([+(Math.atan2(d.x, d.z) * 180 / Math.PI).toFixed(3), +(Math.atan2(d.y - 0.9, hz) * 180 / Math.PI).toFixed(3)]); }
+  return out; };
+window.renderFrame = async (which, f, fps, pionUrl, pinfo) => {
+  const t = f / fps, S = SHOTS[which], pts = {}; if (pinfo) Object.assign(PION, pinfo);   // per-frame base/ppu (the engine camera orbits)
   await pionFrame(pionUrl);
   const C = keyed(S.cam, t), [sx, sy] = shake(t, S.hits);
   camera.position.copy(C.pos); camera.position.x += sx * 0.035; camera.position.y += sy * 0.03; camera.fov = C.fov;

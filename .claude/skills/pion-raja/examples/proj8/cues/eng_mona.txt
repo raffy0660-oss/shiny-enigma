@@ -11,6 +11,6 @@ light dir -.62 .42 -.66 key 1.5 1.05 .68 amb .3 .28 .27 sky .36 .4 .5 gnd .44 .3
 2.30 look -12 0 -4
 3.40 senang
 3.70 look -20 -2 5
-3.95 gest present 1.4 kiri
+3.95 gest present 1.05 kiri
 4.60 bangga
 4.60 look 6 -2 4

@@ -1,5 +1,5 @@
 // node render_scene.js <w1|w2> <outdir> [--from f0] [--to f1] [--every n] [--jobs 3]
-// Serves ~/pion/proj8 over http (ES modules), renders the three.js world frame by frame with the engine Pion as a billboard.
+// Serves ~/pion/proj7 over http (ES modules), renders the three.js world frame by frame with the engine Pion as a billboard.
 const { chromium } = require("playwright");
 const http = require("http"), fs = require("fs"), path = require("path");
 const ROOT = path.resolve(__dirname, "..");
@@ -24,8 +24,10 @@ srv.listen(0, async () => {
     await p.goto(`http://localhost:${port}/scene/index.html`);
     await p.waitForFunction(() => window.__ready === true, null, { timeout: 120000 });
     await p.evaluate(i => window.setup(i), info);
+    if (arg("view")) { const v = await p.evaluate(([w, fps, n]) => window.viewTrack(w, fps, n), [shot, FPS, +arg("n", n)]); fs.writeFileSync(path.resolve(arg("view")), JSON.stringify(v)); console.log("view ->", arg("view")); process.exit(0); }
     for (const f of chunk) {
-      const r = await p.evaluate(([w, f, fps, u]) => window.renderFrame(w, f, fps, u), [shot, f, FPS, `/eng/${which}_frames/${String(f).padStart(5, "0")}.png`]);
+      const tf = track.frames[f] || fr0, pinfo = { base: [tf.base[0] * sx, tf.base[1]], ppu: tf.ppu * sx };
+      const r = await p.evaluate(([w, f, fps, u, pi]) => window.renderFrame(w, f, fps, u, pi), [shot, f, FPS, `/eng/${which}_frames/${String(f).padStart(5, "0")}.png`, pinfo]);
       fs.writeFileSync(path.join(out, String(f).padStart(5, "0") + ".jpg"), Buffer.from(r.img.split(",")[1], "base64"));
       pts[f] = r.pts;
       if (++done % 30 === 0 || done === list.length) console.log(`${which} ${done}/${list.length} ${((Date.now() - t0) / 1000).toFixed(0)}s`);
