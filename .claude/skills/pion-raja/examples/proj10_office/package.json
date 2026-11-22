@@ -1,0 +1,10 @@
+{
+  "name": "pion-proj7-scene",
+  "private": true,
+  "version": "1.0.0",
+  "description": "three.js world for Pion Mode 4 (render_scene.js)",
+  "dependencies": {
+    "three": "0.186.0",
+    "@pmndrs/assets": "1.7.0"
+  }
+}
