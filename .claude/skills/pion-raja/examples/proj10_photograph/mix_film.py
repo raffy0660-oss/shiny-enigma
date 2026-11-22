@@ -6,7 +6,7 @@ Three stems, each measured and set to a target loudness, then summed and limited
           C 54.6-73.4 s haunting music box over a cold drone ("It was me" -> the end); -24 LUFS (clearly heard, ~11 dB under the voice)
   sfx   : every action + ambiences (rain, street, siren, hum), -26 LUFS
 -> ~/pion/proj10/final/film_audio.wav (mix) and film_sfx_only.wav (music + sfx, no voice), true peak <= -1.5 dBTP."""
-import subprocess, os, re
+import subprocess, os, re, json
 P = os.path.expanduser("~/pion/proj10"); S = P + "/sfx/"; F = P + "/final/"; D = 73.4
 os.makedirs(F, exist_ok=True)
 MUSIC = [("mus_a", 0.0, 28.4, 0.3, 0.9), ("mus_b", 27.6, 54.75, 0.8, 0.25), ("mus_c", 54.5, 73.38, 0.06, 0.05), ("reveal_bed", 54.5, 73.38, 0.06, 0.05)]   # name, start, end, fade in, fade out
@@ -23,7 +23,7 @@ EV = [("click", 0.10, -6), ("whoosh", 1.3, -12), ("whoosh", 2.7, -12), ("whoosh"
       ("sting", 48.9, -13), ("dive", 49.3, -9), ("heartbeat", 51.3, -9), ("heartbeat", 52.9, -8), ("shutter", 53.46, -5), ("whoosh2", 54.3, -12), ("bass_hit", 54.56, -5),
       ("heartbeat", 55.0, -10), ("keys", 55.5, -12), ("whoosh2", 57.35, -13), ("glitch", 59.88, -7), ("whoosh2", 61.5, -13), ("keys", 64.4, -12), ("whoosh2", 64.5, -13),
       ("whoosh2", 68.4, -13), ("sting", 68.74, -12), ("whoosh", 70.4, -13), ("whoosh2", 72.45, -11), ("final_tick", 73.08, -5)]
-TARGET = {"vo": -13.0, "music": -24.0, "sfx": -25.0}
+TARGET = {"vo": -13.0, "music": -22.0, "sfx": -18.0}   # v3 (user: some SFX too quiet, make it as lively as possible but still mysterious)
 def ff(*a): subprocess.run(["ffmpeg", "-v", "error", "-y", *a], check=True)
 def lufs(f): o = subprocess.run(["ffmpeg", "-v", "info", "-i", f, "-af", "loudnorm=print_format=summary", "-f", "null", "-"], capture_output=True, text=True).stderr; return float(re.search(r"Input Integrated:\s+(-?[\d.]+)", o).group(1))
 def bed(i, n, a, b, db, fi, fo, loop=True):
@@ -32,11 +32,35 @@ def stem(out, parts):
     ins, fc, lab = [], [], []
     for i, (inp, f) in enumerate(parts): ins += inp; fc.append(f.replace("{i}", str(i)) if "{i}" in f else f); lab.append(f"[s{i}]")
     fc.append(f"{''.join(lab)}amix=inputs={len(lab)}:normalize=0,atrim=0:{D}[out]"); ff(*ins, "-filter_complex", ";".join(fc), "-map", "[out]", "-ar", "48000", "-ac", "2", out)
+# ---- v3: every SFX file peak-normalised (so the dB offsets mean the same thing), auto whooshes on every camera fly move, risers before the big turns, hits on the data words
+NS = P + "/sfx_norm/"; os.makedirs(NS, exist_ok=True)
+def norm(n):
+    out = NS + n + ".wav"
+    if not os.path.exists(out):
+        o = subprocess.run(["ffmpeg", "-v", "info", "-i", S + n + ".wav", "-af", "volumedetect", "-f", "null", "-"], capture_output=True, text=True).stderr
+        mx = float(re.search(r"max_volume: (-?[\d.]+)", o).group(1)); ff("-i", S + n + ".wav", "-af", f"volume={-1.0 - mx:.2f}dB", out)
+    return out
+if not os.path.exists(NS + "riser.wav"): ff("-i", S + "whoosh.wav", "-af", "areverse,atempo=0.8,afade=t=in:d=0.5,volume=2dB", NS + "riser.wav")
+if not os.path.exists(NS + "riser2.wav"): ff("-i", S + "sting.wav", "-af", "areverse,afade=t=in:d=0.9", NS + "riser2.wav")
+PLANS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plans")
+js = "const r=[];for(const n of ['s12_office','s23_apt','s4_office','s5_ext','s6_aptB','s7_office','s78_aptC','s9_office','s10_aptA','s1113_office']){const K=require('%s/'+n+'.js').K||[];for(let i=1;i<K.length;i++){if((K[i].ease||'io')!=='io')continue;r.push([K[i-1].t,K[i].t])}}console.log(JSON.stringify(r))" % PLANS
+MOVES = json.loads(subprocess.run(["node", "-e", js], capture_output=True, text=True).stdout)
+have = [t for n, t, db in EV if n.startswith("whoosh")]
+AUTO = []
+for k, (a, b) in enumerate(MOVES):
+    t = max(0.0, (a + b) / 2 - 0.32)
+    if b - a < 0.25 or any(abs(t - h) < 0.3 for h in have) or t > D - 0.5: continue
+    AUTO.append(("whoosh" if k % 2 else "whoosh2", t, -7)); have.append(t)
+TURNS = [8.2, 15.4, 21.0, 27.9, 34.46, 36.1, 45.4, 50.3, 54.56, 72.95]
+RISE = [("riser" if i % 2 else "riser2", max(0, t - 0.95), -6) for i, t in enumerate(TURNS)]
+HITS = [("bass_hit", t, -10) for t in (14.08, 24.8, 31.1, 31.92, 33.38, 34.74, 44.2)] + [("click", t, -4) for t in (14.08, 24.8, 31.1, 31.92, 33.38, 34.74, 44.2)]
+EV = EV + AUTO + HITS
+print("auto whooshes:", len(AUTO), "risers:", len(RISE))
 # stems
 ff("-i", P + "/audio/vo.mp3", "-af", f"aresample=48000,aformat=channel_layouts=stereo,highpass=f=70,acompressor=threshold=-22dB:ratio=3:attack=8:release=120:makeup=2,apad=whole_dur={D},atrim=0:{D}", F + "_vo.wav")
 stem(F + "_music.wav", [bed(i, n, a, b, MUSIC_DB[n], fi, fo) for i, (n, a, b, fi, fo) in enumerate(MUSIC)])
 parts = [bed(i, n, a, b, db, fi, fo, n != "siren") for i, (n, a, b, db, fi, fo) in enumerate(AMB)]
-for j, (n, t, db) in enumerate(EV): i = len(parts); parts.append((["-i", S + n + ".wav"], f"[{i}:a]volume={db}dB,adelay={int(t*1000)}|{int(t*1000)},apad=whole_dur={D}[s{i}]"))
+for j, (n, t, db) in enumerate(EV + RISE): i = len(parts); src = NS + n + ".wav" if n.startswith("riser") else norm(n); parts.append((["-i", src], f"[{i}:a]volume={db}dB,adelay={int(t*1000)}|{int(t*1000)},apad=whole_dur={D}[s{i}]"))
 stem(F + "_sfx.wav", parts)
 g = {k: TARGET[k] - lufs(F + f"_{k}.wav") for k in TARGET}
 print("stem gains dB:", {k: round(v, 1) for k, v in g.items()})

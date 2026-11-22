@@ -46,14 +46,22 @@ Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `project
 - Hook: spotlight pada karakter, lampu menyala tersendat. **Tanpa stempel "CASE SOLVED"** (user minta dihapus).
 
 ## 5. Teks
-- **Tanpa caption** satu kata. Teks overlay Remotion hanya untuk **data penting**, dengan item `word` (besar, tebal, outline tinta):
-  jam "11:42", "FRIDAY", "NO BODY / NO BLOOD / 0 FINGERPRINTS", nama + label ("DANIEL CROSS" · "MISSING · 5 YEARS").
+- **Caption WAJIB** (keputusan terbaru user, menggantikan "tanpa caption"). Sinkron per kata, 1–2 kata per kemunculan, di tengah sekitar 71% tinggi frame
+  (Remotion item `cap`, dibuat otomatis oleh `overlay_film.py` dari `vo_stt.json`):
+  - **Narator / karakter tidak di layar** → caption **polos** seperti video referensi ("How One Cart Stopped an Entire Army"):
+    Montserrat 800 putih, huruf sesuai ucapan, outline hitam tipis + bayangan lembut.
+  - **Karakter yang bicara terlihat di layar** → **label nama** pil putih kecil ("SUCCIFY") di atas, lalu teks besar KAPITAL putih ber-outline di bawahnya
+    (gaya foto referensi "RAKA / TAKE SATU"). Deteksi otomatis dari titik kepala karakter yang di-track per frame (`PION_KEY` per adegan).
+- **Teks data** (item `word`: "11:42", "FRIDAY", "NO BODY"...) tetap ada, diletakkan **di luar zona caption** (atas, atau dekat objeknya).
 - Teks di dalam dunia 3D (layar laptop, poster, kalender, tulisan tangan di foto) boleh berupa tekstur. Tulisan tangan memakai font Caveat.
 - Pastikan teks yang dipegang/dibaca **masuk frame utuh** (tidak terpotong tepi 9:16).
 
 ## 6. Audio
 - **Voice-over harus jauh lebih keras** (user: volume VO 100 → 1000). Patokan: VO -13 LUFS (kompresi ringan),
-  **backsound musik sesuai genre** -24 LUFS (~11 dB di bawah VO), SFX + ambience -25 LUFS, limiter -1,5 dBTP, total ≈ -13,5 LUFS.
+  **backsound musik sesuai genre** -22 LUFS, SFX + ambience -18 LUFS, limiter -1,5 dBTP.
+- **SFX harus RAMAI tapi tetap misterius** (user: beberapa SFX volumenya kurang). Setiap file SFX dinormalisasi peak dulu; whoosh di **setiap** gerakan kamera
+  terbang (otomatis dari key `io` di plan); riser sebelum setiap belokan/transisi besar; hantaman + klik di setiap teks data; ambience selalu ada.
+  Level v3 yang disetujui: VO -13 LUFS, musik -22, SFX -18 (VO tetap paling dominan, total ≈ -12,5 LUFS).
 - **Backsound wajib ada.** Untuk misteri: pizzicato/piano penasaran → ostinato suspense + detak jam (mulai penggeledahan sampai belokan)
   → kotak musik mencekam saat twist.
 - SFX ElevenLabs untuk setiap aksi + selalu kirim **`sfx_only.wav`** (musik + SFX tanpa VO).

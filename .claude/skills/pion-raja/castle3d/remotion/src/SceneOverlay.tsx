@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Easing, Img, interpolate, OffthreadVideo, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, continueRender, delayRender, Easing, Img, interpolate, OffthreadVideo, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 
 /* SceneOverlay: frames rendered elsewhere (three.js world / castle video) + explainer graphics locked to 3D points.
    pts[frame][name] = [x, y] (0..1 of the frame), exported by the renderer each frame, so a dimension line stays glued
@@ -19,6 +19,7 @@ type Item =
   | { type: "tag"; t0: number; t1: number; at: string; text: string; dx: number; dy: number; color?: string }
   | { type: "stamp"; t0: number; t1: number; text: string; sub?: string; x: number; y: number; rot?: number; color?: string; size?: number }
   | { type: "rage"; t0: number; t1: number; at: string; text: string; dx: number; dy: number; rot?: number; size?: number }
+  | { type: "cap"; t0: number; t1: number; text: string; name?: string }
   | { type: "word"; t0: number; t1: number; text: string; at?: string; x?: number; y?: number; dx?: number; dy?: number; size?: number; color?: string; sub?: string; rot?: number };
 export type SceneOverlayProps = {
   frames: number; fps: number; width: number; height: number;
@@ -213,7 +214,37 @@ const Word: React.FC<{ it: Extract<Item, { type: "word" }>; pts: SceneOverlayPro
   );
 };
 
+
+/* cap: captions, 1-2 words in sync with the voice (style of the user's references).
+   narrator (no name): plain white bold, sentence case, thin black outline + soft drop shadow, centred at ~71% height.
+   a character speaking on screen (name): small white name pill ("SUCCIFY") above big bold UPPERCASE white text with a black outline.
+   Font: Montserrat 800/900 from public/fonts (loaded once with FontFace before the first frame). */
+let capFontReady: Promise<void> | null = null;
+const useCapFont = () => { const [h] = React.useState(() => delayRender("caption font"));
+  React.useEffect(() => { if (!capFontReady) capFontReady = Promise.all([["800", "fonts/montserrat-latin-800-normal.woff"], ["900", "fonts/montserrat-latin-900-normal.woff"]].map(([w, u]) =>
+      new FontFace("CapMont", `url(${staticFile(u)})`, { weight: w }).load().then(f => { (document as any).fonts.add(f); }))).then(() => undefined).catch(() => undefined);
+    capFontReady.then(() => continueRender(h)); }, [h]); };
+const Cap: React.FC<{ it: Extract<Item, { type: "cap" }> }> = ({ it }) => {
+  const f = useCurrentFrame(), { fps, width: W, height: H } = useVideoConfig(), e = (f - it.t0 * fps) / fps;
+  if (e < 0 || f >= it.t1 * fps) return null;
+  const sc = interpolate(e, [0, 0.07, 0.14], [0.86, 1.05, 1], C);
+  if (!it.name) {
+    const fs = W * 0.066;
+    return (<div style={{ position: "absolute", left: W / 2, top: H * 0.71, translate: "-50% -50%", scale: String(sc), whiteSpace: "nowrap", fontFamily: "CapMont, Montserrat, sans-serif", fontWeight: 800,
+      fontSize: fs, color: "#ffffff", letterSpacing: "0.01em", WebkitTextStroke: `${fs * 0.07}px #111`, paintOrder: "stroke fill",
+      textShadow: `0 ${fs * 0.06}px ${fs * 0.12}px rgba(0,0,0,.65)` }}>{it.text}</div>);
+  }
+  const fs = W * 0.085, ns = W * 0.03;
+  return (<div style={{ position: "absolute", left: W / 2, top: H * 0.715, translate: "-50% -50%", scale: String(sc), display: "flex", flexDirection: "column", alignItems: "center", whiteSpace: "nowrap" }}>
+    <div style={{ fontFamily: "CapMont, Montserrat, sans-serif", fontWeight: 900, fontSize: ns, letterSpacing: "0.12em", color: "#141414", background: "#ffffff",
+      padding: `${ns * 0.12}px ${ns * 0.45}px`, borderRadius: ns * 0.3, border: `${ns * 0.1}px solid #141414`, marginBottom: fs * 0.04, boxShadow: `0 ${ns * 0.12}px ${ns * 0.3}px rgba(0,0,0,.45)` }}>{it.name}</div>
+    <div style={{ fontFamily: "CapMont, Montserrat, sans-serif", fontWeight: 900, fontSize: fs, lineHeight: 1, color: "#ffffff", textTransform: "uppercase", letterSpacing: "0.01em",
+      WebkitTextStroke: `${fs * 0.09}px #111`, paintOrder: "stroke fill", textShadow: `0 ${fs * 0.06}px ${fs * 0.1}px rgba(0,0,0,.6)` }}>{it.text}</div>
+  </div>);
+};
+
 export const SceneOverlay: React.FC<SceneOverlayProps> = (P) => {
+  useCapFont();
   const f = useCurrentFrame(), { fps } = useVideoConfig(), t = f / fps;
   const useIntro = P.intro && t < P.intro.until;
   // zoom-blur flash around each cut
@@ -226,7 +257,7 @@ export const SceneOverlay: React.FC<SceneOverlayProps> = (P) => {
           : <Img src={staticFile(`${P.seq}/${idx}.jpg`)} style={{ width: "100%", height: "100%" }} />}
       </AbsoluteFill>
       {P.items.map((it, i) => it.type === "dim" ? <Dim key={i} it={it} pts={P.pts} /> : it.type === "counter" ? <Counter key={i} it={it} pts={P.pts} />
-        : it.type === "pop" ? <Pop key={i} it={it} pts={P.pts} /> : it.type === "tag" ? <Tag key={i} it={it} pts={P.pts} /> : it.type === "rage" ? <Rage key={i} it={it} pts={P.pts} /> : it.type === "stamp" ? <Stamp key={i} it={it} /> : it.type === "word" ? <Word key={i} it={it} pts={P.pts} /> : <Caption key={i} it={it} />)}
+        : it.type === "pop" ? <Pop key={i} it={it} pts={P.pts} /> : it.type === "tag" ? <Tag key={i} it={it} pts={P.pts} /> : it.type === "rage" ? <Rage key={i} it={it} pts={P.pts} /> : it.type === "stamp" ? <Stamp key={i} it={it} /> : it.type === "word" ? <Word key={i} it={it} pts={P.pts} /> : it.type === "cap" ? <Cap key={i} it={it} /> : <Caption key={i} it={it} />)}
     </AbsoluteFill>
   );
 };

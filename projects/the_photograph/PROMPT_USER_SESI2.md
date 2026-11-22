@@ -22,3 +22,7 @@ Arsip arahan user, dipakai sebagai acuan konten berikutnya. Rangkuman aturannya 
 9. "Lihat foto kiri bawah, peletakan kakinya, kayak gak nginjak tanah. Itu karena kamu cuma nempel, gak ngatur posisi. Kalau diambil dari sudut kamera
    yang gak sejajar, malah kayak dia lurus di depan kamera, tapi tanahnya agak turun." → Karakter digambar dari sudut kamera adegan
    (`make_view.js` + engine `--view` + kartu `faceCam`, lantai `userData.ground`). Lihat `REFERENSI_SUDUT.jpg`.
+10. "Ternyata ada beberapa SFX yang volumenya kurang tinggi, buat serame mungkin videonya tapi tetap terasa misterius. Kasih caption: kalau narator
+    yang ngomong, polos kayak referensi (How One Cart Stopped an Entire Army); kalau karakter dalam video yang ngomong, kasih nama, jadi nama
+    'succify' terus bawahnya baru teks (seperti foto RAKA / TAKE SATU)." → v3: item `cap` (polos / bernama otomatis), SFX dinormalisasi + whoosh
+    otomatis + riser + hit, level VO -13 / musik -22 / SFX -18 LUFS.
