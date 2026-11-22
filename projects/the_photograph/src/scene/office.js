@@ -16,7 +16,7 @@ const W = 1080, H = 1920;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1); renderer.setSize(W, H);
 renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.localClippingEnabled = true;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.localClippingEnabled = true; renderer.shadowMap.autoUpdate = false;   // re-baked only when a prop moves (renderFrame)
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1024);
 scene.fog = new THREE.FogExp2(0x101a3a, 0.035);
@@ -470,7 +470,7 @@ const SHOTS = {
   establish: { pos: V(1.45, 1.7, 1.6), tgt: V(-0.45, 1.25, -1.5), fov: 58, focus: 3.2 },
 };
 window.renderShot = (name, t = 0, over) => {
-  placeEnv(null);
+  placeEnv(null); renderer.shadowMap.needsUpdate = true;
   const S = Object.assign({}, SHOTS[name] || SHOTS.wide, over || {});
   camera.position.copy(S.pos); camera.fov = S.fov; camera.updateProjectionMatrix(); camera.lookAt(S.tgt);
   bokeh.uniforms.focus.value = S.focus; placeDust(t); grade.uniforms.time.value = t;
@@ -495,6 +495,7 @@ async function placePion(P) {   // P: { url, base:[px,py], ppu, w, h, anchor:[x,
   const P0 = V(DESK.x, DESK.h + 0.01, DESK.z - DESK.d / 2), v = camera.position.clone().sub(P0), n = V(0, v.z, -v.y).normalize();   // the desk's back edge hides his lower half
   deskClip.setFromNormalAndCoplanarPoint(n, P0); pionMat.clippingPlanes = [deskClip]; pionMat.needsUpdate = true; pionCard.visible = true;
 }
+let lastSig = null;
 window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, mood2, moodK, lampK, pion }
   camera.position.set(...F.cam.pos); camera.fov = F.cam.fov; camera.updateProjectionMatrix(); camera.lookAt(...F.cam.tgt); camera.updateMatrixWorld();
   if (F.cam.roll) camera.rotateZ(F.cam.roll);
@@ -503,6 +504,7 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
   bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
   placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag);
+  { const sig = JSON.stringify([F.env, F.anon, F.calTear, F.mag, !!F.laptop, F.anonVis]); if (sig !== lastSig) { renderer.shadowMap.needsUpdate = true; lastSig = sig; } }
   await placePion(F.pion);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); if (pionCard.visible) renderer.render(pionScene, camera); renderer.setRenderTarget(null);
