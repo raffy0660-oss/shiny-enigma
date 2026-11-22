@@ -200,3 +200,72 @@ referensi ini (`light`/preset baru):
    - berkas jendela diagonal untuk malam
    - kontras tinggi + bayangan topi deerstalker di dahi untuk matahari keras
 6. Outline tetap gelap konstan. Bayangan kontak lembut selalu ada. Bayangan tegas hanya di matahari keras.
+
+---
+
+## 8. Environment: bangunan, awan, langit, tanah, air, props
+
+Papan: `REFERENSI_ENVIRONMENT.jpg` (16 potongan material + 4 detail 1:1).
+
+### 8a. Kenapa environment-nya terlihat mahal
+
+1. **Outline tinta di bangunan dan props**: tepi silhuet dan tepi utama (atap, bingkai, papan nama, peti, lonceng)
+   diberi garis gelap cokelat-hitam tipis, kira-kira 0,3–0,4% lebar frame, sedikit lebih tipis dari outline karakter.
+   Itulah yang membuat dunia 3D-nya terasa "digambar" dan menyatu dengan karakter 2D.
+   Pengecualian: vegetasi (pohon, rumput) dan awan **tanpa outline**.
+2. **Tekstur dilukis, bukan foto**: bata, papan kayu, sirap atap, salju di atap diberi warna rata dengan variasi
+   lembut dan **detail garis yang digambar** (sambungan papan, celah bata). Tidak ada noise foto, tidak ada normal map realistis.
+3. **Kepadatan detail tinggi**:
+   - setiap set penuh props bercerita (rak penuh barang, poster, mesin)
+   - papan nama dengan teks lucu yang terbaca ("SNIP'S BARBER SHOP", "MILK RUN DAIRY", "OPENING TOMORROW")
+   - bendera segitiga (bunting), lampu tali, kabel listrik dengan burung
+   - kerumunan karakter latar dan kendaraan
+   
+   Tidak ada bidang kosong.
+4. **Bentuk sederhana dan tebal (chunky)**: arsitektur disederhanakan, proporsi sedikit dilebih-lebihkan,
+   tepi dibevel/membulat. Tetap mengikuti era dan tempat aslinya (kota western, penjara modern, desa bersalju).
+5. **Satu warna khas per lokasi**: sel pink, ngarai merah-oranye, layar kapal oranye, pabrik kuning-teal.
+   Sisanya palet harmonis yang lebih kalem.
+6. **Material matte**. Kilau hanya di kaca, logam, dan air.
+7. **Kedalaman**: kabut atmosfer, objek jauh lebih terang dan kebiruan, dan DOF memburamkan latar.
+   Foreground (pagar, rel, papan) sering dekat lensa.
+
+### 8b. Langit dan awan (warna terukur)
+
+| Elemen | Resep |
+|---|---|
+| Langit siang | Gradien dari atas biru tua jenuh `#2459bd`–`#3f88f8` ke horizon lebih terang `#3b78d9`–`#5ca1ff` |
+| Langit sore / penutup | Atas biru-violet `#707df0` ke horizon persik-pink `#ffb9ac` |
+| Malam | Biru tua `#1b2a6b`–`#2a3c8f`, bintang, sering salju turun |
+| **Awan kumulus** | Gumpalan bola-bola 3D bertumpuk, siluet tegas tapi shading lembut: puncak `#eaeaf0`, bawah `#c3cfea` (biru-lavender, **bukan abu**). Dasar agak rata. Bergerak pelan |
+| Awan dari atas (aerial) | Gumpalan kecil putih di atas petak sawah, menjatuhkan bayangan lembut ke tanah |
+| Langit lukis | Untuk shot langit besar: tekstur awan tipis bergaya lukisan (skybox) |
+
+### 8c. Tanah, vegetasi, air
+
+- **Tanah dan jalan**: warna rata hangat dengan jejak roda, kaki, dan alur yang dilukis.
+  Dari atas: **petak-petak sawah** warna-warni ditambah sungai biru berkelok.
+- **Rumput**: bidang hijau jenuh dengan helai 3D di depan kamera. **Pohon**: tajuk 3D lebat dengan
+  gradasi hijau terang-gelap, tanpa outline. Bukit bulat lembut.
+- **Air laut**: biru-cyan jenuh dengan bercak buih putih bergaya kartun (bentuk tegas, bukan partikel realistis).
+  **Kolam**: cyan terang dengan garis kaustik putih bergelombang.
+- **Salju**: putih hangat dengan bayangan lavender, tumpukan bulat di atap.
+
+### 8d. Interior
+
+- Dinding dengan pola sederhana (ubin, bata dicat, panel kayu), lantai papan atau kotak-kotak, langit-langit terlihat.
+- Lampu praktis wajib (lampu gantung, neon, jendela). Lihat §2.
+- Interior siang: palet kalem (teal-abu). Interior malam: biru tua dengan pool hangat.
+
+### 8e. Penerapan ke dunia three.js kita (proj9/proj10)
+
+Pipeline kita sudah punya garis tinta screen-space (depth + normal), GTAO, bloom, dan grade. Yang perlu ditambahkan:
+1. **Tekstur kanvas bergaris**: material bata, papan, dan atap memakai tekstur canvas dengan warna rata
+   + garis sambungan gelap yang digambar (bukan noise).
+2. **Ketebalan dan warna ink**: cokelat-hitam (`#2a1d1a`), 0,3–0,4% lebar frame. Matikan ink untuk vegetasi dan awan
+   (lewat layer atau material flag).
+3. **Awan kumulus**: gabungan bola yang di-merge, shader gradien vertikal `#eaeaf0` ke `#c3cfea`, fresnel lembut di tepi, drift pelan.
+4. **Skybox gradien** per suasana (siang, sore, malam) plus kabut warna horizon.
+5. **Checklist kepadatan per set**: minimal 3 papan teks lucu, 1 elemen gantung (bunting, lampu tali, kabel),
+   karakter latar, props bercerita di setiap permukaan, dan 1 warna khas lokasi.
+6. **Air**: shader cyan + garis kaustik/buih putih bertepi tegas (tanpa refleksi realistis).
