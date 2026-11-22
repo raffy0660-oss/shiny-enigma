@@ -94,28 +94,31 @@ export function createChars(scene, camera, renderer, o = {}) {
       const off = new THREE.Vector3((P.w / 2 - P.base[0]) * kx, (P.base[1] - P.h / 2) * ky, 0);    // squash & stretch keeps the base on the ground
       const facing = P.facing || (P.face || P.faceCam ? "full" : "yaw");
       if (facing === "full" || facing === "faceCam") C.quaternion.copy(camera.quaternion);          // drawn from this camera's angle (--view): faces the lens fully
+      else if (facing === "floor") { C.rotation.set(-Math.PI / 2, 0, 0); C.rotateZ(P.yaw || 0); }   // lying: the (front-view) drawing lies flat on the floor, head toward yaw
       else if (facing === "fixed") C.rotation.set(0, P.yaw || 0, 0);
       else { const d = V().subVectors(camera.position, A); C.rotation.set(0, Math.atan2(d.x, d.z), 0); }   // yaw: upright, no tilt
-      if (P.roll) C.rotateZ(P.roll);
+      if (P.roll && facing !== "floor") C.rotateZ(P.roll);
       C.scale.set(P.w * kx, P.h * ky, 1); off.applyQuaternion(C.quaternion); C.position.copy(A).add(off);   // rotation / roll pivot = the base pixel
-      const push = P.push ?? (P.face ? 0 : (o.push ?? 0.2));   // the 2D base lip sits a little below the contact point
+      if (facing === "floor") C.position.y = ground + 0.012;
+      const push = facing === "floor" ? 0 : P.push ?? (P.face ? 0 : (o.push ?? 0.2));   // the 2D base lip sits a little below the contact point
       if (P.pushMode === "legacy" && push) { const d = V().subVectors(C.position, camera.position), L = d.length(), s = (L - push) / L; C.position.copy(camera.position).addScaledVector(d, s); C.scale.multiplyScalar(s); U.uPush.value = 0; }
       else U.uPush.value = push;                                                                     // depth-only: same picture, same size, same contact point
       // ---- rim + glow toward the key light (screen space), stronger when the light is behind the character
       const rim = (P.rim ?? o.rim ?? 0) * (opts.rimK ?? o.rimK ?? 1), glow = (P.glow ?? o.glow ?? 0) * (opts.rimK ?? o.rimK ?? 1);
-      if (keyL && rim + glow > 0) {
-        const mid = V().copy(A).addScaledVector(V(0, 1, 0).applyQuaternion(C.quaternion), P.height * 0.45), lp = lightPos(keyL, mid);
+      const rimL = opts.rimLight || keyL;   // rim direction: the key light of the shot (may differ from the shadow light)
+      if (rimL && rim + glow > 0) {
+        const mid = V().copy(A).addScaledVector(V(0, 1, 0).applyQuaternion(C.quaternion), P.height * 0.45), lp = lightPos(rimL, mid);
         const a = mid.clone().project(camera), b = lp.clone().project(camera), behind = V().subVectors(lp, mid).normalize().dot(V().subVectors(mid, camera.position).normalize());
         let dx = b.x - a.x, dy = b.y - a.y; const dirToCam = V().subVectors(lp, camera.position).dot(V(0, 0, -1).applyQuaternion(camera.quaternion)) < 0;
         if (dirToCam) { dx = -dx; dy = -dy; }                                                         // light behind the lens: projection flips
         const ln = Math.hypot(dx, dy) || 1, r = -(P.roll || 0); dx /= ln; dy /= ln; const rx = dx * Math.cos(r) - dy * Math.sin(r), ry = dx * Math.sin(r) + dy * Math.cos(r);
-        U.uRimDir.value.set(rx, ry); U.uRimPx.value.set(0.075 * P.ppu / P.w, 0.075 * P.ppu / P.h);   // tap step relative to the drawing scale (ink line ~0.12 model units)
-        const lc = opts.rimCol || P.rimCol || o.rimCol || [keyL.color.r, keyL.color.g, keyL.color.b], lk = 0.35 + 0.65 * Math.max(0, behind);
+        U.uRimDir.value.set(rx, ry); U.uRimPx.value.set(0.09 * P.ppu / P.w, 0.09 * P.ppu / P.h);   // tap step relative to the drawing scale (ink line ~0.12 model units)
+        const lc = opts.rimCol || P.rimCol || o.rimCol || [rimL.color.r, rimL.color.g, rimL.color.b], lk = 0.35 + 0.65 * Math.max(0, behind);
         U.uRimCol.value.setRGB(lc[0] * lk, lc[1] * lk, lc[2] * lk); U.uRim.value = rim; U.uGlow.value = glow;
       } else { U.uRim.value = 0; U.uGlow.value = 0; }
       C.visible = true;
       // ---- cast shadow: proxy with the same silhouette, upright, turned toward the light (horizontally), a little behind the card
-      if (keyL && P.cast !== false && !P.face && P.contact !== "body") {
+      if (keyL && P.cast !== false && !P.face && P.contact !== "body" && facing !== "floor") {
         const lp = lightPos(keyL, A);
         const toL = V().subVectors(lp, A); toL.y = 0; if (toL.lengthSq() < 1e-6) toL.set(0, 0, 1); toL.normalize();
         X.material.map = t; X.material.needsUpdate = true; X.customDepthMaterial.map = t; X.customDistanceMaterial.map = t; X.customDepthMaterial.needsUpdate = X.customDistanceMaterial.needsUpdate = true;

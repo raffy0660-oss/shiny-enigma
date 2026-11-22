@@ -15,6 +15,7 @@ import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { BokehPass } from "three/addons/postprocessing/BokehPass.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { createChars } from "./charlayer.js";
+import { LIGHT_PRESETS } from "./charpresets.js";
 
 const W = 1080, H = 1920;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -29,7 +30,7 @@ const camera = new THREE.PerspectiveCamera(42, W / H, 0.05, 60);
 // ---------------------------------------------------------------- post chain (as office.js) + photo grade (sepia-blue, fade, scratches)
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const gtao = new GTAOPass(scene, camera, W, H); gtao.output = GTAOPass.OUTPUT.Default; gtao.blendIntensity = 1.0;
+const gtao = new GTAOPass(scene, camera, W, H); gtao.output = GTAOPass.OUTPUT.Default; gtao.blendIntensity = 0.75;   // v2 lighting: less muddy AO
 gtao.updateGtaoMaterial({ radius: 0.35, distanceExponent: 1.6, thickness: 0.3, scale: 1.0, samples: 12, distanceFallOff: 1.0 });
 gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
 composer.addPass(gtao);
@@ -280,9 +281,9 @@ function placeDust(t) { const O = V(XL + 0.05, WIN.y, WIN.z); for (let i = 0; i 
 
 // ---------------------------------------------------------------- versions (light + dressing)
 const VERS = {
-  A: { hemi: 0.5, hemiCol: 0x6a6f9a, bulb: 3.2, sun: 0, moon: 9, fill: 0.35, beam: 0.05, beamCol: [0.7, 0.8, 1.0], dust: 0.25, fog: 0.06, fogCol: 0x2a2a34, sky: "A", vig: 0.55, sepia: 0.9, grain: 0.05, tint: [0, 0, 0], strobe: 0, body: true, bg: 0x101420 },
-  B: { hemi: 1.7, hemiCol: 0x9aa8d8, bulb: 0, sun: 120, moon: 0, fill: 2.2, beam: 0.42, beamCol: [1.0, 0.86, 0.6], dust: 0.85, fog: 0.035, fogCol: 0x6a6a80, sky: "B", vig: 0.48, sepia: 0, grain: 0.025, tint: [-0.01, 0, 0.03], strobe: 0, body: false, bg: 0x1a1a24 },
-  C: { hemi: 0.3, hemiCol: 0x2a46c8, bulb: 0, sun: 0, moon: 16, fill: 0.9, beam: 0.08, beamCol: [0.5, 0.6, 1.0], dust: 0.2, fog: 0.065, fogCol: 0x101a3a, sky: "C", vig: 0.62, sepia: 0, grain: 0.03, tint: [-0.03, 0, 0.08], strobe: 1, body: true, bg: 0x060a1c },
+  A: { hemi: 0.5, hemiCol: 0x6a6f9a, bulb: 3.2, sun: 0, moon: 9, fill: 0.35, beam: 0.05, beamCol: [0.7, 0.8, 1.0], dust: 0.25, fog: 0.06, fogCol: 0x2a2a34, sky: "A", vig: 0.47, sepia: 0.9, grain: 0.05, tint: [0, 0, 0], strobe: 0, body: true, bg: 0x101420 },
+  B: { hemi: 1.7, hemiCol: 0x9aa8d8, bulb: 0, sun: 120, moon: 0, fill: 2.2, beam: 0.42, beamCol: [1.0, 0.86, 0.6], dust: 0.85, fog: 0.035, fogCol: 0x6a6a80, sky: "B", vig: 0.40, sepia: 0, grain: 0.025, tint: [-0.01, 0, 0.03], strobe: 0, body: false, bg: 0x1a1a24 },
+  C: { hemi: 0.3, hemiCol: 0x2a46c8, bulb: 0, sun: 0, moon: 16, fill: 0.9, beam: 0.08, beamCol: [0.5, 0.6, 1.0], dust: 0.2, fog: 0.065, fogCol: 0x101a3a, sky: "C", vig: 0.54, sepia: 0, grain: 0.03, tint: [-0.03, 0, 0.08], strobe: 1, body: true, bg: 0x060a1c },
 };
 function lightsOff() { for (const L of [bulbL, sun, moonL, fillL, strobeR, strobeB, hallStrobe, clockGlow, torch]) L.visible = L.intensity > 0 || L === moonL || L === sun; }   // zero lights cost per pixel too (sun/moon keep their baked shadow maps)
 function applyVer(ver, t, o = {}) {
@@ -318,7 +319,8 @@ const tapeMul = new THREE.Color();   // tape picks up the strobe colour a little
 // ---------------------------------------------------------------- render
 const PTS = { clock: [CLOCK.p.x, 0.25, CLOCK.p.z + 0.1], clockFace: [0, 0, 0], body: [-0.35, 0.2, -0.55], door: [XR, 1.0, DOOR.z], window: [XL, WIN.y, WIN.z] };
 // ---------------------------------------------------------------- characters INSIDE the world (charlayer.js)
-const CHARS = createChars(scene, camera, renderer, { n: 4, E: 0.6, D: 0.18, hide: [...beams, dust, ...scene.children.filter(o => o.material === webM)] });
+const CHARS = createChars(scene, camera, renderer, { n: 4, E: 0.6, D: 0.18, hide: [...beams, dust, ...scene.children.filter(o => o.material === webM)], rim: 0.45, glow: 0.18 });
+const RIMV = { A: "interior_warm_lamp", B: "exterior_daylight", C: "crime_scene" };   // A photo world (bulb), B sun through the boards, C police torches
 composer.insertPass(CHARS.pass(pionRT), composer.passes.indexOf(pionComp)); CHARS.guard(gtao); CHARS.guard(bokeh);
 for (const l of [sun, moonL, torch, bulbL]) if (l.shadow) l.shadow.autoUpdate = false;
 const DYN = { A: null, B: sun, C: null };   // the light that draws the characters' shadows every frame
@@ -332,7 +334,7 @@ window.renderFrame = async (F) => {   // F: { t, ver, cam:{pos,tgt,fov,focus,rol
   if (F.refl) { reflM.map = await loadTex(F.refl.url); reflM.opacity = F.refl.k; reflM.needsUpdate = true; refl.visible = true; } else refl.visible = false;
   const list = (F.pions || (F.pion ? [F.pion] : [])).map(P => P && P.face ? Object.assign({ push: 0.7, cast: false }, P) : P);
   if (bakedVer !== F.ver) { const dyn = DYN[F.ver]; CHARS.bake([sun, moonL, torch, bulbL].filter(l => l !== dyn)); bakedVer = F.ver; }
-  await CHARS.place(list, { light: DYN[F.ver || "A"], puffs: F.puffs });
+  { const LP = LIGHT_PRESETS[RIMV[F.ver || "A"]]; await CHARS.place(list, { light: DYN[F.ver || "A"], rimLight: { A: bulbL, B: sun, C: torch }[F.ver || "A"], puffs: F.puffs, rimCol: LP.rimCol, rimK: LP.rimK }); }
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   composer.render();
   const pr = (p) => { const q = V(...p).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };
