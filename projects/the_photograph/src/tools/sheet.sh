@@ -1,7 +1,7 @@
 #!/bin/bash
 # sheet.sh <dir> <out.jpg> [cols] [width] [filelist...]: tile jpgs from dir (or listed frames) into a contact sheet
 D=$1; O=$2; C=${3:-6}; W=${4:-270}; shift 4 2>/dev/null
-if [ $# -gt 0 ]; then L=""; for f in "$@"; do L="$L $D/$(printf %05d $f).jpg"; done; else L=$(ls $D/*.jpg); fi
+if [ $# -gt 0 ]; then L=""; for f in "$@"; do L="$L $D/$(printf %05d $((10#$f))).jpg"; done; else L=$(ls $D/*.jpg); fi
 python3 - "$O" "$C" "$W" $L <<'PY'
 import sys; from PIL import Image, ImageDraw
 o,c,w=sys.argv[1],int(sys.argv[2]),int(sys.argv[3]); fs=sys.argv[4:]

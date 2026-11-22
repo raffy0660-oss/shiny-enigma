@@ -9,8 +9,8 @@ const K = [
   { t: 23.1, pos: [-4.2, 2.5, 2.3], tgt: [0.3, 2.1, FZ], fov: 56, focus: 6.6, ease: "lin" },
   { t: 23.75, pos: [-1.6, 1.3, 0.2], tgt: [0.75, 5.7, FZ], fov: 54, focus: 6, ease: "io" },                 // "belonged to a man": up to the boarded window of 7B
   { t: 24.4, pos: [-1.45, 1.3, 0.05], tgt: [0.75, 5.75, FZ], fov: 54, focus: 6, ease: "lin" },
-  { t: 25.0, pos: [2.15, 1.15, FZ + 3.2], tgt: [1.6, 1.15, FZ + 1.0], fov: 46, focus: 2.2, ease: "io" },     // "Daniel Cross": the poster with Pion beside it
-  { t: 25.9, pos: [2.12, 1.15, FZ + 3.05], tgt: [1.62, 1.16, FZ + 1.0], fov: 46, focus: 2.1, ease: "lin" },
+  { t: 25.0, pos: [1.58, 1.22, FZ + 4.4], tgt: [1.55, 0.95, FZ + 1.1], fov: 50, focus: 3.2, ease: "io" },     // "Daniel Cross": the poster with Pion beside it
+  { t: 25.9, pos: [1.6, 1.22, FZ + 4.2], tgt: [1.56, 0.95, FZ + 1.1], fov: 50, focus: 3.05, ease: "lin" },
   { t: 26.5, pos: [2.15, 1.2, FZ + 2.1], tgt: [1.95, 1.18, FZ + 0.97], fov: 42, focus: 1.15, ease: "io" },   // "disappeared five years earlier": push into the poster
   { t: 27.3, pos: [2.12, 1.2, FZ + 1.95], tgt: [1.95, 1.18, FZ + 0.97], fov: 42, focus: 1.0, ease: "lin" },
   { t: 27.95, pos: [-0.6, 1.25, FZ + 1.0], tgt: [-0.6, 1.2, FZ - 1.0], fov: 50, focus: 0.9, ease: "in" },     // whip into the door (dissolve into apartment B)

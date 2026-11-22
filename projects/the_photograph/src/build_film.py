@@ -3,7 +3,7 @@ crossfades at the dissolves, the anonymous photo laid exactly over the Friday cr
 python3 build_film.py [--check]   (--check: only report missing frames)"""
 import os, sys, math, json; import numpy as np; from PIL import Image
 LIFT = {"s23", "s10"}   # the world inside the photo: lift gamma + warm it so it matches the photo lying under the desk lamp
-LUT = [min(255, int(255 * ((i / 255) ** 0.8) * k)) for k in (1.05, 1.0, 0.92) for i in range(256)]
+LUT = [min(255, int(255 * ((i / 255) ** 0.94) * k)) for k in (1.03, 1.0, 0.95) for i in range(256)]
 def load(p): im = Image.open(p).convert("RGB"); return im.point(LUT) if p.split("/")[-2] in LIFT else im
 P = os.path.expanduser("~/pion/proj10"); OUT = P + "/film"; os.makedirs(OUT, exist_ok=True); N = 4404
 SEG = [("s12", 0, 510), ("s23", 492, 936), ("s4", 924, 1266), ("s5", 1260, 1677), ("s6", 1674, 2043), ("s7", 2040, 2172), ("s78", 2166, 2724), ("s9", 2724, 3030), ("s10", 3018, 3264), ("s1113", 3258, 4404)]
