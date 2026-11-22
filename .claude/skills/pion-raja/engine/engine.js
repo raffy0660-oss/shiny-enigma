@@ -394,6 +394,12 @@ function faceCanvas(kind, closed, talk) { // talk: 0 = expression's own mouth, 1
     line(-ex - 30, -58, -ex + 26, -66); line(ex + 30, -58, ex - 26, -66);
     blush(true);
     if (mouth) { g.save(); g.lineWidth = 12; g.beginPath(); g.moveTo(-4, 50); g.quadraticCurveTo(24, 52, 12, 66); g.quadraticCurveTo(26, 74, 6, 86); g.stroke(); g.restore(); heart(56, 46, .9); }
+  } else if (kind === 'mati') { // dead: heavy half-closed lids over blank whites (tiny unfocused pupils), flat brows, slack open mouth, no blush
+    for (const s of [-1, 1]) { g.save(); g.fillStyle = WH; g.beginPath(); g.ellipse(s * ex, 14, 30, 22, 0, 0, Math.PI); g.closePath(); g.fill(); g.lineWidth = 9; g.stroke();
+      g.fillStyle = BR; g.beginPath(); g.arc(s * ex + s * 8, 22, 5, 0, 7); g.fill();
+      g.lineWidth = 15; g.beginPath(); g.moveTo(s * ex - 34, 12); g.quadraticCurveTo(s * ex, 6, s * ex + 34, 14); g.stroke(); g.restore(); }   // heavy upper lid
+    line(-ex - 34, -46, -ex + 30, -42); line(ex + 34, -46, ex - 30, -42);
+    if (mouth) { g.save(); g.beginPath(); g.moveTo(-24, 64); g.quadraticCurveTo(-4, 58, 22, 66); g.quadraticCurveTo(16, 92, -2, 94); g.quadraticCurveTo(-20, 90, -24, 64); g.closePath(); g.fillStyle = MOUTH; g.fill(); g.lineWidth = 10; g.stroke(); g.restore(); }
   } else if (kind === 'lega') { // relieved / content: soft closed eyes, blush, small "hah~" mouth
     for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * ex - 28, 6); g.quadraticCurveTo(s * ex, 22, s * ex + 28, 6); g.stroke(); }
     line(-ex - 30, -50, -ex + 28, -58); line(ex + 30, -50, ex - 28, -58);
@@ -653,7 +659,7 @@ M.magHandle = new Mesh(cylinder(.06, .075, .55, 12, false));
 M.fingerTip = new Mesh(sphere(.085, 10, 8));
 const TEX = { erm: texFromCanvas(ermineCanvas(), true) };
 const EXPRS = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
-  'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu', 'melet', 'gembung', 'tiup', 'malu', 'sewot'];
+  'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu', 'melet', 'gembung', 'tiup', 'malu', 'sewot', 'mati'];
 const BLINKABLE = ['datar', 'senang', 'kaget', 'penasaran', 'sinis', 'marah', 'sakit', 'ragu', 'licik', 'nangis', 'girang', 'syok', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'soktahu', 'melet', 'tiup', 'malu', 'sewot']; // the others already have closed / slit eyes
 const FACE_CACHE = {};
 function faceTexture(kind, closed, talk) { // lazily built: expression x blink x mouth-open level
@@ -664,6 +670,17 @@ function faceTexture(kind, closed, talk) { // lazily built: expression x blink x
 const FACES = {}; for (const k of EXPRS) FACES[k] = faceTexture(k, false, 0);
 const GLOSS = texFromCanvas(glossCanvas(), false);
 const HURT = texFromCanvas(hurtCanvas(), false);
+function deadCanvas() {   // dead face overlay (cue `dead`): sunken purple-grey under the eyes, dark stains on the forehead / cheek, a trickle from the mouth corner (muted, not gory)
+  const c = document.createElement('canvas'); c.width = 2048; c.height = 1024; const g = c.getContext('2d'); g.scale(2, 2); g.translate(256, 250); const R = rng(52);
+  for (const s of [-1, 1]) { const q = g.createRadialGradient(s * 92, 44, 4, s * 92, 44, 46); q.addColorStop(0, 'rgba(90,70,120,.55)'); q.addColorStop(1, 'rgba(90,70,120,0)'); g.fillStyle = q; g.beginPath(); g.ellipse(s * 92, 46, 44, 22, 0, 0, 7); g.fill(); }
+  const blot = (x, y, r, a) => { g.fillStyle = `rgba(92,22,24,${a})`; g.beginPath(); for (let k = 0; k <= 20; k++) { const t = k / 20 * 6.283, rr = r * (.65 + .55 * R()); g.lineTo(x + Math.cos(t) * rr, y + Math.sin(t) * rr * .85); } g.closePath(); g.fill(); };
+  blot(-120, -88, 30, .8); blot(-96, -110, 14, .75); blot(140, 70, 26, .8); blot(160, 40, 11, .7); blot(-150, 96, 12, .65);
+  for (let i = 0; i < 14; i++) blot(-200 + R() * 400, -140 + R() * 280, 3 + R() * 5, .7);
+  g.strokeStyle = 'rgba(92,22,24,.85)'; g.lineWidth = 9; g.lineCap = 'round'; g.beginPath(); g.moveTo(20, 92); g.quadraticCurveTo(30, 120, 24, 150); g.stroke();   // trickle from the mouth corner
+  g.fillStyle = 'rgba(92,22,24,.85)'; g.beginPath(); g.arc(24, 152, 7, 0, 7); g.fill();
+  return c;
+}
+const DEADF = texFromCanvas(deadCanvas(), false);
 const GLASSES = texFromCanvas(glassesCanvas(), false);
 const MONOCLE = texFromCanvas(monocleCanvas(), false);
 const NERD = texFromCanvas(nerdGlassesCanvas(), false);

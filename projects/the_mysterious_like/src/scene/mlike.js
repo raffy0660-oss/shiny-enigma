@@ -219,16 +219,51 @@ const trimA = mat({ color: 0xf2ece6, roughness: 0.6 });
   const rugA = add(new THREE.PlaneGeometry(2.2, 2.2), new THREE.MeshStandardMaterial({ map: rugT, transparent: true, alphaTest: 0.5, roughness: 1 }), -0.2, 0.004, 0.25, { rx: -Math.PI / 2, cast: false }); rugA.userData.ground = true;
   add(box(0.06, 0.12, 0.2, 0.02), mat({ color: 0xc01838, roughness: 0.3 }), -1.05, 0.06, 0.95, { ry: 0.7, rz: 1.2 });   // high heel on its side
   for (let i = 0; i < 6; i++) add(box(0.08 + rnd() * 0.06, 0.003, 0.12 + rnd() * 0.06, 0.001), mat({ color: 0xf6f2ea }), -1.4 + rnd() * 2.6, 0.008, -0.4 + rnd() * 1.6, { ry: rnd() * 3 });
+  // ---- more furniture (dense, storytelling): streaming desk (monitor, mic arm, keyboard, LED strip), TV console, arc floor lamp, pouf, armchair, wall shelf, tall plants, a spilled handbag
+  const DK = group(1.88, 0, -0.95, -Math.PI / 2);
+  add(box(1.0, 0.05, 0.5, 0.02), mat({ color: 0xf4f0ec }), 0, 0.62, 0, { parent: DK }); for (const sx of [-1, 1]) add(box(0.04, 0.6, 0.46, 0.01), mat({ color: 0xe8e2de }), sx * 0.47, 0.3, 0, { parent: DK });
+  add(box(0.56, 0.33, 0.03, 0.01), DARK, 0, 0.98, -0.12, { parent: DK }); add(new THREE.PlaneGeometry(0.52, 0.29), new THREE.MeshBasicMaterial({ color: 0x3a2a5a, toneMapped: false }), 0, 0.98, -0.103, { parent: DK, cast: false });
+  add(new THREE.CylinderGeometry(0.012, 0.012, 0.3, 8), DARK, 0, 0.8, -0.12, { parent: DK }); add(box(0.42, 0.02, 0.14, 0.005), mat({ color: 0xfafafa }), 0, 0.655, 0.08, { parent: DK });
+  add(new THREE.CylinderGeometry(0.035, 0.03, 0.12, 12), mat({ color: 0x1a1a1e, metalness: 0.5 }), -0.36, 0.86, 0.05, { rz: 0.5, parent: DK }); add(new THREE.CylinderGeometry(0.008, 0.008, 0.38, 6), DARK, -0.42, 0.74, 0.02, { rz: -0.4, parent: DK });
+  add(box(1.0, 0.012, 0.012, 0.004), new THREE.MeshBasicMaterial({ color: 0xff4aa8, toneMapped: false }), 0, 0.6, 0.25, { parent: DK, cast: false });   // LED strip
+  add(box(0.48, 0.5, 0.48, 0.12), mat({ color: 0xffffff }), 0, 0.25, 0.42, { parent: DK }); add(box(0.48, 0.5, 0.1, 0.05), mat({ color: 0xffd0e0 }), 0, 0.72, 0.62, { parent: DK });   // gaming chair (cushioned)
+  const TV = group(0.45, 0, A.BACK + 0.22); add(box(1.2, 0.42, 0.36, 0.02), mat({ color: 0xf2ece6 }), 0, 0.21, 0, { parent: TV });
+  for (let i = 0; i < 3; i++) add(box(0.36, 0.3, 0.01, 0.004), mat({ color: 0xd8ccc4 }), -0.4 + i * 0.4, 0.21, 0.181, { parent: TV, cast: false });
+  add(new THREE.CylinderGeometry(0.07, 0.06, 0.16, 12), mat({ color: 0xffffff }), -0.45, 0.5, 0.0, { parent: TV }); for (let i = 0; i < 5; i++) add(new THREE.SphereGeometry(0.06, 8, 6), leafM, -0.45 + (rnd() - .5) * 0.1, 0.62 + rnd() * 0.1, (rnd() - .5) * 0.1, { parent: TV });
+  for (let i = 0; i < 3; i++) add(new THREE.CylinderGeometry(0.03, 0.03, 0.06 + i * 0.03, 12), mat({ color: 0xf6e8d8 }), 0.25 + i * 0.09, 0.45 + i * 0.015, 0.05, { parent: TV });   // candles
+  add(box(0.3, 0.22, 0.04, 0.01), mat({ color: 0xffffff }), 0.42, 0.53, -0.05, { rx: -0.15, parent: TV });   // photo stand
+  const LP = group(-1.88, 0, -0.35); add(new THREE.CylinderGeometry(0.16, 0.18, 0.03, 16), mat({ color: 0xc9a24a, metalness: 0.8, roughness: 0.3 }), 0, 0.015, 0, { parent: LP });
+  const arc = new THREE.TorusGeometry(0.6, 0.012, 6, 24, Math.PI * 0.6); add(arc, mat({ color: 0xc9a24a, metalness: 0.8, roughness: 0.3 }), 0.6, 0.6, 0, { rz: Math.PI * 0.42, parent: LP });
+  add(new THREE.SphereGeometry(0.13, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat({ color: 0xf4f0ea, side: THREE.DoubleSide }), 0.75, 1.15, 0, { rx: Math.PI, parent: LP });
+  add(new THREE.CylinderGeometry(0.24, 0.26, 0.26, 20), mat({ color: 0xe8c0a0, roughness: 1 }), 1.25, 0.13, -1.25);   // pouf
+  const AC = group(-1.55, 0, -1.25, 0.6); add(box(0.62, 0.22, 0.58, 0.08), mat({ color: 0xf2e6e8 }), 0, 0.3, 0, { parent: AC }); add(box(0.62, 0.5, 0.14, 0.07), mat({ color: 0xf2e6e8 }), 0, 0.6, -0.24, { parent: AC });
+  for (const sx of [-1, 1]) add(box(0.12, 0.32, 0.56, 0.05), mat({ color: 0xeadcde }), sx * 0.31, 0.42, 0, { parent: AC });
+  add(box(0.3, 0.3, 0.1, 0.05), mat({ color: 0xffc0d0 }), 0, 0.5, -0.12, { rz: 0.2, parent: AC });
+  add(box(1.0, 0.03, 0.18, 0.005), trimA, -0.55, 1.62, A.BACK + 0.09); for (let i = 0; i < 6; i++) add(box(0.04, 0.16 + rnd() * 0.06, 0.13, 0.004), mat({ color: new THREE.Color().setHSL(0.85 + rnd() * 0.2, 0.35, 0.6) }), -0.95 + i * 0.05, 1.72, A.BACK + 0.09);   // wall shelf + books
+  add(new THREE.SphereGeometry(0.08, 12, 8), mat({ color: 0xfff0f5 }), -0.3, 1.71, A.BACK + 0.09); add(new THREE.CylinderGeometry(0.035, 0.035, 0.1, 10), mat({ color: 0xf6e8d8 }), -0.15, 1.69, A.BACK + 0.09);
+  for (const [x, z, h] of [[1.95, -1.55, 1.1], [-2.0, 1.55, 0.9]]) { add(new THREE.CylinderGeometry(0.15, 0.12, 0.32, 16), mat({ color: 0xece6dc }), x, 0.16, z); for (let i = 0; i < 12; i++) { const a = i / 12 * 6.28; add(new THREE.CircleGeometry(0.13, 10), leafM, x + Math.cos(a) * 0.12, 0.45 + rnd() * h * 0.7, z + Math.sin(a) * 0.12, { rx: -0.9 + rnd() * 0.6, ry: a }); } }
+  const BG = group(-0.95, 0, 1.1, 0.8); add(box(0.32, 0.22, 0.12, 0.05), mat({ color: 0xd8a8b8, roughness: 0.5 }), 0, 0.11, 0, { rz: 1.4, parent: BG });   // spilled handbag
+  for (let i = 0; i < 5; i++) add(new THREE.CylinderGeometry(0.018, 0.018, 0.09, 10), mat({ color: [0xc02040, 0x1a1a1a, 0xffd0a0, 0xc9a24a, 0xffffff][i] }), 0.15 + rnd() * 0.4, 0.012, -0.1 + rnd() * 0.3, { rz: Math.PI / 2, ry: rnd() * 3, parent: BG });
+  // ---- stains around the victim (dark red-brown, a bit wet): a pool by her head, drips beside her, a smear trail, drops on the rug
+  const stainT = (seed, n) => canvasTex(512, 512, (g, w, h) => { let ss = seed; const R = () => (ss = (ss * 16807) % 2147483647) / 2147483647; g.clearRect(0, 0, w, h);
+    for (let i = 0; i < n; i++) { const x = w / 2 + (R() - .5) * w * (i ? 0.6 : 0), y = h / 2 + (R() - .5) * h * (i ? 0.6 : 0), r = (i ? 18 + R() * 40 : 150); g.fillStyle = i % 2 ? "rgba(70,14,18,.95)" : "rgba(92,20,24,.95)"; g.beginPath();
+      for (let k = 0; k <= 26; k++) { const t = k / 26 * 6.283, rr = r * (.72 + .45 * R()); g.lineTo(x + Math.cos(t) * rr, y + Math.sin(t) * rr * .8); } g.closePath(); g.fill(); }
+    g.strokeStyle = "rgba(40,6,8,.8)"; g.lineWidth = 6; g.beginPath(); g.arc(w / 2, h / 2, 120, 0.3, 1.4); g.stroke(); });
+  const stM = (t) => new THREE.MeshStandardMaterial({ map: t, transparent: true, depthWrite: false, roughness: 0.15, metalness: 0.0, polygonOffset: true, polygonOffsetFactor: -2 });
+  for (const [x, z, sz, seed, n, ry] of [[0.8, -0.4, 0.66, 11, 9, 0.3], [1.1, 0.12, 0.3, 23, 6, 1.2], [0.42, 0.45, 0.28, 37, 5, 2.1], [1.0, 0.78, 0.22, 41, 4, 0.7], [0.25, -0.05, 0.22, 53, 4, 2.6], [1.42, -0.25, 0.16, 61, 3, 1.9], [0.55, 0.95, 0.14, 71, 3, 0.4]])
+    add(new THREE.PlaneGeometry(sz, sz), stM(stainT(seed, n)), x, 0.007, z, { rx: -Math.PI / 2, rz: ry, cast: false });
+  { const tr = new THREE.PlaneGeometry(0.85, 0.12); add(tr, stM(canvasTex(512, 64, (g, w, h) => { g.clearRect(0, 0, w, h); const gr = g.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, "rgba(80,16,20,.9)"); gr.addColorStop(1, "rgba(80,16,20,0)"); g.fillStyle = gr;
+      for (let k = 0; k < 5; k++) { g.beginPath(); g.ellipse(w * 0.1 + k * w * 0.18, h / 2 + (k % 2 ? 6 : -6), w * 0.12, h * 0.32, 0, 0, 7); g.fill(); } })), 0.3, 0.007, -0.52, { rx: -Math.PI / 2, rz: 2.6, cast: false }); }   // smear trail
   window.__aptGlow = [bulbsV, fairy];
 }
-const aptSpot = new THREE.SpotLight(0xffd8b0, 0, 6, 0.6, 0.38, 1.2); aptSpot.position.set(0.55, A.H - 0.06, 0.45); aptSpot.target.position.set(0.45, 0, 0.25);
+const aptSpot = new THREE.SpotLight(0xffd8b0, 0, 6, 0.6, 0.38, 1.2); aptSpot.position.set(1.05, A.H - 0.06, 0.4); aptSpot.target.position.set(1.0, 0, 0.12);
 aptSpot.castShadow = true; aptSpot.shadow.mapSize.set(2048, 2048); aptSpot.shadow.bias = -0.0005; aptSpot.shadow.radius = 2.5; aptSpot.shadow.camera.near = 0.2; scene.add(aptSpot, aptSpot.target);
-add(new THREE.CylinderGeometry(0.06, 0.08, 0.1, 16, 1, true), DARK, 0.55, A.H - 0.05, 0.45, { cast: false });   // the ceiling spot fixture
+add(new THREE.CylinderGeometry(0.06, 0.08, 0.1, 16, 1, true), DARK, 1.05, A.H - 0.05, 0.4, { cast: false });   // the ceiling spot fixture
 const aptMoon = new THREE.SpotLight(0x7f90e8, 0, 9, 0.5, 0.6, 1.2); aptMoon.position.set(-3.2, 1.9, -0.6); aptMoon.target.position.set(0.5, 0, -0.2); aptMoon.castShadow = true; aptMoon.shadow.mapSize.set(1024, 1024); scene.add(aptMoon, aptMoon.target);
 const aptNeon = new THREE.PointLight(0xff5aa8, 0, 3.2, 1.6); aptNeon.position.set(0.45, 1.85, A.BACK + 0.35); scene.add(aptNeon);
 const aptVanity = new THREE.PointLight(0xffd8b0, 0, 2.2, 1.8); aptVanity.position.set(1.45, 1.05, A.BACK + 0.6); scene.add(aptVanity);
 const aptFill = new THREE.HemisphereLight(0x6a5a9a, 0x140c10, 0); scene.add(aptFill);
-const aptBeam = beam([0.55, A.H - 0.06, 0.45], [0.42, 0, 0.22], 0.06, 1.2, 0xffd8b0, 0.12);
+const aptBeam = beam([1.05, A.H - 0.06, 0.4], [0.98, 0, 0.1], 0.06, 1.2, 0xffd8b0, 0.12);
 
 // ================================================================ B: the phones of the other victims (four small worlds, far apart)
 const PB = [

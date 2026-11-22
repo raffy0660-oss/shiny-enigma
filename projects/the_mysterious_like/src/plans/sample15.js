@@ -8,8 +8,8 @@ const look = (t, pos, tgt, fov, ease, extra) => Object.assign({ t, pos, tgt, fov
 const PH = [[30, -0.35], [33, 0.5], [36, 0.2], [39, -0.8]].map(([x, ry]) => { const lx = -0.0338, lz = 0.0577; return { c: [x, 0.013, 0], pfp: [x + lx * Math.cos(ry) + lz * Math.sin(ry), 0.014, -lx * Math.sin(ry) + lz * Math.cos(ry)], ry }; });
 const P = (i, dx, dy, dz) => [PH[i].pfp[0] + dx, PH[i].pfp[1] + dy, PH[i].pfp[2] + dz];
 const SH = [   // shots: [t0, loc, camera keys]
-  [0.0, "apt", [look(0.0, [-1.9, 1.2, 0.95], [1.35, 0.32, 0.12], 46), look(3.3, [-1.35, 1.04, 0.8], [1.35, 0.34, 0.14], 46, "lin"),   // behind her head, looking down her body to Pion at the wall
-                look(4.8, [-0.75, 0.82, 1.35], [0.9, 0.4, 0.15], 46, "io")]],                                                    // he pushes off: side angle as he hops in
+  [0.0, "apt", [look(0.0, [-1.7, 1.55, 1.05], [1.15, 0.22, 0.2], 46), look(3.3, [-1.2, 1.38, 0.9], [1.15, 0.25, 0.2], 46, "lin"),   // behind her head, looking down her body to Pion at the wall
+                look(4.8, [-0.45, 1.05, 1.45], [1.15, 0.3, 0.05], 46, "io")]],                                                    // he pushes off: side angle as he hops in
   [4.8, "phones", [look(4.8, [PH[0].c[0] - 0.04, 0.36, 0.2], PH[0].c, 40), look(6.0, [PH[0].c[0] - 0.035, 0.31, 0.17], PH[0].c, 40, "lin"),
                    look(7.74, P(0, -0.01, 0.13, 0.05), P(0, 0, 0, 0), 40, "io")]],
   [7.74, "phones", [look(7.74, P(1, 0.07, 0.15, 0.08), P(1, 0, 0, 0), 40, "io", { roll: 0.28 }), look(8.64, P(1, 0.05, 0.12, 0.06), P(1, 0, 0, 0), 40, "lin", { roll: 0.24 })]],
@@ -25,7 +25,7 @@ const SHAKE = [[4.8, 0.5], [7.74, 1.0], [8.64, 1.0], [9.5, 1.2], [9.6, 1.4], [11
 function shake(t) { let x = 0, y = 0, r = 0; for (const [t0, s] of SHAKE) { const d = t - t0; if (d < 0 || d > 0.45) continue; const a = s * Math.exp(-d * 9);
   x += a * 0.012 * Math.sin(d * 97); y += a * 0.01 * Math.sin(d * 71 + 1); r += a * 0.02 * Math.sin(d * 53 + 2); } return { x, y, r }; }
 // Pion in the apartment: leaning on the right wall, pushes off at "dead" (3.34), two hops toward the victim
-function pionA(t) { const A0 = [1.72, 0, 0.12], A1 = [0.95, 0, 0.26]; let roll = -0.13, p = A0.slice(), lift = 0, squash = 1;
+function pionA(t) { const A0 = [1.72, 0, 0.12], A1 = [1.3, 0, -0.32]; let roll = -0.13, p = A0.slice(), lift = 0, squash = 1;
   if (t > 3.34) roll = -0.13 * (1 - clamp((t - 3.34) / 0.3));
   const h0 = 3.66, T = 0.46, n = 2;
   if (t > h0) { const k = Math.min(n, (t - h0) / T), q = Math.floor(Math.min(k, n - 1e-6)), h = (t - h0) - q * T;
@@ -42,8 +42,8 @@ module.exports = { N, set: "mlike", SH, frame(f) {
   const F = { t, loc, cam: c, pions: [] };
   if (loc === "apt") { const A = pionA(t);
     F.pions = [{ eng: "pionA", ef: f, anchor: A.p, lift: A.lift, roll: A.roll, squash: A.squash, height: 1.15, preset: "detective", tint: [1, 0.97, 0.92] },
-               { eng: "victim", ef: 0, anchor: [0.3, 0, 0.78], ground: 0, height: 1.1, preset: "victim", yaw: 0.25, tint: [1, 0.95, 0.95] }];   // victim lying across the frame
-    F.puffs = t > 3.66 ? [0, 1, 2].map(q => ({ p: [lerp(1.72, 0.95, Math.min(1, q / 2)), 0, 0.2], age: t - (3.66 + q * 0.46) })) : []; }
+               { eng: "victim", ef: f, anchor: [0.78, 0, 0.36], ground: 0, height: 1.1, preset: "victim", facing: "faceCam", bodyDir: [0, -1], push: 0.35, tint: [1, 0.95, 0.95] }];   // victim: drawn LYING by the engine (`lie`) from this camera, body along -z
+    F.puffs = t > 3.66 ? [0, 1, 2].map(q => ({ p: [lerp(1.72, 1.3, Math.min(1, q / 2)), 0, lerp(0.12, -0.32, Math.min(1, q / 2))], age: t - (3.66 + q * 0.46) })) : []; }
   if (loc === "house") { F.door = door(t); F.figure = s === 7; F.flash = flash(t); F.pkey = s < 7 ? 1 : 0;
     if (s < 7) F.pions = [{ eng: "pionC", ef: Math.round((t - 10.32) * FPS), anchor: [60, 0, -0.35], height: 1.15, preset: "detective", tint: [0.92, 0.95, 1.05] }]; }
   return F; } };

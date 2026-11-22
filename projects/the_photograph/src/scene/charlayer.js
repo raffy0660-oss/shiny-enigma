@@ -26,6 +26,9 @@ export function createChars(scene, camera, renderer, o = {}) {
   const blobTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
     gr.addColorStop(0, "rgba(6,8,22,.9)"); gr.addColorStop(0.25, "rgba(6,8,22,.7)"); gr.addColorStop(0.6, "rgba(6,8,22,.28)"); gr.addColorStop(1, "rgba(10,12,30,0)");   // tight core + long soft falloff (not a hard dark disc) g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  const blobBodyTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);   // lying body: dense almost to the edge
+    gr.addColorStop(0, "rgba(6,8,22,.92)"); gr.addColorStop(0.62, "rgba(6,8,22,.8)"); gr.addColorStop(0.86, "rgba(6,8,22,.38)"); gr.addColorStop(1, "rgba(6,8,22,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
   for (let i = 0; i < N; i++) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshLambertMaterial({ transparent: true, alphaTest: 0.04, side: THREE.DoubleSide, depthWrite: true, fog: true }));
     const U = { uPush: { value: 0 }, uRimDir: { value: new THREE.Vector2(0, 1) }, uRimPx: { value: new THREE.Vector2(0.004, 0.002) }, uRimCol: { value: new THREE.Color(0, 0, 0) }, uRim: { value: 0 }, uGlow: { value: 0 }, uShade: { value: 0 }, uShadeCol: { value: new THREE.Color(0.42, 0.46, 0.66) }, uLitCol: { value: new THREE.Color(1.08, 1.0, 0.9) }, uSpan: { value: new THREE.Vector2(0.02, 0.01) } };
@@ -145,9 +148,11 @@ export function createChars(scene, camera, renderer, o = {}) {
         const h = Math.max(0, A.y - ground), wide = 1 + Math.min(h, 1) * 0.9, fade = Math.max(0.18, 1 - h * 1.5);   // lifted: wider + softer + fainter
         let sx, sz, ox = 0, oz = 0, rotY = 0;
         if (Array.isArray(sw)) { sx = sw[0]; sz = sw[1]; ox = sw[2] || 0; oz = sw[3] || 0; }                    // explicit (old plans)
+        else if (P.contact === "body" && P.bodyDir) { const L = P.height * 1.25, d = V(P.bodyDir[0], 0, P.bodyDir[1]).normalize(); sx = L; sz = P.height * 0.7; rotY = Math.atan2(-d.z, d.x); }   // wide enough to show around the body's edges   // lying (engine `lie`): anchor = floor under the body middle, blob along the body
         else if (P.contact === "body") { const up = V(0, 1, 0).applyQuaternion(C.quaternion); up.y = 0; const L = P.height * 0.95;   // lying: along the body axis
           if (up.lengthSq() < 1e-4) up.set(1, 0, 0); up.normalize(); sx = L; sz = P.height * 0.32; rotY = Math.atan2(-up.z, up.x); ox = up.x * L * 0.45; oz = up.z * L * 0.45; }
         else { sx = P.height * 0.62; sz = P.height * 0.3; if (P.contact === "seat") { sx *= 0.8; sz *= 0.8; } }   // compact, under the feet
+        B.material.map = (P.contact === "body" && P.bodyDir) ? blobBodyTex : blobTex;
         B.visible = true; B.rotation.set(-Math.PI / 2, 0, rotY); B.scale.set(sx * wide, sz * wide, 1);
         B.position.set(A.x + ox, ground + 0.006, A.z + oz); B.material.opacity = (P.shOp ?? 1) * fade; }
     }

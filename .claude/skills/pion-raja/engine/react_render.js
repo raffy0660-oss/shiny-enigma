@@ -67,7 +67,7 @@ function analyse(file) {
 //   <t> flyout [dur] [jauh|kiri|kanan|atas|bawah] fly away
 //   <t> hover off|on                 gentle floating (on by default)
 const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
-  'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu', 'melet', 'gembung', 'tiup', 'malu', 'sewot'];
+  'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu', 'melet', 'gembung', 'tiup', 'malu', 'sewot', 'mati'];
 const GEST = ['kantong', 'flail', 'tread', 'cough', 'windup', 'blow', 'gaya', 'up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click', 'toss', 'cointhrow', 'pouch', 'deathnote', 'call', 'gun'];
 function parseCues(txt) {
   const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], float: [], panic: [], bg: null, frame: null, frameOverride: null }, warn = [];
@@ -133,6 +133,8 @@ function parseCues(txt) {
     else if (cmd === 'stomp' || cmd === 'injak') C.fx.push({ type: 'stomp', t0: t, t1: t + +(w[2] || 1.2) });       // hops on the spot (on the torn book)
     else if (cmd === 'hide') C.fx.push({ type: 'hide', t0: t, t1: 999 });
     else if (cmd === 'outfit' || cmd === 'baju') C.fx.push({ type: 'outfit', t0: -1, t1: 1e9, kind: (w[2] || '').toLowerCase() }); // clothes on a chess piece: daniel, police
+    else if (cmd === 'dead' || cmd === 'mati') C.fx.push({ type: 'dead', t0: t, t1: 1e9 }); // dead look on a piece: pale skin + face stains overlay (use with expression `mati`)
+    else if (cmd === 'lie' || cmd === 'rebah') C.fx.push({ type: 'lie', t0: t, t1: 1e9, deg: +(w[2] ?? 88) }); // lying on the floor (dead / knocked out): the 3D body is laid on its side, drawn from the view angle
     else if (cmd === 'toon' || cmd === 'kartun') C.fx.push({ type: 'toon', t0: -1, t1: 1e9 }); // cartoon clothing: flat colour blocks, big checks, thick ink + piping, big buttons (all outfits)
     else if (cmd === 'style2d' || cmd === 'gaya2d') C.fx.push({ type: 'style2d', t0: -1, t1: 1e9 }); // flat 2D reference look (PANDUAN_SINEMATIK §7)
     else if (cmd === 'piece' || cmd === 'bidak') C.fx.push({ type: 'piece', t0: -1, t1: 1e9, kind: (w[2] || 'pawn').toLowerCase() }); // another chess piece instead of Pion: knight rook bishop queen pawn

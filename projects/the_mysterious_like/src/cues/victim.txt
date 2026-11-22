@@ -1,6 +1,10 @@
+frame 1.1,11,-2.3
 0 style2d
 0 toon
 0 piece pawn
 0 outfit influencer
-0 lega
+0 mati
+0 dead
 0 look 0 -4 0
+0 acting 0
+0 lie 86

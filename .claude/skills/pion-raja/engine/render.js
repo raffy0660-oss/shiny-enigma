@@ -445,7 +445,8 @@ function outfitTex() {
     for (const x of [180, 330, 690, 860]) { g.lineWidth = 7; g.beginPath(); g.moveTo(x, H); g.quadraticCurveTo(x + 30, H * .55, x - 10, H * .2); g.stroke(); }   // folds
     g.globalAlpha = 1; g.strokeStyle = '#a24a6a'; g.lineWidth = 5; g.setLineDash([12, 8]); g.beginPath(); g.moveTo(0, H - 40); g.lineTo(W, H - 40); g.stroke(); g.setLineDash([]);
     const blot = (x, y, r, col, a) => { g.globalAlpha = a; g.fillStyle = col; g.beginPath(); for (let k = 0; k <= 18; k++) { const t = k / 18 * 6.283, rr = r * (.7 + .5 * R()); g.lineTo(x + Math.cos(t) * rr, y + Math.sin(t) * rr * .8); } g.closePath(); g.fill(); };
-    for (let i = 0; i < 9; i++) blot(R() * W, 120 + R() * (H - 160), 18 + R() * 40, i % 3 ? '#6e3a2a' : '#7a2430', .55);   // stains
+    for (let i = 0; i < 16; i++) blot(R() * W, 80 + R() * (H - 120), 22 + R() * 54, i % 3 ? '#5a1c1e' : '#6e2a22', .82);   // stains (dark, clearly visible)
+    for (let i = 0; i < 5; i++) { const x = R() * W, y = 120 + R() * 200; g.globalAlpha = .75; g.strokeStyle = '#5a1c1e'; g.lineWidth = 10; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (R() - .5) * 20, y + 60 + R() * 80); g.stroke(); }   // drips
     for (let i = 0; i < 26; i++) blot(R() * W, R() * H, 3 + R() * 7, '#4a2a22', .5);                                        // dirt speckles
     g.globalAlpha = .45; g.strokeStyle = '#5a2e26'; g.lineWidth = 14; for (let i = 0; i < 3; i++) { const x = R() * W, y = 200 + R() * 200; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 70 + R() * 60, y + 30 - R() * 60); g.stroke(); }   // smears
     g.globalAlpha = 1; g.fillStyle = '#3a1c1c'; g.beginPath(); const tx = W * .62, ty = H * .55; g.moveTo(tx, ty); for (const [dx, dy] of [[14, 22], [-6, 40], [18, 62], [2, 84], [-16, 60], [-4, 38], [-18, 18]]) g.lineTo(tx + dx, ty + dy); g.closePath(); g.fill();   // tear
@@ -638,7 +639,7 @@ function drawPiece(PP, base, VP, L, face) {
   drawToon(K.body, base, VP, L, { vc: true, flat: V2, ao: [1.55, 2.02, 9, 10, .32] });
   for (const r of K.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: DARK.map(v => v * .6), flat: V2 });
   drawToon(K.collar, cM, VP, L, { vc: true, flat: V2 });
-  drawToon(K.head, hM, VP, L, Object.assign(V2 ? { vc: true, face: true, flat: true } : { vc: true }, { ao: [-.5, -.86, .36, .64, (type === 'rook' || type === 'queen' ? .3 : .12) * (V2 ? 1.6 : 1)] }));
+  drawToon(K.head, hM, VP, L, Object.assign(face.dead ? { color: [.84, .87, .92], face: true, flat: V2 } : V2 ? { vc: true, face: true, flat: true } : { vc: true }, { ao: [-.5, -.86, .36, .64, (type === 'rook' || type === 'queen' ? .3 : .12) * (V2 ? 1.6 : 1)] }));
   for (const [m, M, o] of parts) drawToon(m, M, VP, L, Object.assign({ noSoot: true }, o, window.TOON ? { flat: true } : {}));   // toon: flat colour blocks
   for (const A of arms) { drawToon(A.mesh, base, VP, L, { color: window.STYLE2D ? INK2 : MID, noSoot: true, flat: window.STYLE2D }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: MID, noSoot: true }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE, flat: window.STYLE2D }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE, flat: window.STYLE2D }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE, flat: window.STYLE2D }); } }
   // ---- face (same expression textures as Pion)
@@ -648,7 +649,7 @@ function drawPiece(PP, base, VP, L, face) {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.a)); gl.uniform1i(faceP.u.uA, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.b)); gl.uniform1i(faceP.u.uB, 1);
   gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, window.STYLE2D ? noGloss() : GLOSS); gl.uniform1i(faceP.u.uGloss, 2);
-  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, glasses === 2 ? NERD : glasses ? GLASSES : HURT); gl.uniform1i(faceP.u.uHurt, 3); gl.uniform1f(faceP.u.uHurtA, glasses ? 1 : 0);
+  gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, face.dead ? DEADF : glasses === 2 ? NERD : glasses ? GLASSES : HURT); gl.uniform1i(faceP.u.uHurt, 3); gl.uniform1f(faceP.u.uHurtA, face.dead || glasses ? 1 : 0);
   gl.uniform1f(faceP.u.uMix, ex.m); gl.uniform1f(faceP.u.uSq, ex.sq); gl.uniform1f(faceP.u.uFlash, FLASH); gl.uniform1f(faceP.u.uExp, clamp(exp * 1.05, .5, 1)); gl.uniform3fv(faceP.u.uTint, tint.map(v => lerp(1, v, .3)));
   gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); M.face.draw();
   gl.disable(gl.POLYGON_OFFSET_FILL); gl.depthMask(true); gl.disable(gl.BLEND);

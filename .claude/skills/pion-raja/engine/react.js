@@ -660,7 +660,9 @@ function drawReact(f, u) {
   const SO = stompOff(t);
   const FS = floatState(t);
   const flyM = mat.chain(mat.T(fl.p[0] + FS.x, fl.p[1] + hov * (1 - FS.lv) + hopY + SO.y + FS.y, fl.p[2] + SO.z), mat.T(0, 2, 0), mat.RX(lean + FS.pitch), mat.RZ(bank + FS.roll), mat.RY(fyaw), mat.T(0, -2, 0));
-  const base = mat.chain(flyM, mat.T(0, st.y * 4.65 * .25, 0), mat.RZ(-roll - J.sway.p * .3), mat.RY(fr.yaw + bp.yaw + turnAt(t) + J.sway.p), mat.RX(bp.lean + J.nod.p * .5 + J.lean.p * .07), mat.RX(PH.hz.p * -.6), mat.RZ(PH.hx.p * .6), mat.T(0, 1.7, 0), mat.S(sxz, sy, sxz), mat.T(0, -1.7, 0)); // squash about the belly: shape wobbles, head stays in frame
+  const LIE = RX.fxl.find(e => e.type === 'lie' && t >= e.t0), lieA = LIE ? LIE.deg * Math.PI / 180 : 0;   // `lie <deg>`: laid on its side, head toward -x, resting on the floor
+  const flyL = lieA ? mat.chain(flyM, mat.T(0, 1.12 * Math.sin(lieA), 0), mat.RZ(lieA)) : flyM;
+  const base = mat.chain(flyL, mat.T(0, st.y * 4.65 * .25, 0), mat.RZ(-roll - J.sway.p * .3), mat.RY(fr.yaw + bp.yaw + turnAt(t) + J.sway.p), mat.RX(bp.lean + J.nod.p * .5 + J.lean.p * .07), mat.RX(PH.hz.p * -.6), mat.RZ(PH.hx.p * .6), mat.T(0, 1.7, 0), mat.S(sxz, sy, sxz), mat.T(0, -1.7, 0)); // squash about the belly: shape wobbles, head stays in frame
   const org = cam.toPix([0, 0, 0]), o = { vis: true, x: org[0], y: org[1], h: 4.65 * cam.ppu, yaw: fr.yaw, spd: 0, dist: 0 }; // for screen-space gesture targets
   { const hE0 = RX.fxl.find(e => e.type === 'hair' && t >= e.t0); window.HAIR_UP = hE0 ? easeOutBack(clamp((t - hE0.t0) / .38, 0, 1)) : 0; }
   const hurt = RX.hurt || 0, gs = gestureState(t, o), PP = posePion(base, t, gs, { rx: J.rx.p + J.nod.p * .6, ry: J.ry.p, rz: J.rz.p + J.tilt.p * .45 }, hurt);
@@ -673,7 +675,7 @@ function drawReact(f, u) {
   const glasses = swim ? 3 : fxActive('glasses', t).length ? 1 : exNow === 'soktahu' ? 2 : 0, det = fxActive('detective', t).length ? 1 : 0, detKind = det ? (fxActive('detective', t)[0].kind || null) : null;
   const ng = nerdGlow(t), Lg = ng > .01 ? glowLight(L, ng) : L;
   const doc = fxActive('costume', t).some(e => e.kind === 'doc') ? 1 : 0, hE = RX.fxl.find(e => e.type === 'hair' && t >= e.t0), hairAmt = hE ? easeOutBack(clamp((t - hE.t0) / .38, 0, 1)) : 0;
-  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, detKind, doc, swim, hair: hairAmt, t, piece: (fxActive('piece', t)[0] || {}).kind || null, outfit: (fxActive('outfit', t)[0] || {}).kind || null });
+  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, detKind, doc, swim, hair: hairAmt, t, piece: (fxActive('piece', t)[0] || {}).kind || null, outfit: (fxActive('outfit', t)[0] || {}).kind || null, dead: fxActive('dead', t).length ? 1 : 0 });
   drawProps(t, PP, base, VP, Lg, cam);
   drawExtras(t, PP, base, VP, Lg, cam);
   drawProps4(t, PP, base, VP, Lg, cam);
@@ -687,7 +689,8 @@ function drawReact(f, u) {
   { const Sb = sebumState(t); if (Sb) items.sebum = cam.toPix([Sb.x, .8, Sb.z]); }
   if (fxActive('subbtn', t).length) items.button = pix(base, SUB_BTN);
   items.mouth = pix(PP.headM, [0, -.45, .95]);
-  window.__track = { base: pix(base, [0, 0, 0]), ground: cam.toPix([fl.p[0], 0, fl.p[2]]), head: head.p, ppu: cam.ppu, vis: fl.op, items, float: +FS.lv.toFixed(3), mouthOpen: mouth };
+  const lieG = lieA ? mat.xform(flyM, [-2.0 * Math.sin(lieA), 0, 0, 1]) : null;   // lying: the contact point is the floor under the middle of the body
+  window.__track = { base: lieA ? cam.toPix([lieG[0] / lieG[3], lieG[1] / lieG[3], lieG[2] / lieG[3]]) : pix(base, [0, 0, 0]), ground: cam.toPix([fl.p[0], 0, fl.p[2]]), head: head.p, ppu: cam.ppu, vis: fl.op, items, float: +FS.lv.toFixed(3), mouthOpen: mouth };
   window.__probe = [head.p, pix(base, [0, 0, 0]), pix(PP.crownM, [0, 1.0, 0]), pix(base, [1, 0, 0]), pix(base, [-1, 0, 0]), ...PP.hands.filter(Boolean).map(Hd => pix(Hd.M, [0, 0, 0]))];
   drawFX(f, t, o);
   drawSebumShadow(bgCtx, t, cam);
