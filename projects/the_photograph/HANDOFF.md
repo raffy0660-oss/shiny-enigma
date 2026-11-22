@@ -99,7 +99,8 @@ cd ~/pion/proj10/scene && ENG=<name> node render_seq.js ../plans/<scene>.js ../o
 ### Tambahan sesi 2
 - File kerja di `~/pion/proj10` **di-symlink ke repo** (scene/*.js, plans, cues, *.py, scene/tex). Runner node (`render_seq.js`, `render_office.js`) disalin.
 - `render_seq.js`: satu plan bisa memakai set berbeda per frame (`set: office|apartment|exterior`), `--skip` melewati frame yang sudah ada.
-- Kartu karakter selalu tergambar di atas dunia 3D (tanpa depth test): jangan taruh objek 3D di antara kamera dan karakter (contoh: laptop di ujung meja, pintu apartemen berengsel di sisi belakang).
+- Kartu karakter di kantor sekarang di-depth-test terhadap **pass oklusi** (props di layer 2: kalender, laptop, kaca pembesar). Apartemen/eksterior belum: jangan taruh objek di antara kamera dan karakter di sana.
+- **Masukan user untuk konten berikutnya:** karakter harus benar-benar masuk ke dunia 3D (oklusi, bayangan asli, fisika). Lihat `.claude/skills/pion-raja/PANDUAN_INTEGRASI3D.md`.
 - Kecepatan: kantor ~3 dtk/frame (3 job), apartemen/eksterior lebih berat. Bayangan apartemen/eksterior di-bake (`shadowMap.autoUpdate = false`), tanpa transmission, lampu intensitas 0 dimatikan.
 - Font tulisan tangan: Caveat (`assets/fonts`, dipasang oleh setup.sh).
 - Rakit: `python3 build_film.py --check` → `python3 build_film.py` → `python3 overlay_film.py` → `python3 mix_film.py` → mux (lihat akhir HANDOFF).

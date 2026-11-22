@@ -482,9 +482,11 @@ window.renderShot = (name, t = 0, over) => {
 };
 
 // ---------------------------------------------------------------- Pion: the engine render (2D style, transparent PNG per frame) on a camera-facing card behind the desk
-const pionMat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.04, depthWrite: false, depthTest: false, toneMapped: false, fog: false });
+const pionMat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.04, depthWrite: false, depthTest: true, toneMapped: false, fog: false });   // depth-tested against the occluder pass
 const pionScene = new THREE.Scene(), pionCard = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), pionMat); pionScene.add(pionCard);
 const deskClip = new THREE.Plane(), TL = new THREE.TextureLoader(); let pionTex = null;
+const occM = new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide });
+for (const o of [cal, LAP, MAG]) o.traverse(m => m.layers.enable(2));   // things that stand between the camera and Pion
 async function placePion(P) {   // P: { url, base:[px,py], ppu, w, h, anchor:[x,y,z], height, tint:[r,g,b] }
   if (!P || !P.url) { pionCard.visible = false; return; }
   const t = await TL.loadAsync(P.url); t.colorSpace = THREE.SRGBColorSpace; if (pionTex) pionTex.dispose(); pionTex = t; pionMat.map = t;
@@ -507,7 +509,12 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   { const sig = JSON.stringify([F.env, F.anon, F.calTear, F.mag, !!F.laptop, F.anonVis]); if (sig !== lastSig) { renderer.shadowMap.needsUpdate = true; lastSig = sig; } }
   await placePion(F.pion);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
-  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); if (pionCard.visible) renderer.render(pionScene, camera); renderer.setRenderTarget(null);
+  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear();
+  if (pionCard.visible) {   // occluder pass: props in front of Pion (layer 2) write depth only, then the card is depth-tested against them
+    const bg = scene.background, ac = renderer.autoClear; scene.background = null; renderer.autoClear = false; scene.overrideMaterial = occM; camera.layers.set(2);
+    renderer.render(scene, camera); scene.overrideMaterial = null; camera.layers.set(0); scene.background = bg;
+    renderer.render(pionScene, camera); renderer.autoClear = ac; }
+  renderer.setRenderTarget(null);
   composer.render();
   const pr = (x, y, z) => { const q = V(x, y, z).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };
   const pts = { head: F.pion ? pr(F.pion.anchor[0], F.pion.anchor[1] + F.pion.height * 0.8, F.pion.anchor[2]) : null }; for (const [k, p] of Object.entries(F.pts || {})) pts[k] = pr(...p);
