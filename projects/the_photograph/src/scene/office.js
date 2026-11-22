@@ -351,11 +351,11 @@ const envTex2 = canvasTex(640, 420, (g, w, h) => { g.fillStyle = "#ead9b2"; g.fi
 const flapTex = canvasTex(640, 300, (g, w, h) => { g.fillStyle = "#e3cfa4"; g.beginPath(); g.moveTo(0, 0); g.lineTo(w, 0); g.lineTo(w / 2, h); g.closePath(); g.fill(); g.strokeStyle = "#3a2e22"; g.lineWidth = 8; g.stroke();
   g.fillStyle = "#8a1d1d"; g.beginPath(); g.arc(w / 2, h - 46, 34, 0, 7); g.fill(); g.fillStyle = "#b8343a"; g.beginPath(); g.arc(w / 2 - 8, h - 54, 12, 0, 7); g.fill(); });
 const ENV = new THREE.Group(); scene.add(ENV); const EW = 0.36, ED = 0.24;
-const envBody = add(box(EW, 0.008, ED, 0.002), [mat({ color: 0xd9c49a }), mat({ color: 0xd9c49a }), mat({ map: envTex2, roughness: 0.85 }), mat({ color: 0xcdb789 }), mat({ color: 0xd9c49a }), mat({ color: 0xd9c49a })], 0, 0.004, 0, { parent: ENV });
+const envBody = add(box(EW, 0.008, ED, 0.002), [mat({ color: 0xd9c49a }), mat({ color: 0xd9c49a }), mat({ map: envTex2, roughness: 0.85, emissive: 0xffffff, emissiveMap: envTex2, emissiveIntensity: 0.22 }), mat({ color: 0xcdb789 }), mat({ color: 0xd9c49a }), mat({ color: 0xd9c49a })], 0, 0.004, 0, { parent: ENV });
 const flapPivot = new THREE.Group(); flapPivot.position.set(0, 0.009, -ED / 2); ENV.add(flapPivot);
 const flapGeo = new THREE.BufferGeometry(); flapGeo.setAttribute("position", new THREE.Float32BufferAttribute([-EW / 2, 0, 0, EW / 2, 0, 0, 0, 0, ED * 0.55], 3)); flapGeo.setAttribute("uv", new THREE.Float32BufferAttribute([0, 1, 1, 1, 0.5, 0], 2)); flapGeo.computeVertexNormals();
 const flap = new THREE.Mesh(flapGeo, mat({ map: flapTex, side: THREE.DoubleSide, roughness: 0.85 })); flap.castShadow = true; flapPivot.add(flap);
-const ENV_DESK = { p: [-0.5, DESK.h + 0.03, DESK.z + 0.3], ry: 0.18, flap: 1 };   // where it rests, opened, on the desk
+const ENV_DESK = { p: [-0.36, DESK.h + 0.055, DESK.z + 0.24], ry: 0.32, flap: 1 };   // where it rests, opened, on the desk
 function placeEnv(E) { E = Object.assign({}, ENV_DESK, E || {}); ENV.visible = E.vis !== false; ENV.position.set(...E.p); ENV.rotation.set(E.rx || 0, E.ry || 0, E.rz || 0); flapPivot.rotation.x = -E.flap * 2.6; }
 window.PROPS.door = [DOOR.x, 0, DOOR.z]; window.PROPS.envDesk = ENV_DESK.p;
 // wall clock (frozen soon at 11:42) on the right wall
