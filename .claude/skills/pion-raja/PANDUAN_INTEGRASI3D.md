@@ -1,53 +1,61 @@
-# Panduan: memasukkan karakter benar-benar ke dalam dunia 3D (untuk konten berikutnya)
+# Panduan: karakter 2D yang benar-benar ADA di dalam dunia 3D (wajib untuk video berikutnya)
 
-Catatan dari user (Nov 2026, episode "The Photograph"): kalender di meja seharusnya berada **di depan** Pion, tapi tertutup karakternya.
-User ingin karakter **benar-benar masuk ke dalam video**: tertutup objek di depannya, kena cahaya dan bayangan set, dan ikut efek fisika.
+Papan contoh: `REFERENSI_INTEGRASI.jpg` (kiri atas: video 1, kartu ditempel; sisanya: `charlayer.js`).
+Kode: `examples/proj10_photograph/scene/charlayer.js`, sudah terpasang di ketiga set (kantor, apartemen, eksterior).
 
-## Masukan user setelah "The Photograph" (wajib untuk konten berikutnya)
-1. **Karakter langsung di dalam dunia 3D, bukan ditempel.** Walau sudah ada oklusi, bayangan proxy, dan cahaya set di kartu (`charlayer.js`),
-   user masih merasa karakternya "ditempel": cahaya dan bayangannya kurang realistis. Untuk episode berikutnya pakai **opsi 2** di bawah
-   (model karakter jadi mesh three.js di scene yang sama), bukan kartu 2D.
-2. **Cahaya dan bayangan realistis di karakter:** bayangan jatuh dari setiap lampu utama, karakter menerima bayangan benda lain,
-   rim light/backlight, pantulan warna lingkungan (bounce: merah dari strobo, emas dari lampu meja), kontak dan AO di lantai.
-3. **Style pakaian lebih cartoonish:** baju lebih tebal dan membulat, siluet dibesar-besarkan (kerah besar, topi besar, kancing besar),
-   warna lebih cerah dan blok warna sederhana, garis jahitan tebal, lipatan sedikit tapi tegas. Hindari tekstur kain yang terlalu detail/realistis.
-4. **Audio:** voice-over harus jauh lebih keras dari musik dan SFX (user minta volume VO 100 -> 1000). Patokan: VO -13 LUFS,
-   musik -24 LUFS (sekitar 11 dB di bawah VO), SFX -25 LUFS, limiter -1,5 dBTP (lihat `projects/the_photograph/src/mix_film.py`).
-   Selalu ada backsound musik yang sesuai genre (misteri: pizzicato/piano -> ostinato suspense -> music box mencekam saat twist).
-   Akun ElevenLabs gratis tidak bisa memakai Music API: buat musik dari SFX v3 `loop: true` (maks 30 dtk per bagian) dan perhatikan kuota kredit.
+## Apa yang diminta user
+1. Karakter **benar-benar masuk ke video**, bukan ditempel: tertutup objek di depannya, kena cahaya set, ikut fisika.
+2. **Bayangan yang jelas.** Di video 1 "bayangannya hampir gak ada".
+3. **Tidak ada bingkai kotak / potongan lurus** di badan karakter.
+4. **Tetap terlihat 2D seperti 15 video referensi.** Di referensi, karakter adalah gambar datar di dunia 3D, dengan bayangan jelas di tanah,
+   cahaya set di badannya, dan tertutup benda di depannya. **Jangan diganti model 3D** (user menolak).
+5. Pakaian lebih cartoonish (siluet tebal, blok warna, kotak-kotak besar).
 
-## Kenapa terjadi
-Pipeline sekarang (mode 4, proj10): Pion dirender engine sebagai PNG transparan, lalu ditempel ke dunia three.js sebagai **kartu**
-yang digambar di render target terpisah **tanpa depth test**, lalu dikomposit di atas dunia. Akibatnya:
-- karakter selalu di atas semua objek, kecuali yang dipotong *clipping plane* (meja) atau digambar ulang di lapisan depan (garis polisi);
-- karakter tidak menjatuhkan bayangan asli dan tidak menerima bayangan set (hanya tint warna);
-- tidak ada interaksi fisika (benda tidak bisa mengenai, menumpuk, atau terpental dari karakter).
+## Kenapa video 1 terlihat "ditempel"
+Pion dirender engine sebagai PNG transparan, lalu digambar sebagai kartu di render target terpisah **tanpa depth test** dan dikomposit di atas dunia:
+- selalu di depan semua objek; meja memakai *clipping plane* → **potongan lurus** yang terlihat melayang dari kamera rendah;
+- tidak menjatuhkan bayangan (hanya blob kecil), tidak menerima bayangan set, cahaya hanya berupa tint warna;
+- tanpa interaksi fisika.
 
-## Solusi cepat yang sudah dipakai (tanpa render ulang semua)
-**Pass oklusi depth** di `office.js`: props yang bisa berada di antara kamera dan karakter diberi `layers.enable(2)`.
-Sebelum kartu digambar, scene dirender sekali dengan `camera.layers.set(2)` dan material *depth-only* (`colorWrite: false`)
-ke render target kartu, lalu kartu digambar dengan `depthTest: true`. Hasilnya, objek di depan menutupi karakter dengan benar.
-Biayanya kecil (satu render geometri tanpa shading). Pasang pola ini di **semua set sejak awal**: apartemen dan eksterior juga.
+## Solusinya: `charlayer.js` (2D tetap 2D, tapi di dalam dunia)
+| Efek | Cara |
+|---|---|
+| Oklusi penuh | Pass depth-only seluruh set (volume transparan seperti kerucut cahaya, god ray, debu, hujan dikecualikan), lalu kartu karakter di-depth-test terhadapnya. Tanpa clipping plane, tanpa potongan kotak |
+| Alas tidak tertanam | Bibir alas gambar 2D ada sedikit di bawah titik kontak: kartu digeser ke arah lensa sepanjang sinar pandang (`push`, default 0,2 m). Proyeksi identik |
+| Cahaya set di karakter | Kartu = `MeshLambertMaterial` di layer 3 (semua lampu ikut layer 3): emissive datar (gambar tetap terbaca, `E`) + diffuse dari lampu set (`D`), **dua sisi** ("paper cut-out": lampu dari belakang tetap menyinari). Menerima bayangan set (belang tirai, god ray, bayangan topi) |
+| Bayangan karakter | Proxy tak terlihat, siluet sama (alpha test), tegak **menghadap lampu dominan**, sedikit di belakang kartu (tidak membayangi dirinya sendiri), masuk shadow map lampu dinamis tiap frame. `map`/`alphaTest` dipasang di **material proxy** (pass bayangan r186 mengambilnya dari sana) |
+| Lampu statis | Shadow map di-bake tanpa proxy (`CHR.bake([...])`, render depth 1x1). Hanya satu lampu dinamis per adegan yang di-update tiap frame (murah) |
+| Kontak | Blob lembut di bawah karakter yang mengecil dan memudar saat melompat |
+| Fisika | Lompatan parabola dengan gravitasi (`y = g/2·h·(T−h)`), jongkok sebelum lompat, squash saat mendarat (`squash`, alas tetap di tanah), kepulan debu (`puffs`); benda jatuh balistik (halaman kalender: robek, terbang berputar, mendarat, meluncur dengan gesekan) |
+| Komposit | Kartu dirender linear ke `pionRT` di dalam composer (setelah shadow map diperbarui, sebelum `pionComp`), jadi warna 2D tidak terkena AgX |
 
-## Rekomendasi untuk konten berikutnya (dirancang dari awal, bukan revisi)
-1. **Kartu ber-depth di dalam scene utama.** Taruh kartu karakter langsung di scene utama dengan `depthTest/depthWrite` dan `alphaTest`,
-   ditambah `customDepthMaterial` (`MeshDepthMaterial` dengan `alphaMap` dan `alphaTest`) supaya kartu **menjatuhkan bayangan asli** ke lantai/meja.
-   Komposit tetap setelah AgX supaya warna 2D tidak berubah (render kartu dengan `toneMapped: false` di pass yang sama, atau pakai
-   render target ber-depth yang memakai depth buffer dunia). Ink dan GTAO dikecualikan dari kartu.
-2. **Karakter 3D asli di dunia yang sama (paling kuat).** Engine Pion sudah WebGL2. Model (badan, kepala, outfit, lengan) bisa
-   diekspor/porting menjadi mesh three.js dengan shader `style2d` (gradasi lukis, outline tinta), lalu dirender dalam scene yang sama.
-   Hasilnya: oklusi, bayangan jatuh, cahaya set di model, motion blur kamera, dan DOF semuanya otomatis benar.
-   Ekspresi wajah = tekstur/decal yang digambar engine per frame (kanvas) di bola kepala.
-3. **Fisika.** Tambahkan `rapier3d-compat` atau `cannon-es` (deterministik, langkah tetap 1/60) dengan **collider kapsul** untuk tiap karakter
-   (mengikuti `anchor` per frame sebagai *kinematic body*). Props (kertas, amplop, foto, halaman kalender) menjadi *dynamic body*.
-   Simulasi dijalankan sekali di Node untuk seluruh adegan, posisinya disimpan per frame (`sim.json`), lalu dibaca saat render per frame,
-   supaya render paralel tetap deterministik.
-4. **Interaksi tangan.** Track posisi tangan dari engine (`items`/`_track.json`) dipakai sebagai titik tempel prop 3D
-   (foto di tangan, kaca pembesar), sehingga prop 3D ada di depan badan, di belakang ibu jari, dan bayangannya benar.
-5. **Checklist per adegan.** Sebelum render, cek setiap shot: apakah ada objek di antara kamera dan karakter? Kalau ada, objek itu harus masuk
-   layer oklusi (atau scene utama bila memakai opsi 1/2). Cek juga bayangan kontak di bawah karakter.
+Pemakaian (lihat `office.js` / `apartment.js` / `exterior.js`):
+```js
+import { createChars } from "./charlayer.js";
+const CHR = createChars(scene, camera, renderer, { n: 3, E: 0.6, D: 0.18, light: keyLight, hide: [cone, dust, rain] });
+composer.insertPass(CHR.pass(pionRT), composer.passes.indexOf(pionComp)); CHR.guard(gtao); CHR.guard(bokeh);
+staticLights.forEach(l => l.shadow.autoUpdate = false);   // global renderer.shadowMap.autoUpdate = true
+// per frame:
+if (setChanged) CHR.bake(staticLights);
+await CHR.place([{ url, base, ppu, w, h, anchor, height, tint, lift, squash }], { light: keyLight, puffs });
+```
 
-## Biaya
-- Opsi pass oklusi: hampir gratis, bisa dipakai sekarang.
-- Opsi 1: perubahan kecil di `placePion`/`placeCards` + bayangan alpha. Butuh render ulang adegan yang memakainya.
-- Opsi 2 + 3: pekerjaan besar sekali di awal (porting model + rig, collider), lalu semua episode berikutnya mendapat oklusi, bayangan, dan fisika asli.
+## Checklist supaya bayangannya BENAR-BENAR kelihatan (pelajaran video 1)
+1. **Lampu bayangan = lampu yang dominan di posisi karakter.** Kantor: lampu gantung. Eksterior: lampu jalan di sebelahnya
+   (matahari senja dari belakang kamera terhalang gedung seberang, jadi bayangannya hilang). Apartemen B: matahari lewat celah papan.
+2. **Taruh karakter di jalur cahaya itu** (di pool lampu, di dalam god ray), lalu **atur kamera** supaya bayangannya jatuh di area yang terlihat
+   (lantai di depan atau samping, dinding di belakangnya). Lampu di belakang karakter = bayangan mengarah ke kamera = paling dramatis (seperti referensi).
+3. Kontras: lampu dinamis harus jelas lebih terang dari ambient/hemisphere di titik itu. Kalau perlu, turunkan hemi atau naikkan key di adegan tersebut.
+4. Cek dengan render frame dari atas/samping sekali (debug), lalu dari kamera adegan.
+5. Karakter tergeletak (`face: true`, mis. korban) tidak memakai proxy; cukup blob kontak + `push` 0,7.
+6. Lampu titik sebagai lampu dinamis = 6 render shadow per frame. Prioritaskan spot/directional.
+
+## Pakaian lebih cartoonish (engine `style2d`)
+Tambah/ubah di `engine/render.js` (`outfitKit`/`outfitParts`) dan tekstur kostum detektif:
+- siluet dibesar-besarkan: topi deerstalker lebih besar dan membulat, kerah cape tebal, kancing/gesper besar;
+- blok warna cerah dan rata dengan satu bayangan inti lembut; motif kotak-kotak **besar** (2–4 kotak per sisi), bukan anyaman kain detail;
+- jahitan dan lipatan sedikit tapi tebal dan tegas; outline tetap hitam konstan.
+Cek di cast sheet (`CastSheet.tsx`) dan kirim ke user untuk persetujuan sebelum dipakai di video.
+
+## Yang ditolak user
+- Model 3D penuh (mesh toon) untuk Pion: terlihat bukan 2D. Jangan dipakai kecuali user memintanya lagi.

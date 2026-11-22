@@ -1,0 +1,13 @@
+# Scene 4 (15.40-21.10): Pion holds the photo up, back side towards us: "Find him before Friday." (rendered 2160x3840 so the handwriting stays sharp)
+0 style2d
+0 detective 99
+paperimg /home/user/shiny-enigma/projects/the_photograph/src/scene/tex/photo_back_land.png
+15.40 penasaran
+15.40 look 0 20 0
+15.80 gest paper 5.3
+16.20 look 0 8 0
+17.60 curiga
+19.30 sinis
+19.30 look 6 4 0
+20.10 kaget
+20.10 look 0 -2 0

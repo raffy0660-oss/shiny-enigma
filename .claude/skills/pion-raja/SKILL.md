@@ -17,7 +17,7 @@ Pion Raja is the creator's own character, rendered procedurally (no external ass
 Look: orange round head, gold five-point crown, red pawn body, white ermine collar and robe edges,
 thick dark toon outline, white-glove hands that appear only for gestures. See `reference.png`.
 
-**Read `ATURAN.md` before starting any new project**, and `PANDUAN_SINEMATIK.md` for any full-animation or 3D-world video. It holds the creator's mandatory rules
+**Read `BRIEF_KONTEN.md` and `ATURAN.md` before starting any new project**, and `PANDUAN_SINEMATIK.md` for any full-animation or 3D-world video. It holds the creator's mandatory rules
 (4K output, frame-by-frame review, eye placement on the focus point, no teleport spam, maximal interaction,
 no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesian.
 
@@ -49,7 +49,9 @@ no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesia
 | `engine/render.js` `drawPiece` + cue `piece <knight\|rook\|bishop\|queen\|pawn>` | Other chess pieces for the detective series, same rig/face/arms as Pion, never red. `castle3d/remotion/src/CastSheet.tsx` makes the cast sheet |
 | cue `style2d` + `outfit <daniel\|police>` | **2D reference look** for every model (Pion and the pieces): orthographic eye-level camera (no perspective), painted airbrush gradient instead of 3D lighting (one-sided soft core shade, slight darker silhouette, faces almost flat, tinted by the scene light), original colours kept (Pion: red head with orange gradient), bare shapes (head, body, piece forms) flat with no volume while clothes/accessories carry the light (core shade + lit-side rim strip), graphic cool cast shadows (hat on forehead, head on collar), painted cloth textures with stitching (video-14 look), no gloss, near-black ink outline x1.3, thin ink stick arms. Outfits are shells that follow the piece profile (shirt, vest, tie, collar, belt, cap...); add new outfits in `outfitKit`/`outfitParts` per story |
 | `castle3d/remotion/src/GreenFX.tsx` | Green-screen FX: words flying out of a mouth (`BossWords`), spit spray at the camera (`BossSpit`) |
-| `PANDUAN_INTEGRASI3D.md` | **Read before the next 3D-world episode**: put the character really inside the world (depth occlusion pass, depth-tested cards with real shadows, porting the model into three.js, rapier/cannon physics). User request after "The Photograph" |
+| **`BRIEF_KONTEN.md`** | **Read FIRST for any new Pion video**: every user rule and decision from "The Photograph" (format, workflow, 2D look, world built to Pion's scale, characters inside the world with clear shadows, moods, no captions, data words, SUCCIFY name, loud VO + genre backsound, technical traps) |
+| `PANDUAN_INTEGRASI3D.md`, `REFERENSI_INTEGRASI.jpg` | How the 2D character sits INSIDE the 3D world (`charlayer.js`): full depth occlusion, set light + received shadows on the drawing, real silhouette shadows, contact, physics; checklist so the shadow is actually visible; cartoonish outfits. The user rejected a full 3D mesh Pion: keep the 2D look of the 15 references |
+| `examples/proj10_photograph/` | **Template for the next 3D-world video** (approved code of "The Photograph" + charlayer): 3 sets, render runner, plan lib, film assembly, Remotion data words, stem audio mix, SFX list, tools |
 | `examples/proj6`, `examples/proj7` | Flood/underwater project; Las Vegas Sphere project (three.js city, Remotion overlay, SFX, assembly) |
 
 ## Setup (once per machine/session)

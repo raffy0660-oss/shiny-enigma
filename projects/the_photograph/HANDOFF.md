@@ -72,7 +72,7 @@ bisa melanjutkan tanpa kehilangan konteks. Bacaan wajib, berurutan:
 | Render adegan 1–2 (`s12`) | selesai | `~/pion/proj10/out/s12` (tidak di-commit) |
 | Render adegan 3–13 | selesai | `src/tools/run_*.sh` (frame mentah di `~/pion/proj10/out`, tidak di-commit) |
 | SFX ElevenLabs (25 suara) | selesai | `assets/sfx/*.mp3`, `src/sfx_gen.py` |
-| Rakit film / overlay / mix | **selesai, video final 73,4 dtk dikirim ke user** (22 Nov 2026) | `src/build_film.py`, `src/overlay_film.py`, `src/mix_film.py`, `src/assemble.sh` |
+| Rakit film / overlay / mix | **selesai: v1 dikirim, lalu v2 (backsound misteri + VO jauh lebih keras) disetujui user** (22 Nov 2026) | `src/build_film.py`, `src/overlay_film.py`, `src/mix_film.py`, `src/assemble.sh` |
 
 Peta adegan → plan (frame absolut, 60 fps): s12_office 0–510 · s23_apt 492–936 · s4_office 924–1266 · s5_ext 1260–1677 · s6_aptB 1674–2043 ·
 s7_office 2040–2172 · s78_aptC 2166–2724 · s9_office 2724–3030 · s10_aptA 3018–3264 · s1113_office 3258–4404. Transisi diatur di `build_film.py`.
@@ -100,7 +100,11 @@ cd ~/pion/proj10/scene && ENG=<name> node render_seq.js ../plans/<scene>.js ../o
 - File kerja di `~/pion/proj10` **di-symlink ke repo** (scene/*.js, plans, cues, *.py, scene/tex). Runner node (`render_seq.js`, `render_office.js`) disalin.
 - `render_seq.js`: satu plan bisa memakai set berbeda per frame (`set: office|apartment|exterior`), `--skip` melewati frame yang sudah ada.
 - Kartu karakter di kantor sekarang di-depth-test terhadap **pass oklusi** (props di layer 2: kalender, laptop, kaca pembesar). Apartemen/eksterior belum: jangan taruh objek di antara kamera dan karakter di sana.
-- **Masukan user untuk konten berikutnya:** karakter harus benar-benar masuk ke dunia 3D (oklusi, bayangan asli, fisika). Lihat `.claude/skills/pion-raja/PANDUAN_INTEGRASI3D.md`.
+- **Masukan user untuk konten berikutnya** (sudah dirangkum di `.claude/skills/pion-raja/BRIEF_KONTEN.md`): karakter 2D (seperti referensi, BUKAN model 3D)
+  yang benar-benar ada di dunia 3D dengan bayangan jelas dan cahaya set (`charlayer.js`, `PANDUAN_INTEGRASI3D.md`), pakaian lebih cartoonish,
+  VO jauh lebih keras + backsound genre. Template: `.claude/skills/pion-raja/examples/proj10_photograph/`.
+- `charlayer.js` sudah terpasang di ketiga set di repo ini dan sudah diuji (still), tapi **video yang dikirim (v2) masih memakai versi lama** (kartu tempel).
+  Render ulang dihentikan atas keputusan user: v2 sudah oke, integrasi untuk video berikutnya.
 - Kecepatan: kantor ~3 dtk/frame (3 job), apartemen/eksterior lebih berat. Bayangan apartemen/eksterior di-bake (`shadowMap.autoUpdate = false`), tanpa transmission, lampu intensitas 0 dimatikan.
 - Font tulisan tangan: Caveat (`assets/fonts`, dipasang oleh setup.sh).
 - Rakit: `python3 build_film.py --check` → `python3 build_film.py` → `python3 overlay_film.py` → `python3 mix_film.py` → mux (lihat akhir HANDOFF).

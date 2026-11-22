@@ -1,0 +1,6 @@
+0 style2d
+0 piece rook
+0 outfit police
+0 curiga
+0 look -25 14 0
+0 acting 0.6
