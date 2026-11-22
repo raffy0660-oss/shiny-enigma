@@ -19,6 +19,9 @@ export function createChars(scene, camera, renderer, o = {}) {
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
   for (let i = 0; i < N; i++) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshLambertMaterial({ transparent: true, alphaTest: 0.04, side: THREE.DoubleSide, depthWrite: true, fog: true }));
+    m.material.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('#include <lights_lambert_pars_fragment>',
+      THREE.ShaderChunk.lights_lambert_pars_fragment.replace('float dotNL = saturate( dot( geometryNormal, directLight.direction ) );', 'float dotNL = 0.25 + 0.75 * abs( dot( geometryNormal, directLight.direction ) );')); };   // two-sided "paper cut-out" light: a light behind him still lights him
+    m.material.customProgramCacheKey = () => "card2s";
     m.layers.set(L_CARD); m.receiveShadow = true; m.castShadow = false; m.visible = false; m.renderOrder = 20; scene.add(m); cards.push(m);
     const px = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, depthTest: false, alphaTest: 0.5, side: THREE.DoubleSide }));   // the shadow pass copies map/alphaTest from this material
     px.castShadow = true; px.receiveShadow = false; px.visible = false; px.frustumCulled = false;
@@ -31,8 +34,8 @@ export function createChars(scene, camera, renderer, o = {}) {
   // dust puffs (landings): small expanding, fading sprites
   const dotTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d"), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
     gr.addColorStop(0, "rgba(220,210,190,.9)"); gr.addColorStop(1, "rgba(220,210,190,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
-  const PN = 14, puffGeo = new THREE.BufferGeometry(), puffP = new Float32Array(8 * PN * 3); puffGeo.setAttribute("position", new THREE.BufferAttribute(puffP, 3));
-  const puffM = new THREE.PointsMaterial({ map: dotTex, size: 0.09, transparent: true, depthWrite: false, opacity: 0.0, color: o.dustCol ?? 0xd8ccb0, fog: true });
+  const PN = 9, puffGeo = new THREE.BufferGeometry(), puffP = new Float32Array(8 * PN * 3); puffGeo.setAttribute("position", new THREE.BufferAttribute(puffP, 3));
+  const puffM = new THREE.PointsMaterial({ map: dotTex, size: 0.22, transparent: true, depthWrite: false, opacity: 0.0, color: o.dustCol ?? 0xd8ccb0, fog: true });
   const puffs = new THREE.Points(puffGeo, puffM); puffs.frustumCulled = false; puffs.renderOrder = 12; scene.add(puffs);
   // every light also lights the card layer
   scene.traverse(x => { if (x.isLight) x.layers.enable(L_CARD); });
@@ -73,8 +76,8 @@ export function createChars(scene, camera, renderer, o = {}) {
     // dust puffs: opts.puffs = [{ p:[x,y,z], age (s) }]
     const PF = (opts.puffs || []).filter(q => q.age >= 0 && q.age < 0.7).slice(0, 8); puffP.fill(0); let maxA = 0;
     PF.forEach((q, j) => { const u = q.age / 0.7; maxA = Math.max(maxA, 1 - u); for (let n = 0; n < PN; n++) { const a = n / PN * Math.PI * 2 + j, r = 0.12 + 0.45 * Math.sqrt(u) * (0.7 + 0.3 * Math.sin(n * 7.1));
-      puffP.set([q.p[0] + Math.cos(a) * r, q.p[1] + 0.03 + 0.12 * u * (0.5 + 0.5 * Math.sin(n * 3.3)), q.p[2] + Math.sin(a) * r * 0.8], (j * PN + n) * 3); } });
-    puffGeo.attributes.position.needsUpdate = true; puffM.opacity = 0.55 * maxA; puffM.size = 0.07 + 0.08 * (1 - maxA); puffs.visible = PF.length > 0;
+      puffP.set([q.p[0] + Math.cos(a) * r * 0.8, q.p[1] + 0.05 + 0.16 * u * (0.5 + 0.5 * Math.sin(n * 3.3)), q.p[2] + Math.sin(a) * r * 0.6], (j * PN + n) * 3); } });
+    puffGeo.attributes.position.needsUpdate = true; puffM.opacity = 0.32 * maxA; puffM.size = 0.16 + 0.22 * (1 - maxA); puffs.visible = PF.length > 0;
     if (keyL && keyL.shadow) { keyL.shadow.autoUpdate = false; keyL.shadow.needsUpdate = true; }
   }
   // character pass into pionRT: depth of the whole world first, then the lit cards (layer 3), depth-tested
