@@ -1,0 +1,6 @@
+frame 2.4,8.2
+light dir .2 .6 .75 key .55 .52 .46 amb .45 .44 .44 sky .1 .1 .1 gnd .1 .1 .1 rim 0 0 0 flat 1 exp 1.0
+1.0 kaget
+1.00 gest call 2.5 kanan
+4.0 licik
+4.00 gest gun 2.0

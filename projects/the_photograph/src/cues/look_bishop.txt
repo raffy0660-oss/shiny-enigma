@@ -1,0 +1,3 @@
+0.00 piece bishop
+0.00 senang
+0.00 look 25 -5 0

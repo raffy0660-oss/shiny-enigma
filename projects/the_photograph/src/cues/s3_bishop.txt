@@ -1,0 +1,5 @@
+0 style2d
+0 piece bishop
+0 curiga
+0 glasses 99
+0 look 15 -4 0

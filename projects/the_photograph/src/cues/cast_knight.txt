@@ -1,0 +1,3 @@
+0.00 piece knight
+0.00 licik
+0.00 look -18 -4 0

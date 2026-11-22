@@ -1,0 +1,3 @@
+0.00 piece rook
+0.00 senang
+0.00 look 20 -4 0

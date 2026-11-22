@@ -1,0 +1,3 @@
+0.00 piece queen
+0.00 sinis
+0.00 look -20 -4 0

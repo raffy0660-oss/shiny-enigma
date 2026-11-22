@@ -1,0 +1,5 @@
+0 style2d
+0 piece pawn
+0 outfit daniel
+0 kaget
+0 look -15 -4 0

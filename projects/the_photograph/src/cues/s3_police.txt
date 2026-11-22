@@ -1,0 +1,5 @@
+0 style2d
+0 piece rook
+0 outfit police
+0 senang
+0 look 18 -4 0

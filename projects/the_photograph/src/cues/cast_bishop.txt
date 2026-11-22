@@ -1,0 +1,4 @@
+0.00 piece bishop
+0.00 curiga
+0.00 glasses 99
+0.00 look 15 -4 0

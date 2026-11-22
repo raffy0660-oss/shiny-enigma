@@ -1,0 +1,17 @@
+# segment re-render 1.10-4.86 s (frames 66-293), times shifted by -1.10
+frame 2.4,8.2
+paperimg ../proj9/assets/boss_photo.jpg
+light dir .66 .42 -.62 key 1.5 1.05 .68 amb .3 .28 .27 sky .36 .4 .5 gnd .44 .33 .2 rim 1.1 .82 .5 soft 1 exp 1.0
+0.00 senang
+0.00 look 10 -6 0
+0.40 kaget
+0.45 boing 1.1
+0.90 light dir .82 .42 .39 key 1.5 1.05 .68 amb .3 .28 .27 sky .36 .4 .5 gnd .44 .33 .2 rim 1.1 .82 .5 soft 1 exp 1.0
+0.90 senang
+1.85 light dir -.35 .85 .42 key 1.25 1.0 .75 amb .32 .28 .25 sky .3 .28 .26 gnd .3 .22 .16 rim .55 .42 .3 soft 1 exp 1.0
+1.95 bangga
+1.95 look 0
+2.22 gest paper 1.45
+3.65 light dir -.47 .85 .27 key 1.25 1.0 .75 amb .32 .28 .25 sky .3 .28 .26 gnd .3 .22 .16 rim .55 .42 .3 soft 1 exp 1.0
+3.70 penasaran
+3.70 look 22 -4 4

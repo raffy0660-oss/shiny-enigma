@@ -1,0 +1,4 @@
+0 style2d
+0 senang
+0 look 22 -4 0
+0.05 gest point 5 kanan

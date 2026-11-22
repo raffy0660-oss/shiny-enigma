@@ -1,0 +1,4 @@
+0.00 detective 99
+0.00 curiga
+0.30 gest magnify 2.5 kanan
+3.0 licik

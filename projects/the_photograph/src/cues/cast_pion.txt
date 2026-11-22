@@ -1,0 +1,4 @@
+0.00 detective 99
+0.00 penasaran
+0.05 gest magnify 9 kanan
+0.00 look 22 -4 0

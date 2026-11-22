@@ -1,0 +1,5 @@
+0 style2d
+0 detective 99
+0 penasaran
+0.05 gest magnify 9 kanan
+0 look 22 -4 0

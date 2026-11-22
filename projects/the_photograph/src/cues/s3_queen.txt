@@ -1,0 +1,4 @@
+0 style2d
+0 piece queen
+0 sinis
+0 look -20 -4 0

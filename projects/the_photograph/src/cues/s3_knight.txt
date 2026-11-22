@@ -1,0 +1,4 @@
+0 style2d
+0 piece knight
+0 licik
+0 look -18 -4 0
