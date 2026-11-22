@@ -75,3 +75,33 @@ Cek di cast sheet (`CastSheet.tsx`) dan kirim ke user untuk persetujuan sebelum 
 
 ## Yang ditolak user
 - Model 3D penuh (mesh toon) untuk Pion: terlihat bukan 2D. Jangan dipakai kecuali user memintanya lagi.
+
+## v2 (Nov 2026, MASTER TASK user): grounding, push, facing, rim/glow, contact shadow, preset
+Kode: `charlayer.js` + `charpresets.js` (baru) + `tools/make_view.js`. Uji: `plans/test_integ.js` (24 shot), papan `REFERENSI_INTEGRASI_V2.jpg` (atas: lama, bawah: v2).
+
+**Kenapa dulu terlihat "ditempel"** (akar masalah):
+1. Engine menggambar karakter tampak depan setinggi mata, sementara kamera adegan melihat dari atas/samping (sudah diatasi `--view`).
+2. `push` lama memindahkan kartu ke arah lensa **dan mengecilkannya** sesuai jarak kamera. Gambarnya sama, tapi posisi 3D-nya bukan lagi titik kontak:
+   oklusi dan penerimaan bayangan dihitung di tempat yang salah.
+3. Satu titik anchor dipakai sekaligus untuk tanah, pivot, dan posisi gambar. Lift, roll, dan putaran bisa menggeser titik kontak.
+4. Blob kontak gelap dan bulat, tidak ikut arah badan (tergeletak), dan mengecil saat melompat.
+5. Cahaya set hanya berupa diffuse rata. Tidak ada pemisah tepi (rim) dari latar gelap.
+6. Kamera rendah: sudut gambar dihitung dari tengah badan, jadi alas tergambar dari bawah (melayang).
+
+**Sistem v2:**
+| Bagian | Cara kerja |
+|---|---|
+| Ground anchor | `anchor` (lama, sudah termasuk lift) atau `groundAnchor` + `lift`. Permukaan tanah: `ground` / `groundY` / `groundMode: "raycast"` (sinar ke bawah ke mesh `userData.ground`: lantai, karpet, trotoar, dudukan kursi; **tidak pernah otomatis ke lantai terendah**), `groundOffset`. Piksel alas gambar selalu tepat di anchor; rotasi/roll berporos di situ |
+| Ukuran | Hanya dari gambar (`height`, `ppu`, `w`, `h`, `squash`). **Tidak pernah dari jarak kamera** |
+| `push` | Bias **depth saja** di vertex shader: gambar, posisi, dan ukuran tidak berubah, hanya kedalaman untuk oklusi. `pushMode: "legacy"` = cara lama. Apartemen tetap `push 0.7` untuk kartu `face` lama (kini depth-only); korban baru memakai `facing: "floor"` (push 0) |
+| Facing | `yaw` (tegak, berputar di sumbu Y), `full`/`faceCam` (menghadap lensa penuh, untuk render `--view`), `fixed` (`yaw` dunia), `floor` (tergeletak: gambar tampak depan rebah di lantai, kepala ke arah `yaw`; view [0,0]) |
+| Kamera rendah | `make_view.js`: tilt dibatasi ≥ 0° untuk karakter di lantai, jadi alas tidak pernah tergambar dari bawah |
+| Rim + glow | Di shader kartu: tepi di sisi lampu (dari alpha gambar, arah lampu diproyeksikan ke layar) diberi cahaya warna lampu, **di dalam** garis tinta (tinta tetap gelap), lebih kuat jika lampu di belakang karakter. `glow` = gradasi lembut di sisi terang. Tanpa bloom. Lampu arah rim boleh beda dari lampu bayangan (`rimLight`) |
+| Bayangan kontak | Inti rapat + falloff panjang (bukan cakram gelap). Di titik kontak sebenarnya: kompak di bawah kaki, lebih lebar/lembut/pudar saat lift, memanjang sesuai badan saat `contact: "body"`, lebih kecil di kursi (`seat`). `shadow:[...]` lama tetap dihormati |
+| Bayangan cast | Proxy siluet menghadap lampu dinamis (seperti v1). Dimatikan untuk `floor`/`body` |
+| Preset karakter | `charpresets.js`: `detective`, `police`, `civilian`, `victim`, `seated`. Plan cukup `{ eng, anchor, height, preset }`. Kunci di plan selalu menang |
+| Preset cahaya | `LIGHT_PRESETS` (warna/kekuatan rim) per set + mood: kantor normal = lampu hangat, tension/conflict = malam biru, reveal = TKP; apartemen A bohlam, B matahari, C senter polisi; eksterior senja |
+| Set | GTAO 1.0 → 0.75 (sudut tidak berlumpur), vignette turun ±0,08–0,1 per mood. Gelap sinematik tetap |
+
+Checklist uji (wajib render frame nyata, bukan hanya cek sintaks): orbit, dekat/jauh (ukuran harus sama), kamera rendah/tinggi, lift,
+duduk, tergeletak, hangat/dingin, rim mati/nyala, oklusi. Lihat `test_integ.js`.

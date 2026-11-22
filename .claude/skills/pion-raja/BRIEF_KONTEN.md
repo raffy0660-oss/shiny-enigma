@@ -29,9 +29,17 @@ Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `project
   - **Kaki harus menapak tanah dari sudut kamera mana pun**: karakter digambar dari **sudut kamera adegan** (engine `--view` dari `tools/make_view.js`,
     kartu `faceCam`). Jangan tampak depan lurus saat kamera melihat dari atas, karena itu terlihat "gak nginjak tanah" (masukan user, `REFERENSI_SUDUT.jpg`).
 
-  Caranya: `charlayer.js`. Lihat `PANDUAN_INTEGRASI3D.md` dan papan `REFERENSI_INTEGRASI.jpg` + `REFERENSI_SUDUT.jpg`.
-- **Pakaian lebih cartoonish** (masukan untuk konten berikutnya): siluet tebal dan dibesar-besarkan (topi, kerah, kancing besar), blok warna cerah dan sederhana,
-  kotak-kotak besar (bukan tekstur kain detail), jahitan tebal. Ubah di `outfitKit`/`outfitParts` (`engine/render.js`) dan tekstur cape/topi detektif.
+  Caranya: `charlayer.js` v2 + `charpresets.js` (preset `detective`/`police`/`civilian`/`victim`/`seated`). Lihat `PANDUAN_INTEGRASI3D.md` (bagian v2)
+  dan papan `REFERENSI_INTEGRASI.jpg`, `REFERENSI_SUDUT.jpg`, `REFERENSI_INTEGRASI_V2.jpg`. Karakter tergeletak: `preset: "victim"` (rebah di lantai).
+- **Pakaian cartoon** (MASTER TASK user): pakai cue engine **`toon`** di setiap cue karakter (sesudah `style2d`). Hasilnya:
+  - blok warna datar dan cerah;
+  - kotak-kotak BESAR (3 per bidang) pada jubah dan topi detektif;
+  - topi deerstalker lebih besar dan bulat dengan pita besar;
+  - pipa kerah dan kelim tebal, bros emas besar;
+  - garis tinta pakaian lebih tebal;
+  - polisi dan Daniel: warna datar, kancing besar, rompi tanpa tekstur rajut.
+  Papan: `REFERENSI_PAKAIAN_CARTOON.jpg`. Model tetap Pion (kepala, badan, sarung tangan putih, monokel, topi detektif).
+  **Kostum anime (blazer ala Light / Akechi) sudah dicoba lalu DIBATALKAN user: jangan dipakai.**
 - Pion Raja: kepala merah bergradasi oranye, badan merah, sarung tangan putih. Kostum detektif di seri ini. Bidak lain tidak pernah merah.
 - **Nama di dalam video: "SUCCIFY"**, jangan "Pion Raja" (papan pintu, email, teks lain).
 

@@ -31,3 +31,8 @@ Arsip arahan user, dipakai sebagai acuan konten berikutnya. Percakapan lengkap s
     jadi caption semuanya polos. Label nama hanya untuk dialog di dalam adegan (`DIALOG` di `overlay_film.py`, aturan di `BRIEF_KONTEN.md` §5).
 13. "Belum kamu masukkin ke repo ya percakapan kita ini? Tentang animasi detektif." → Transkrip lengkap diekspor ke `PERCAKAPAN_SESI2.md`
     (alat: `src/tools/export_chat.py`). Di akhir setiap sesi, ekspor percakapan ke repo.
+14. "Berikan aku the entire code dari pembuatan video barusan." → ZIP 414 file + `KODE_LENGKAP.md`.
+15. **MASTER TASK** (gaya karakter cartoon, integrasi 2D-3D, grounding, cahaya dan bayangan, preset, scene uji, laporan) + "modelnya tetap Pion,
+    pakaian detektif kayak jejepangan (Light / Goro Akechi), tetap pakai topi detektif tapi 2D". Kostum anime sempat dibuat,
+    lalu user: "gajadi deh, ikutin perintah diatasnya aja" = **kostum anime batal**, kerjakan MASTER TASK saja
+    (cue `toon`, `charlayer` v2, `charpresets.js`, `test_integ.js`; lihat `PANDUAN_INTEGRASI3D.md` bagian v2).

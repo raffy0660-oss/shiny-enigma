@@ -8,6 +8,8 @@ Full project (all plans, cues, assets, history): `projects/the_photograph/`. Rul
 |---|---|
 | `scene/office.js`, `apartment.js`, `exterior.js` | three sets, built to Pion's scale (a pawn ~1.03 m): office (pendant lamp, case board, door with light under it, calendar that tears, laptop with a live screen), abandoned apartment in 3 versions (A photo world / B searched / C crime scene), dusk street. Moods / versions switch the light |
 | `scene/charlayer.js` | **the characters INSIDE the world** (2D engine drawing kept, like the 15 references): full depth occlusion, set lights + received shadows on the drawing (two-sided paper cut-out light), real silhouette shadow from a light-facing proxy, contact blob vs height, dust puffs, squash. See `../../PANDUAN_INTEGRASI3D.md` |
+| `scene/charpresets.js` | v2: character presets (`detective`, `police`, `civilian`, `victim` lying flat, `seated`) + character light presets per set/mood |
+| `plans/test_integ.js` | v2 integration test: 24 shots (orbit, near/far, low/high, lift, seated, lying, warm/cool, rim off/on, occlusion) |
 | `scene/render_seq.js` | renders a plan (frame range, `--skip`, several sets in one plan, engine tracks scaled for 4K engine renders) |
 | `plans/lib.js` | camera keys (`io` = a fly move with sine ease, `lin` = drift), scalar keys |
 | `plans/*.js` | examples: office hook + envelope + dive into a photo (`s12`), physical hops (`s6`), crime scene with 3 characters (`s78`), street (`s5`), the photo camera (`photo_still`) |

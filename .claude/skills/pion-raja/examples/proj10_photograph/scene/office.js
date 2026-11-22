@@ -12,6 +12,7 @@ import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { BokehPass } from "three/addons/postprocessing/BokehPass.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { createChars } from "./charlayer.js";
+import { LIGHT_PRESETS } from "./charpresets.js";
 
 const W = 1080, H = 1920;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -26,7 +27,7 @@ const camera = new THREE.PerspectiveCamera(40, W / H, 0.05, 60);
 // ---------------------------------------------------------------- post chain
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const gtao = new GTAOPass(scene, camera, W, H); gtao.output = GTAOPass.OUTPUT.Default; gtao.blendIntensity = 1.0;
+const gtao = new GTAOPass(scene, camera, W, H); gtao.output = GTAOPass.OUTPUT.Default; gtao.blendIntensity = 0.75;   // v2 lighting: less muddy AO
 gtao.updateGtaoMaterial({ radius: 0.35, distanceExponent: 1.6, thickness: 0.3, scale: 1.0, samples: 12, distanceFallOff: 1.0 });
 gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
 composer.addPass(gtao);
@@ -445,10 +446,10 @@ function placeMag(M) { MAG.visible = !!M; magR.visible = !M; if (M) { MAG.positi
 // conflict: lamp nearly dead, deep blue, red/blue police strobe through the blinds, lightning flashes ("Then Friday arrived")
 // reveal  : the room goes black, a cold sickly under-light from the desk hits the face, red edge tint ("It was me")
 const MOODS = {
-  normal:   { key: 7.5, keyCol: 0xffd59a, hemi: 0.62, hemiCol: 0x3e5cc0, moon: 24, fill: 1.1, board: 3.2, cone: 0.24, fog: 0.035, vig: 0.42, tint: [0, 0, 0], under: 0, strobe: 0, flicker: 0.015 },
-  tension:  { key: 4.2, keyCol: 0xffc98a, hemi: 0.5, hemiCol: 0x3550c8, moon: 34, fill: 1.5, board: 1.6, cone: 0.2, fog: 0.05, vig: 0.55, tint: [-0.02, 0.0, 0.05], under: 0, strobe: 0, flicker: 0.12 },
-  conflict: { key: 0.9, keyCol: 0xffb070, hemi: 0.42, hemiCol: 0x2a46c8, moon: 40, fill: 1.9, board: 0.4, cone: 0.06, fog: 0.06, vig: 0.62, tint: [-0.03, 0.0, 0.08], under: 0, strobe: 1, flicker: 0.3 },
-  reveal:   { key: 0.0, keyCol: 0xffb070, hemi: 0.12, hemiCol: 0x203070, moon: 6, fill: 0.2, board: 0.0, cone: 0.0, fog: 0.07, vig: 0.72, tint: [0.05, -0.01, 0.0], under: 1, strobe: 0, flicker: 0 },
+  normal:   { key: 7.5, keyCol: 0xffd59a, hemi: 0.62, hemiCol: 0x3e5cc0, moon: 24, fill: 1.1, board: 3.2, cone: 0.24, fog: 0.035, vig: 0.32, tint: [0, 0, 0], under: 0, strobe: 0, flicker: 0.015 },
+  tension:  { key: 4.2, keyCol: 0xffc98a, hemi: 0.5, hemiCol: 0x3550c8, moon: 34, fill: 1.5, board: 1.6, cone: 0.2, fog: 0.05, vig: 0.45, tint: [-0.02, 0.0, 0.05], under: 0, strobe: 0, flicker: 0.12 },
+  conflict: { key: 0.9, keyCol: 0xffb070, hemi: 0.42, hemiCol: 0x2a46c8, moon: 40, fill: 1.9, board: 0.4, cone: 0.06, fog: 0.06, vig: 0.54, tint: [-0.03, 0.0, 0.08], under: 0, strobe: 1, flicker: 0.3 },
+  reveal:   { key: 0.0, keyCol: 0xffb070, hemi: 0.12, hemiCol: 0x203070, moon: 6, fill: 0.2, board: 0.0, cone: 0.0, fog: 0.07, vig: 0.66, tint: [0.05, -0.01, 0.0], under: 1, strobe: 0, flicker: 0 },
 };
 const hemiL = scene.children.find(o => o.isHemisphereLight);
 const strobeR = new THREE.PointLight(0xff2a3a, 0, 6, 1.4), strobeB = new THREE.PointLight(0x2a5aff, 0, 6, 1.4);
@@ -492,7 +493,8 @@ window.renderShot = async (name, t = 0, over) => {
 };
 
 // ---------------------------------------------------------------- Pion INSIDE the world (charlayer.js): depth occlusion, set lights + shadows on him, his shadow from the pendant lamp
-const CHR = createChars(scene, camera, renderer, { n: 1, E: 0.62, D: 0.1, light: key, hide: [cone, dust, spill] });
+const CHR = createChars(scene, camera, renderer, { n: 1, E: 0.62, D: 0.1, light: key, hide: [cone, dust, spill], rim: 0.5, glow: 0.2 });
+const RIMP = { normal: "interior_warm_lamp", tension: "interior_night", conflict: "interior_night", reveal: "crime_scene" };   // character rim matches the mood light
 composer.insertPass(CHR.pass(pionRT), composer.passes.indexOf(pionComp)); CHR.guard(gtao); CHR.guard(bokeh);
 moon.shadow.autoUpdate = false; key.shadow.autoUpdate = false;
 let lastSig = null;
@@ -505,7 +507,8 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
   bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
   placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag); clockSpot.intensity = F.clockLight || 0;
-  await CHR.place(F.pion ? [Object.assign({ shadow: [1.0, 0.55], cast: true }, F.pion)] : [], { light: key, puffs: F.puffs });
+  { const LP = LIGHT_PRESETS[RIMP[F.mood2 && F.moodK > 0.5 ? F.mood2 : (F.mood || "normal")]] || LIGHT_PRESETS.interior_warm_lamp;
+    await CHR.place(F.pion ? [Object.assign(F.pion.preset ? { cast: true } : { shadow: [1.0, 0.55], cast: true }, F.pion)] : [], { light: key, puffs: F.puffs, rimCol: LP.rimCol, rimK: LP.rimK }); }
   { const sig = JSON.stringify([F.env, F.anon, F.calTear, F.mag, !!F.laptop, F.anonVis]); if (sig !== lastSig) { CHR.bake([moon]); lastSig = sig; } }
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   composer.render();

@@ -13,6 +13,7 @@ import { BokehPass } from "three/addons/postprocessing/BokehPass.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { createChars } from "./charlayer.js";
+import { LIGHT_PRESETS } from "./charpresets.js";
 
 const W = 1080, H = 1920;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -27,7 +28,7 @@ const camera = new THREE.PerspectiveCamera(50, W / H, 0.05, 200);
 // ---------------------------------------------------------------- post chain
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
-const gtao = new GTAOPass(scene, camera, W, H); gtao.output = GTAOPass.OUTPUT.Default; gtao.blendIntensity = 0.9;
+const gtao = new GTAOPass(scene, camera, W, H); gtao.output = GTAOPass.OUTPUT.Default; gtao.blendIntensity = 0.7;   // v2 lighting: less muddy AO
 gtao.updateGtaoMaterial({ radius: 0.5, distanceExponent: 1.6, thickness: 0.4, scale: 1.0, samples: 12, distanceFallOff: 1.0 });
 gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
 composer.addPass(gtao);
@@ -58,7 +59,7 @@ const pionComp = new ShaderPass({
 });
 pionComp.uniforms.tPion.value = pionRT.texture; composer.addPass(pionComp);
 const grade = new ShaderPass({
-  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, vig: { value: 0.4 } },
+  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, vig: { value: 0.32 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: `uniform sampler2D tDiffuse; uniform float time, vig; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -206,7 +207,7 @@ const rim = new THREE.DirectionalLight(0x8a7aff, 0.8); rim.position.set(8, 6, -1
 
 // ---------------------------------------------------------------- characters INSIDE the world (charlayer.js): street light on him, his shadow from the dusk sun
 lamps[0].castShadow = true; lamps[0].shadow.mapSize.set(1024, 1024); lamps[0].shadow.bias = -0.0008; lamps[0].shadow.camera.near = 0.2; lamps[0].shadow.autoUpdate = false;   // the street lamp next to Pion draws his shadow
-const CHR = createChars(scene, camera, renderer, { n: 3, E: 0.55, D: 0.35, light: lamps[0], hide: [rain] });
+const CHR = createChars(scene, camera, renderer, { n: 3, E: 0.55, D: 0.35, light: lamps[0], hide: [rain], rim: 0.5, glow: 0.2 });
 let baked = false;
 composer.insertPass(CHR.pass(pionRT), composer.passes.indexOf(pionComp)); CHR.guard(gtao); CHR.guard(bokeh);
 dusk.shadow.autoUpdate = false;
@@ -219,7 +220,7 @@ window.renderFrame = async (F) => {   // F: { t, cam, pions:[...] }
   bokeh.uniforms.focus.value = F.cam.focus; bokeh.uniforms.aperture.value = F.cam.aperture ?? 0.0008; grade.uniforms.time.value = F.t; placeRain(F.t);
   const t = F.t, fl = (Math.sin(t * 23) > 0.85 || (t % 2.7) < 0.09) ? 0.15 : 1; neonM.emissiveIntensity = 2.2 * fl; neonL.intensity = 3.5 * fl;   // neon flicker
   for (const [c, x0] of clouds) c.position.x = x0 + t * 0.4;
-  const list = (F.pions || (F.pion ? [F.pion] : [])); if (!baked) { CHR.bake([dusk]); baked = true; } await CHR.place(list, { light: lamps[0], puffs: F.puffs });
+  const list = (F.pions || (F.pion ? [F.pion] : [])); if (!baked) { CHR.bake([dusk]); baked = true; } await CHR.place(list, { light: lamps[0], puffs: F.puffs, rimCol: LIGHT_PRESETS.exterior_dusk.rimCol, rimK: LIGHT_PRESETS.exterior_dusk.rimK });
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   composer.render();
   const pr = (p) => { const q = V(...p).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };
