@@ -70,9 +70,9 @@ bisa melanjutkan tanpa kehilangan konteks. Bacaan wajib, berurutan:
 | Foto anonim = still apartemen A (depan) + tulisan tangan "Find him before Friday." (belakang) | selesai | `src/tools/make_photo.py`, `src/scene/tex/` |
 | Plan + cue adegan 1–13 | selesai | `src/plans/*.js`, `src/cues/*.txt` |
 | Render adegan 1–2 (`s12`) | selesai | `~/pion/proj10/out/s12` (tidak di-commit) |
-| Render adegan 3–13 | berjalan lewat antrean | `src/tools/run_eng.sh`, `run_scenes_a.sh`, `run_scenes_b.sh` |
+| Render adegan 3–13 | selesai | `src/tools/run_*.sh` (frame mentah di `~/pion/proj10/out`, tidak di-commit) |
 | SFX ElevenLabs (25 suara) | selesai | `assets/sfx/*.mp3`, `src/sfx_gen.py` |
-| Rakit film / overlay / mix | skrip siap | `src/build_film.py`, `src/overlay_film.py`, `src/mix_film.py` |
+| Rakit film / overlay / mix | **selesai, video final 73,4 dtk dikirim ke user** (22 Nov 2026) | `src/build_film.py`, `src/overlay_film.py`, `src/mix_film.py`, `src/assemble.sh` |
 
 Peta adegan → plan (frame absolut, 60 fps): s12_office 0–510 · s23_apt 492–936 · s4_office 924–1266 · s5_ext 1260–1677 · s6_aptB 1674–2043 ·
 s7_office 2040–2172 · s78_aptC 2166–2724 · s9_office 2724–3030 · s10_aptA 3018–3264 · s1113_office 3258–4404. Transisi diatur di `build_film.py`.

@@ -33,5 +33,5 @@ def lufs(f): o = subprocess.run(["ffmpeg", "-v", "info", "-i", f, "-af", "loudno
 os.makedirs(P + "/final", exist_ok=True); A, B = P + "/final/_mix.wav", P + "/final/_sfx.wav"; run(A, True); run(B, False)
 g = -14.0 - lufs(A)   # Shorts loudness; the sfx-only stem gets the same gain so it lines up with the mix
 for src, dst in [(A, P + "/final/film_audio.wav"), (B, P + "/final/film_sfx_only.wav")]:
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-af", f"volume={g:.2f}dB,alimiter=limit=0.89", "-ar", "48000", dst], check=True); os.remove(src)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", src, "-af", f"volume={g - 1.2:.2f}dB,alimiter=limit=0.8:level=false", "-ar", "48000", dst], check=True); os.remove(src)
 print("ok, gain", round(g, 2), "dB ->", lufs(P + "/final/film_audio.wav"), "LUFS")
