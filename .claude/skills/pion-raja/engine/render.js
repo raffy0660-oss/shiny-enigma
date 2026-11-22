@@ -419,6 +419,37 @@ function wrapPatch(K, y0, y1, a0, a1, off, rows = 22, cols = 40) {
   gridIdx(g, rows, cols); const m = fin(g); m.rows = rows; m.cols = cols; return new Mesh(fixWinding(m));
 }
 const shellOf = (K, y0, y1, off) => new Mesh(lathe(Array.from({ length: 26 }, (_, i) => { const y = lerp(y0, y1, i / 25); return [profR(K, y) + off, y]; }), 56, 0, Math.PI * 2));
+
+/* painted cloth textures for outfits (video-14 look: seams, dashed stitching, pockets, knit ribbing). u = around (front at u=0/1), v = up */
+let OTEX = null;
+function outfitTex() {
+  if (OTEX) return OTEX; OTEX = {};
+  const mk = (w, h, f) => { const c = document.createElement('canvas'); c.width = w; c.height = h; f(c.getContext('2d'), w, h); return texFromCanvas(c, false); };
+  const dash = (g, x0, y0, x1, y1, col, wd, on = 9, off = 7) => { g.save(); g.strokeStyle = col; g.lineWidth = wd; g.setLineDash([on, off]); g.lineCap = 'round'; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); g.restore(); };
+  const rr = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  OTEX.police = mk(1024, 512, (g, W, H) => {
+    g.fillStyle = '#22325f'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#1a2850'; g.fillRect(0, 0, 16, H); g.fillRect(W - 16, 0, 16, H);                         // button placket (front)
+    dash(g, 22, 0, 22, H, '#6f84bd', 3); dash(g, W - 22, 0, W - 22, H, '#6f84bd', 3);
+    for (let y = 70; y < 470; y += 78) for (const x of [0, W]) { g.fillStyle = '#d9deea'; g.strokeStyle = '#0e1630'; g.lineWidth = 3; g.beginPath(); g.arc(x, y, 9, 0, 7); g.fill(); g.stroke(); }
+    for (const x of [256, 768]) dash(g, x, 0, x, H, '#53689f', 3);                                               // side seams
+    dash(g, 0, 34, W, 34, '#53689f', 3);                                                                        // yoke
+    for (const cx of [70, W - 70]) {                                                                            // chest pockets with flap + button
+      g.fillStyle = '#28396b'; g.strokeStyle = '#0f1834'; g.lineWidth = 4; rr(g, cx - 40, 232, 80, 70, 8); g.fill(); g.stroke(); dash(g, cx - 32, 242, cx - 32, 294, '#7f93c9', 2.5); dash(g, cx + 32, 242, cx + 32, 294, '#7f93c9', 2.5);
+      g.fillStyle = '#1b2a55'; g.beginPath(); g.moveTo(cx - 44, 200); g.lineTo(cx + 44, 200); g.lineTo(cx + 44, 232); g.lineTo(cx, 248); g.lineTo(cx - 44, 232); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = '#d9deea'; g.beginPath(); g.arc(cx, 234, 6, 0, 7); g.fill(); g.lineWidth = 2.5; g.stroke(); }
+  });
+  OTEX.vest = mk(1024, 512, (g, W, H) => {
+    g.fillStyle = '#e3a536'; g.fillRect(0, 0, W, H);
+    g.globalAlpha = .35; g.strokeStyle = '#b27a1c'; g.lineWidth = 2; for (let x = 10; x < W; x += 13) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }   // knit wales
+    g.globalAlpha = 1;
+    g.fillStyle = '#f2c25a'; g.fillRect(0, 0, 22, H); g.fillRect(W - 22, 0, 22, H); g.fillRect(0, H - 40, W, 40);   // ribbed V edges + hem
+    g.strokeStyle = '#a8701a'; g.lineWidth = 3; for (const x of [22, W - 22]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H - 40); g.stroke(); } g.beginPath(); g.moveTo(0, H - 40); g.lineTo(W, H - 40); g.stroke();
+    g.globalAlpha = .5; g.lineWidth = 2; for (let x = 4; x < W; x += 9) { g.beginPath(); g.moveTo(x, H - 36); g.lineTo(x, H); g.stroke(); } for (let y = 6; y < H - 40; y += 9) for (const x0 of [0, W - 22]) { g.beginPath(); g.moveTo(x0 + 3, y); g.lineTo(x0 + 19, y); g.stroke(); }
+    g.globalAlpha = 1;
+  });
+  return OTEX;
+}
 function outfitKit(K, name) {
   K.of = K.of || {}; if (K.of[name]) return K.of[name];
   const O = {}, TAU = Math.PI * 2;
@@ -448,7 +479,7 @@ function outfitParts(K, name, base, headM, add) {
   const frontAt = (y, off, ang = 0) => { const r = profR(K, y) + off; return mat.chain(base, mat.T(r * Math.sin(ang), y, r * Math.cos(ang)), mat.RY(ang)); };
   if (name === 'daniel') {
     add(O.shirt, base, { color: [.64, .8, .96] }, .04);
-    add(O.vest, base, { color: [.88, .63, .2], dbl: true }, .05);
+    add(O.vest, base, { tex: outfitTex().vest, dbl: true }, .05);
     add(O.vestHem, mat.mul(base, mat.T(0, .62, 0)), { color: [.74, .5, .14] }, .03);
     add(O.tie, base, { color: [.66, .1, .13] }, .025);
     add(O.collarL, base, { color: [.98, .98, .96], dbl: true }, .025); add(O.collarR, base, { color: [.98, .98, .96], dbl: true }, .025);
@@ -456,7 +487,7 @@ function outfitParts(K, name, base, headM, add) {
   }
   if (name === 'police') {
     const NAVY = [.11, .17, .35], DARK = [.06, .06, .08];
-    add(O.shirt, base, { color: NAVY }, .04);
+    add(O.shirt, base, { tex: outfitTex().police }, .04);
     add(O.belt, mat.mul(base, mat.T(0, .68, 0)), { color: DARK }, .03);
     add(K.box, mat.mul(frontAt(.68, .1), S(.24, .17, .06)), { color: GOLD }, .02);
     add(O.tie, base, { color: DARK }, .025);
@@ -506,10 +537,10 @@ function drawPiece(PP, base, VP, L, face) {
   for (const A of arms) { drawOutline(A.mesh, base, VP, .06); if (!window.STYLE2D) drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
   // ---- fills
   const V2 = window.STYLE2D, FILL = MID, HEADC = P[2].map((v, i) => lerp(v, P[3][i], .3));
-  drawToon(K.body, base, VP, L, V2 ? { vc: true } : { vc: true, ao: [1.55, 2.02, 9, 10, .32] });
+  drawToon(K.body, base, VP, L, { vc: true, ao: [1.55, 2.02, 9, 10, .32] });
   for (const r of K.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: DARK.map(v => v * .6) });
   drawToon(K.collar, cM, VP, L, { vc: true });
-  drawToon(K.head, hM, VP, L, V2 ? { vc: true, face: true } : { vc: true, ao: [-.5, -.86, .36, .64, .2] });
+  drawToon(K.head, hM, VP, L, Object.assign(V2 ? { vc: true, face: true } : { vc: true }, { ao: [-.5, -.86, .36, .64, type === 'rook' || type === 'queen' ? .3 : .12] }));
   for (const [m, M, o] of parts) drawToon(m, M, VP, L, Object.assign({ noSoot: true }, o));
   for (const A of arms) { drawToon(A.mesh, base, VP, L, { color: window.STYLE2D ? INK2 : MID, noSoot: true }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: MID, noSoot: true }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE }); } }
   // ---- face (same expression textures as Pion)
@@ -548,10 +579,10 @@ function drawPion(PP, base, VP, L, face) {
   if (hurt) { drawOutline(M.bandRing, bandM, VP, .05); drawOutline(M.bandKnot, knotM, VP, .05); for (const m of plasters) drawOutline(M.plaster, m, VP, .035); }
   for (const A of arms) { drawOutline(A.mesh, base, VP, .06); if (!window.STYLE2D) drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
   // fills
-  drawToon(M.body, base, VP, L, swim ? { tex: TEX.swim, ao: [1.55, 2.02, 9, 10, .2] } : doc ? { color: SCRUB, ao: [1.55, 2.02, 9, 10, .32] } : window.STYLE2D ? { vc: true } : { vc: true, ao: [1.55, 2.02, 9, 10, .32] });     // body darkens under the fur collar
+  drawToon(M.body, base, VP, L, swim ? { tex: TEX.swim, ao: [1.55, 2.02, 9, 10, .2] } : doc ? { color: SCRUB, ao: [1.55, 2.02, 9, 10, .32] } : { vc: true, ao: [1.55, 2.02, 9, 10, .32] });     // body darkens under the fur collar
   for (const r of M.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: RINGC });
   drawToon(M.collar, collarM, VP, L, swim ? { color: SWIM_NAVY } : doc ? { color: SCRUB } : { vc: true });
-  drawToon(M.head, headM, VP, L, window.STYLE2D ? { vc: true, face: true, color: [1, .8, .84], edge: [.78, .07, .12] } : { vc: true, ao: [-.5, -.86, .36, .64, .26 * (1 - clamp(PP.crownLift || 0, 0, 1))] }); // chin over the collar, forehead under the crown
+  drawToon(M.head, headM, VP, L, Object.assign(window.STYLE2D ? { vc: true, face: true, color: [1, .8, .84], edge: [.78, .07, .12] } : { vc: true }, { ao: [-.5, -.86, .36, .64, .26 * (1 - clamp(PP.crownLift || 0, 0, 1))] })); // chin over the collar, forehead under the crown
   const GS = .85; // toon specular + fresnel glint on gold
   if (det) { drawToon(M.hatDome, hatM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBrim, brimM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBow, bowM, VP, L, { color: [.3, .18, .09], noSoot: true }); }
   if (!det && !doc) drawToon(M.crownBand, crownM, VP, L, { color: GOLD, dbl: true, spec: GS });

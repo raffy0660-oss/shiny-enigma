@@ -11,6 +11,9 @@
   bayangan inti lembut satu sisi, tepi silhuet sedikit gelap, muka hampir rata, ikut warna cahaya adegan), warna asli dipertahankan (kepala Pion merah
   bergradasi oranye, `edge` per material),
   outline hampir hitam x1,3, lengan garis tinta tipis tanpa bola bahu, kilau kepala dimatikan.
+- **Gaya 2D v3 (belajar dari video 14):** strip highlight terang tipis di dalam outline pada sisi yang kena cahaya, bayangan kontak lembut
+  di bawah kerah/kepala dan di dahi di bawah mahkota/topi, garis wajah hampir hitam, dan **tekstur kain yang digambar** untuk baju
+  (seragam polisi: placket berkancing, saku berpenutup, jahitan putus-putus, jahitan samping/yoke; rompi Daniel: rajutan + rib di tepi V dan bawah).
 - **Baju bidak** (cue `outfit`): `daniel` (kemeja biru muda, rompi rajut mustard berleher V, dasi merah, kancing) dan `police`
   (seragam navy, dasi hitam, sabuk + gesper emas, lencana, papan nama, epolet, topi polisi bertengger di atas gerigi benteng).
 - **`PANDUAN_SINEMATIK.md`**: hasil analisis frame per frame 15 video referensi user (cahaya, warna, kamera, struktur cerita, caption).

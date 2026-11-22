@@ -75,7 +75,7 @@ void main(){
   if(uFlat>0.){ r=mix(r, mix(.62,1.,smoothstep(.5-aw*2.,.5+aw*2.,x)), uFlat); }   // flat 2D: one hard shadow edge
   float hemi=mix(mix(n.y*.5+.5, .5, uFlat), .5, uR2);
   vec3 light=uAmb+mix(uGnd,uSky,hemi)+uKey*r*att;
-  if(uAOs>0.){ vec2 q=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q=q*q*(3.-2.*q); float occ=q.x+q.y; /* edges may be reversed (GLSL smoothstep may not) */ light*=1.-uAOs*(1.-.85*uR2)*clamp(occ,0.,1.)*(.55+.45*(1.-max(n.y,0.))); }
+  if(uAOs>0.){ vec2 q=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q=q*q*(3.-2.*q); float occ=q.x+q.y; /* edges may be reversed (GLSL smoothstep may not) */ light*=1.-uAOs*(1.-.35*uR2)*clamp(occ,0.,1.)*(.55+.45*(1.-max(n.y,0.))); }
   vec3 Vd=normalize(uEye-vW); float fres=1.-max(dot(n,Vd),0.);
   float rim=pow(1.-clamp(n.z,0.,1.),3.)*clamp(n.x*-.6+n.y*.5+.5,0.,1.);
   float rimCel=smoothstep(.6-aw*4.,.6+aw*4.,fres)*smoothstep(-.15,.2,d);   // crisp lit-side rim band, coloured by the room light
@@ -91,7 +91,11 @@ void main(){
     vec3 cool=vec3(.86,.84,1.08), warm=vec3(1.,.9,.8);
     vec3 cE=uEdge.w>.5?uEdge.rgb:base*mix(vec3(.72)*cool,vec3(.9)*warm,uFace);
     vec3 gr=mix(cE,base,k)+base*.05*smoothstep(.8,1.,k)*(1.-uFace);
+    float rr=1.-fac, band=smoothstep(.6,.78,rr)*(1.-smoothstep(.9,.99,rr));                                   // thin light strip just inside the outline...
+    float lit=smoothstep(-.15,.55,dot(normalize(n.xy+1e-4),normalize(Ld.xy+1e-4)));                            // ...on the side facing the key (video 14 look)
+    gr=mix(gr,min(base*1.3+.07,vec3(1.)),band*lit*.6*(1.-.7*uFace));
     vec3 lt=(uAmb+mix(uGnd,uSky,.5)+uKey*.9)*uExp; float ll=dot(lt,vec3(.333)); lt=lt/max(ll,.05)*min(ll,1.15);
+    if(uAOs>0.){ vec2 q2=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q2=q2*q2*(3.-2.*q2); gr*=1.-uAOs*.9*clamp(q2.x+q2.y,0.,1.); }   // contact shade under collar / hat
     col=mix(col,gr*lt,uR2);
   }
   col=mix(col,vec3(1.,.97,.9),uFlash);
@@ -266,7 +270,7 @@ function ermineCanvas() {
 }
 function faceCanvas(kind, closed, talk) { // talk: 0 = expression's own mouth, 1..3 = open-mouth speaking levels
   const c = document.createElement('canvas'); c.width = 2048; c.height = 1024; const g = c.getContext('2d'); g.scale(2, 2);
-  const BR = '#3a1a12'; g.translate(256, 250); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = BR; g.fillStyle = BR; g.lineWidth = 15;
+  const BR = window.STYLE2D ? '#1d1411' : '#3a1a12'; g.translate(256, 250); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = BR; g.fillStyle = BR; g.lineWidth = 15;
   const line = (x1, y1, x2, y2) => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); };
   const ex = 92;
   const shut = (y, w) => { for (const s of [-1, 1]) { g.beginPath(); g.moveTo(s * ex - (w || 28), y); g.quadraticCurveTo(s * ex, y + 16, s * ex + (w || 28), y); g.stroke(); } };
