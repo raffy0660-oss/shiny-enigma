@@ -669,15 +669,16 @@ const MONOCLE = texFromCanvas(monocleCanvas(), false);
 const NERD = texFromCanvas(nerdGlassesCanvas(), false);
 TEX.plaid = texFromCanvas(plaidCanvas('#b8874f', '#5a3a1e', '#e8cfa0'), true);
 TEX.tweed = texFromCanvas(plaidCanvas('#8a5e34', '#3e2614', '#c49a64'), true);
-// 2D deerstalker for the anime outfits: flat colour blocks, BIG checks (3 per side), one bold dark stripe + one thin light line, no cloth noise
+// cartoon clothing (cue `toon`): flat colour blocks, BIG checks (3 across a piece), one bold dark stripe + one thin light line, no cloth noise
 function check2dCanvas(base, dark, light) {
   const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.fillStyle = base; g.fillRect(0, 0, 256, 256);
-  g.fillStyle = dark; g.globalAlpha = .5; for (let k = 0; k < 256; k += 85) { g.fillRect(k + 30, 0, 26, 256); g.fillRect(0, k + 30, 256, 26); }
+  g.fillStyle = dark; g.globalAlpha = .45; for (let k = 0; k < 256; k += 85) { g.fillRect(k + 30, 0, 26, 256); g.fillRect(0, k + 30, 256, 26); }
   g.globalAlpha = .9; for (let k = 0; k < 256; k += 85) { g.fillRect(k + 38, 0, 10, 256); g.fillRect(0, k + 38, 256, 10); }
   g.globalAlpha = .85; g.fillStyle = light; for (let k = 0; k < 256; k += 85) { g.fillRect(k + 72, 0, 4, 256); g.fillRect(0, k + 72, 256, 4); }
   g.globalAlpha = 1; return c;
 }
-TEX.check2d = texFromCanvas(check2dCanvas('#c48a4e', '#5b3418', '#f1d39a'), true);
+TEX.check2d = texFromCanvas(check2dCanvas('#c48a4e', '#5b3418', '#f1d39a'), true);   // deerstalker
+TEX.cape2d = texFromCanvas(check2dCanvas('#cf9f62', '#6b4423', '#f6e0b2'), true);    // Inverness cape
 TEX.swim = texFromCanvas(swimCanvas(), true);
 const GOGGLES = texFromCanvas(gogglesCanvas(), false);
 const blobMesh = new Mesh((() => { const g = G(); g.pos.push(-1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1); for (let i = 0; i < 4; i++) { g.nrm.push(0, 1, 0); g.col.push(1, 1, 1); g.uv.push(0, 0); } g.idx.push(0, 2, 1, 0, 3, 2); return fin(g); })());
