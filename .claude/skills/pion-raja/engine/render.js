@@ -478,8 +478,8 @@ function outfitParts(K, name, base, headM, add) {
   const O = outfitKit(K, name), S = (a, b, c) => mat.S(a, b, c);
   const frontAt = (y, off, ang = 0) => { const r = profR(K, y) + off; return mat.chain(base, mat.T(r * Math.sin(ang), y, r * Math.cos(ang)), mat.RY(ang)); };
   if (name === 'daniel') {
-    add(O.shirt, base, { color: [.64, .8, .96] }, .04);
-    add(O.vest, base, { tex: outfitTex().vest, dbl: true }, .05);
+    add(O.shirt, base, { color: [.64, .8, .96], ao: [1.62, 1.95, 9, 10, .35] }, .04);
+    add(O.vest, base, { tex: outfitTex().vest, dbl: true, ao: [1.55, 1.86, 9, 10, .3] }, .05);
     add(O.vestHem, mat.mul(base, mat.T(0, .62, 0)), { color: [.74, .5, .14] }, .03);
     add(O.tie, base, { color: [.66, .1, .13] }, .025);
     add(O.collarL, base, { color: [.98, .98, .96], dbl: true }, .025); add(O.collarR, base, { color: [.98, .98, .96], dbl: true }, .025);
@@ -487,7 +487,7 @@ function outfitParts(K, name, base, headM, add) {
   }
   if (name === 'police') {
     const NAVY = [.11, .17, .35], DARK = [.06, .06, .08];
-    add(O.shirt, base, { tex: outfitTex().police }, .04);
+    add(O.shirt, base, { tex: outfitTex().police, ao: [1.62, 1.95, 9, 10, .35] }, .04);
     add(O.belt, mat.mul(base, mat.T(0, .68, 0)), { color: DARK }, .03);
     add(K.box, mat.mul(frontAt(.68, .1), S(.24, .17, .06)), { color: GOLD }, .02);
     add(O.tie, base, { color: DARK }, .025);
@@ -507,12 +507,12 @@ function drawPiece(PP, base, VP, L, face) {
   const parts = [];   // [mesh, matrix, fill opts, outline width]
   const add = (mesh, M, o, th = .05) => parts.push([mesh, M, o, th]);
   if (type === 'rook') {
-    add(K.turret, mat.mul(headM, mat.T(0, .8, 0)), { color: MID }, .06);
-    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + Math.PI / 6; add(K.box, mat.chain(headM, mat.RY(a), mat.T(0, 1.2, .84), mat.S(.5, .38, .34)), { color: MID }, .05); }
+    add(K.turret, mat.mul(headM, mat.T(0, .8, 0)), { color: MID, flat: true }, .06);
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + Math.PI / 6; add(K.box, mat.chain(headM, mat.RY(a), mat.T(0, 1.2, .84), mat.S(.5, .38, .34)), { color: MID, flat: true }, .05); }
     const ang = .42; add(K.badge, mat.chain(base, mat.T((.94 + (face.outfit === 'police' ? .06 : 0)) * Math.sin(ang), 1.5, (.94 + (face.outfit === 'police' ? .06 : 0)) * Math.cos(ang) + .02), mat.RY(ang), mat.RX(Math.PI / 2)), { color: GOLD, spec: .85 }, .03);
   }
   if (type === 'bishop') {
-    add(K.ball, mat.chain(headM, mat.T(0, 1.3, 0), mat.S(.2, .2, .2)), { color: LIGHT }, .04);
+    add(K.ball, mat.chain(headM, mat.T(0, 1.3, 0), mat.S(.2, .2, .2)), { color: LIGHT, flat: true }, .04);
   }
   if (type === 'queen') {
     const cr = mat.mul(headM, mat.T(0, .62, 0));
@@ -522,10 +522,10 @@ function drawPiece(PP, base, VP, L, face) {
     for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2; add(K.ball, mat.chain(base, mat.T(Math.sin(a) * .5, 1.86 - .05 * Math.cos(a), Math.cos(a) * .5), mat.S(.085, .085, .085)), { color: PEARL, spec: 1 }, .03); }
   }
   if (type === 'knight') {
-    for (const s of [-1, 1]) add(K.cone, mat.chain(headM, mat.T(s * .4, .74, -.1), mat.RZ(-s * .3), mat.RX(-.2), mat.S(.22, .66, .15)), { color: MID }, .05);
+    for (const s of [-1, 1]) add(K.cone, mat.chain(headM, mat.T(s * .4, .74, -.1), mat.RZ(-s * .3), mat.RX(-.2), mat.S(.22, .66, .15)), { color: MID, flat: true }, .05);
     const mane = [[0, 1.0, .25], [0, 1.06, -.08], [0, .96, -.42], [0, .74, -.72], [0, .44, -.94], [0, .1, -1.06], [0, -.26, -1.04]];
-    mane.forEach(([x, y, z], i) => add(K.ball, mat.chain(headM, mat.T(x, y, z), mat.RX(.5 - i * .32), mat.S(.2, .36, .26)), { color: DARK }, .05));
-    add(K.ball, mat.chain(headM, mat.T(0, -.72, .7), mat.S(.6, .4, .58)), { color: LIGHT }, .06);
+    mane.forEach(([x, y, z], i) => add(K.ball, mat.chain(headM, mat.T(x, y, z), mat.RX(.5 - i * .32), mat.S(.2, .36, .26)), { color: DARK, flat: true }, .05));
+    add(K.ball, mat.chain(headM, mat.T(0, -.72, .7), mat.S(.6, .4, .58)), { color: LIGHT, flat: true }, .06);
     for (const s of [-1, 1]) add(K.ball, mat.chain(headM, mat.T(s * .19, -.64, 1.24), mat.S(.08, .055, .04)), { color: DARK }, 0);
   }
   if (face.outfit) outfitParts(K, face.outfit, base, headM, add);
@@ -537,12 +537,12 @@ function drawPiece(PP, base, VP, L, face) {
   for (const A of arms) { drawOutline(A.mesh, base, VP, .06); if (!window.STYLE2D) drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
   // ---- fills
   const V2 = window.STYLE2D, FILL = MID, HEADC = P[2].map((v, i) => lerp(v, P[3][i], .3));
-  drawToon(K.body, base, VP, L, { vc: true, ao: [1.55, 2.02, 9, 10, .32] });
-  for (const r of K.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: DARK.map(v => v * .6) });
-  drawToon(K.collar, cM, VP, L, { vc: true });
-  drawToon(K.head, hM, VP, L, Object.assign(V2 ? { vc: true, face: true } : { vc: true }, { ao: [-.5, -.86, .36, .64, type === 'rook' || type === 'queen' ? .3 : .12] }));
+  drawToon(K.body, base, VP, L, { vc: true, flat: V2, ao: [1.55, 2.02, 9, 10, .32] });
+  for (const r of K.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: DARK.map(v => v * .6), flat: V2 });
+  drawToon(K.collar, cM, VP, L, { vc: true, flat: V2 });
+  drawToon(K.head, hM, VP, L, Object.assign(V2 ? { vc: true, face: true, flat: true } : { vc: true }, { ao: [-.5, -.86, .36, .64, (type === 'rook' || type === 'queen' ? .3 : .12) * (V2 ? 1.6 : 1)] }));
   for (const [m, M, o] of parts) drawToon(m, M, VP, L, Object.assign({ noSoot: true }, o));
-  for (const A of arms) { drawToon(A.mesh, base, VP, L, { color: window.STYLE2D ? INK2 : MID, noSoot: true }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: MID, noSoot: true }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE }); } }
+  for (const A of arms) { drawToon(A.mesh, base, VP, L, { color: window.STYLE2D ? INK2 : MID, noSoot: true, flat: window.STYLE2D }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: MID, noSoot: true }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE, flat: window.STYLE2D }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE, flat: window.STYLE2D }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE, flat: window.STYLE2D }); } }
   // ---- face (same expression textures as Pion)
   const glasses = face.glasses || 0, faceTex = k => faceTexture(k, blink, talk);
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -2);
@@ -579,10 +579,10 @@ function drawPion(PP, base, VP, L, face) {
   if (hurt) { drawOutline(M.bandRing, bandM, VP, .05); drawOutline(M.bandKnot, knotM, VP, .05); for (const m of plasters) drawOutline(M.plaster, m, VP, .035); }
   for (const A of arms) { drawOutline(A.mesh, base, VP, .06); if (!window.STYLE2D) drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
   // fills
-  drawToon(M.body, base, VP, L, swim ? { tex: TEX.swim, ao: [1.55, 2.02, 9, 10, .2] } : doc ? { color: SCRUB, ao: [1.55, 2.02, 9, 10, .32] } : { vc: true, ao: [1.55, 2.02, 9, 10, .32] });     // body darkens under the fur collar
-  for (const r of M.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: RINGC });
-  drawToon(M.collar, collarM, VP, L, swim ? { color: SWIM_NAVY } : doc ? { color: SCRUB } : { vc: true });
-  drawToon(M.head, headM, VP, L, Object.assign(window.STYLE2D ? { vc: true, face: true, color: [1, .8, .84], edge: [.78, .07, .12] } : { vc: true }, { ao: [-.5, -.86, .36, .64, .26 * (1 - clamp(PP.crownLift || 0, 0, 1))] })); // chin over the collar, forehead under the crown
+  drawToon(M.body, base, VP, L, swim ? { tex: TEX.swim, ao: [1.55, 2.02, 9, 10, .2] } : doc ? { color: SCRUB, ao: [1.55, 2.02, 9, 10, .32] } : { vc: true, flat: window.STYLE2D, ao: [1.55, 2.02, 9, 10, .32] });     // body darkens under the fur collar
+  for (const r of M.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: RINGC, flat: window.STYLE2D });
+  drawToon(M.collar, collarM, VP, L, swim ? { color: SWIM_NAVY } : doc ? { color: SCRUB } : { vc: true, flat: window.STYLE2D });
+  drawToon(M.head, headM, VP, L, Object.assign(window.STYLE2D ? { vc: true, face: true, flat: true, color: [1, .8, .84] } : { vc: true }, { ao: [-.5, -.86, .36, .64, (window.STYLE2D ? .5 : .26) * (1 - clamp(PP.crownLift || 0, 0, 1))] })); // chin over the collar, forehead under the crown
   const GS = .85; // toon specular + fresnel glint on gold
   if (det) { drawToon(M.hatDome, hatM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBrim, brimM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBow, bowM, VP, L, { color: [.3, .18, .09], noSoot: true }); }
   if (!det && !doc) drawToon(M.crownBand, crownM, VP, L, { color: GOLD, dbl: true, spec: GS });
@@ -595,7 +595,7 @@ function drawPion(PP, base, VP, L, face) {
   if (hair > .001) drawHair(headM, VP, L, hair);
   if (hurt) { drawToon(M.bandRing, bandM, VP, L, Object.assign({ color: BAND }, NS)); drawToon(M.bandKnot, knotM, VP, L, Object.assign({ color: BAND }, NS)); for (const m of plasters) drawToon(M.plaster, m, VP, L, Object.assign({ color: PLST }, NS)); }
   arms.forEach((A, i) => { A.col = hurt && arms.length && A.mesh === M.arm[1] ? BAND : doc ? COAT : swim ? SKIN : ARMC; });
-  for (const A of arms) { const ac = window.STYLE2D && A.col === ARMC ? INK2 : A.col; drawToon(A.mesh, base, VP, L, { color: ac, noSoot: A.col !== ARMC && A.col !== SKIN }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: A.col, noSoot: A.col !== ARMC }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE }); } }
+  for (const A of arms) { const ac = window.STYLE2D && A.col === ARMC ? INK2 : A.col; drawToon(A.mesh, base, VP, L, { color: ac, noSoot: A.col !== ARMC && A.col !== SKIN, flat: window.STYLE2D }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: A.col, noSoot: A.col !== ARMC }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE, flat: window.STYLE2D }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE, flat: window.STYLE2D }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE, flat: window.STYLE2D }); } }
   // magnifying glass in the hand of an active 'magnify' gesture
   if (face.t !== undefined && PP.hands) for (const G of TL.gest) {
     if (G.type !== 'magnify' || face.t < G.t0 || face.t > G.t1) continue; const Hd = PP.hands[(G.side || 1) > 0 ? 1 : 0]; if (!Hd) continue;

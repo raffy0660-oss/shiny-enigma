@@ -60,7 +60,7 @@ float h3(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
 float vn(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z); }
 uniform vec3 uColor; uniform float uUseVC; uniform sampler2D uTex; uniform float uUseTex; uniform sampler2D uRamp;
 uniform vec3 uLDir; uniform vec3 uKey; uniform vec3 uAmb; uniform vec3 uSky; uniform vec3 uGnd; uniform float uDouble; uniform float uExp;
-uniform vec3 uRim; uniform float uFlash; uniform float uCut; uniform float uSoft; uniform float uFlat; uniform float uR2; uniform float uFace; uniform vec4 uEdge; // uSoft: 1 = smooth sun shading (3D worlds); uFlat: 1 = flat 2D cartoon (two tones, no gloss)
+uniform vec3 uRim; uniform float uFlash; uniform float uCut; uniform float uSoft; uniform float uFlat; uniform float uR2; uniform float uFace; uniform vec4 uEdge; uniform float uFP; // uSoft: 1 = smooth sun shading (3D worlds); uFlat: 1 = flat 2D cartoon (two tones, no gloss)
 uniform vec4 uLPos; uniform float uLAtt; // optional point key light fixed in the room (xyz, w=on): shading changes as he moves
 uniform vec4 uAO; uniform float uAOs; // soft contact occlusion bands in object space (under the collar, under the crown)
 void main(){
@@ -95,7 +95,8 @@ void main(){
     float lit=smoothstep(-.15,.55,dot(normalize(n.xy+1e-4),normalize(Ld.xy+1e-4)));                            // ...on the side facing the key (video 14 look)
     gr=mix(gr,min(base*1.3+.07,vec3(1.)),band*lit*.6*(1.-.7*uFace));
     vec3 lt=(uAmb+mix(uGnd,uSky,.5)+uKey*.9)*uExp; float ll=dot(lt,vec3(.333)); lt=lt/max(ll,.05)*min(ll,1.15);
-    if(uAOs>0.){ vec2 q2=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q2=q2*q2*(3.-2.*q2); gr*=1.-uAOs*.9*clamp(q2.x+q2.y,0.,1.); }   // contact shade under collar / hat
+    if(uFP>.5) gr=base;   // bare character shapes (head, body, piece forms): no volume at all, flat fill; only cast/contact shadows below
+    if(uAOs>0.){ vec2 q2=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q2=q2*q2*(3.-2.*q2); float sh=clamp(q2.x+q2.y,0.,1.); sh=smoothstep(.15,.55,sh); gr*=mix(vec3(1.),vec3(.78,.76,.9),uAOs*2.2*sh); }   // graphic cast shadow (cool tint), crisper edge   // contact shade under collar / hat
     col=mix(col,gr*lt,uR2);
   }
   col=mix(col,vec3(1.,.97,.9),uFlash);
@@ -737,7 +738,7 @@ function drawToon(Msh, model, VP, L, o) {
   gl.uniform3fv(P.u.uColor, o.color || [1, 1, 1]); gl.uniform1f(P.u.uUseVC, o.vc ? 1 : 0); gl.uniform1f(P.u.uUseTex, o.tex ? 1 : 0); gl.uniform1f(P.u.uDouble, o.dbl ? 1 : 0);
   if (L.pos) { const dx = L.pos[0], dy = L.pos[1] - 3.0, dz = L.pos[2]; gl.uniform4f(P.u.uLPos, L.pos[0], L.pos[1], L.pos[2], 1.5); gl.uniform1f(P.u.uLAtt, dx * dx + dy * dy + dz * dz); }
   else gl.uniform4f(P.u.uLPos, 0, 0, 0, 0);
-  gl.uniform3fv(P.u.uLDir, L.dir); gl.uniform3fv(P.u.uKey, L.key); gl.uniform3fv(P.u.uAmb, L.amb); gl.uniform3fv(P.u.uSky, L.sky); gl.uniform3fv(P.u.uGnd, L.gnd); gl.uniform1f(P.u.uExp, L.exp); gl.uniform3fv(P.u.uRim, L.rim); if (P.u.uSoft) gl.uniform1f(P.u.uSoft, L.soft || 0); if (P.u.uFlat) gl.uniform1f(P.u.uFlat, L.flat || 0); if (P.u.uR2) { gl.uniform1f(P.u.uR2, window.STYLE2D ? 1 : 0); gl.uniform1f(P.u.uFace, o.face ? 1 : 0); gl.uniform4fv(P.u.uEdge, o.edge ? [...o.edge, 1] : [0, 0, 0, 0]); } window.OUTK = L.flat ? 1.12 : L.soft ? 1 - .45 * L.soft : 1; gl.uniform1f(P.u.uFlash, FLASH); gl.uniform1f(P.u.uSpec, o.spec || 0); gl.uniform1f(P.u.uCut, o.cut ? 1 : 0); gl.uniform1f(P.u.uSoot, o.noSoot ? 0 : SOOT); gl.uniform1f(P.u.uSootK, o.sootK || 1); gl.uniform3fv(P.u.uEye, window.EYE || [0, 10, 20]);
+  gl.uniform3fv(P.u.uLDir, L.dir); gl.uniform3fv(P.u.uKey, L.key); gl.uniform3fv(P.u.uAmb, L.amb); gl.uniform3fv(P.u.uSky, L.sky); gl.uniform3fv(P.u.uGnd, L.gnd); gl.uniform1f(P.u.uExp, L.exp); gl.uniform3fv(P.u.uRim, L.rim); if (P.u.uSoft) gl.uniform1f(P.u.uSoft, L.soft || 0); if (P.u.uFlat) gl.uniform1f(P.u.uFlat, L.flat || 0); if (P.u.uR2) { gl.uniform1f(P.u.uR2, window.STYLE2D ? 1 : 0); gl.uniform1f(P.u.uFace, o.face ? 1 : 0); gl.uniform4fv(P.u.uEdge, o.edge ? [...o.edge, 1] : [0, 0, 0, 0]); gl.uniform1f(P.u.uFP, o.flat ? 1 : 0); } window.OUTK = L.flat ? 1.12 : L.soft ? 1 - .45 * L.soft : 1; gl.uniform1f(P.u.uFlash, FLASH); gl.uniform1f(P.u.uSpec, o.spec || 0); gl.uniform1f(P.u.uCut, o.cut ? 1 : 0); gl.uniform1f(P.u.uSoot, o.noSoot ? 0 : SOOT); gl.uniform1f(P.u.uSootK, o.sootK || 1); gl.uniform3fv(P.u.uEye, window.EYE || [0, 10, 20]);
   const ao = o.ao || [9, 10, 9, 10, 0]; gl.uniform4fv(P.u.uAO, ao.slice(0, 4)); gl.uniform1f(P.u.uAOs, ao[4]);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, o.tex || RAMP); gl.uniform1i(P.u.uTex, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, RAMP); gl.uniform1i(P.u.uRamp, 1);

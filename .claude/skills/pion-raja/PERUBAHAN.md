@@ -14,6 +14,9 @@
 - **Gaya 2D v3 (belajar dari video 14):** strip highlight terang tipis di dalam outline pada sisi yang kena cahaya, bayangan kontak lembut
   di bawah kerah/kepala dan di dahi di bawah mahkota/topi, garis wajah hampir hitam, dan **tekstur kain yang digambar** untuk baju
   (seragam polisi: placket berkancing, saku berpenutup, jahitan putus-putus, jahitan samping/yoke; rompi Daniel: rajutan + rib di tepi V dan bawah).
+- **Gaya 2D v4:** bentuk dasar karakter (kepala, badan polos, kerah, ring alas, bentuk bidak, sarung tangan, lengan) **tanpa volume**:
+  isi rata (`flat: true`, gradasi warna vertikal asli tetap). Cahaya, bayangan inti, dan strip highlight **hanya di pakaian dan aksesoris**
+  (jubah, ermine, topi, kemeja, rompi, seragam, mahkota). Bayangan jatuh grafis bernuansa dingin: topi/mahkota di dahi, kepala di kerah baju.
 - **Baju bidak** (cue `outfit`): `daniel` (kemeja biru muda, rompi rajut mustard berleher V, dasi merah, kancing) dan `police`
   (seragam navy, dasi hitam, sabuk + gesper emas, lencana, papan nama, epolet, topi polisi bertengger di atas gerigi benteng).
 - **`PANDUAN_SINEMATIK.md`**: hasil analisis frame per frame 15 video referensi user (cahaya, warna, kamera, struktur cerita, caption).
