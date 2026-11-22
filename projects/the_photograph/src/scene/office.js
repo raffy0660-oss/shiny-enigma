@@ -410,6 +410,7 @@ function drawScreen(S, t) { const g = scrCanvas.getContext("2d"), w = 1024, h = 
     const gl = Math.max(0, 1 - Math.abs(k - 0.5) * 6);   // glitch around the switch
     if (gl > 0) { for (let i = 0; i < 14; i++) { const y = ((Math.sin(t * 91 + i * 7.3) * 0.5 + 0.5) * h) | 0, hh = 6 + ((i * 13) % 30), dx = Math.sin(t * 57 + i) * 60 * gl; const d = g.getImageData(0, y, w, hh); g.putImageData(d, dx, y); }
       g.fillStyle = `rgba(255,40,60,${0.25 * gl})`; g.fillRect(0, 0, w, h); }
+  } else if (S.mode === "report" || S.mode === "map") { drawML(S, g, w, h, t);
   } else if (S.mode === "mail") {
     g.fillText("Mail  -  Inbox", 130, 28); g.fillStyle = "#141c32"; g.fillRect(0, 56, 300, h - 56);
     for (let i = 0; i < 6; i++) { g.fillStyle = i === 0 ? "#2a3a66" : "#141c32"; g.fillRect(10, 70 + i * 92, 280, 82); g.fillStyle = "#cfd8f0"; g.font = "700 24px Arial, sans-serif"; g.fillText(i === 0 ? "(no subject)" : "...", 26, 100 + i * 92); g.fillStyle = "#7f8cb0"; g.font = "600 20px Arial, sans-serif"; g.fillText(i === 0 ? "5 years ago" : "", 26, 132 + i * 92); }
@@ -420,6 +421,58 @@ function drawScreen(S, t) { const g = scrCanvas.getContext("2d"), w = 1024, h = 
     g.fillStyle = "#cfd8f0"; g.font = "700 26px Arial, sans-serif"; g.fillText("IMG_1142.JPG", 630, 300); g.fillStyle = "#7f8cb0"; g.font = "600 24px Arial, sans-serif"; g.fillText("1 attachment", 630, 340);
   }
   scrTex.needsUpdate = true; }
+// ---------------------------------------------------------------- "The Mysterious Like" (optional, F.board = { k1, k2, k3 } / F.laptop.mode = report | map): evidence board of the four victims,
+// police death report, the map that zooms onto the killer's house. Default (no fields) = The Photograph, unchanged.
+function mlPfp(g, x, y, r) { g.save(); g.beginPath(); g.arc(x, y, r, 0, 7); g.clip(); const gr = g.createRadialGradient(x, y - r * 0.2, r * 0.1, x, y, r); gr.addColorStop(0, "#2a1416"); gr.addColorStop(1, "#050303"); g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r);
+  g.fillStyle = "#0b0b0d"; g.beginPath(); g.arc(x, y - r * 0.12, r * 0.42, 0, 7); g.fill(); g.fillRect(x - r * 0.34, y + r * 0.2, r * 0.68, r);
+  g.fillStyle = "#f4f1e8"; for (const s of [-1, 1]) { g.beginPath(); g.ellipse(x + s * r * 0.16, y - r * 0.18, r * 0.07, r * 0.1, s * 0.15, 0, 7); g.fill(); }
+  g.strokeStyle = "#f4f1e8"; g.lineWidth = r * 0.035; g.lineCap = "round"; g.beginPath(); g.moveTo(x - r * 0.26, y - r * 0.02); g.quadraticCurveTo(x, y + r * 0.22, x + r * 0.26, y - r * 0.02); g.stroke(); g.restore();
+  g.strokeStyle = "#7a1418"; g.lineWidth = r * 0.07; g.beginPath(); g.arc(x, y, r * 0.96, 0, 7); g.stroke(); }
+const mlCanvas = document.createElement("canvas"); mlCanvas.width = 2048; mlCanvas.height = 1260; const mlTex = new THREE.CanvasTexture(mlCanvas); mlTex.colorSpace = THREE.SRGBColorSpace; mlTex.anisotropy = 8;
+const VICS = [["MIRA VALE", "@m0rn1ngdew_", "#f2c9b8", "#5a3424", "influencer, 2.4M"], ["THEO PARK", "@quiet.hollow", "#e8d2b0", "#2a2a30", "streamer, 610K"], ["JUNE ADLER", "@lantern_k", "#f0d6c2", "#c88a3a", "food vlogger, 880K"], ["NOAH REYES", "@noah.sleeps", "#d9b89a", "#1e1a18", "vlogger, 1.1M"]];
+let mlSig = "";
+function drawMLBoard(B) { const sig = [B.k1, B.k2, B.k3].map(v => (v || 0).toFixed(2)).join(); if (sig === mlSig) return; mlSig = sig; const g = mlCanvas.getContext("2d"), w = 2048, h = 1260;
+  g.fillStyle = "#a4784a"; g.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${60 + (i % 3) * 30},40,20,${0.05 + (i % 5) * 0.02})`; g.fillRect((i * 7919) % w, (i * 104729) % h, 3, 3); }
+  const cx = w / 2, cy = 250; const k1 = B.k1 ?? 1, k2 = B.k2 || 0, k3 = B.k3 || 0;
+  g.fillStyle = "#f4efe2"; g.save(); g.translate(cx, cy); g.rotate(-0.02); g.fillRect(-170, -190, 340, 380); mlPfp(g, 0, -20, 140); g.fillStyle = "#1d1d1d"; g.font = "900 54px 'Caveat', cursive"; g.textAlign = "center"; g.fillText("WHO?", 0, 160); g.restore();
+  VICS.forEach(([name, user, skin, hair, job], i) => { const x = 260 + i * 510, y = 760, r = (i % 2 ? 0.03 : -0.025);
+    g.save(); g.translate(x, y); g.rotate(r);
+    g.fillStyle = "#f6f2e8"; g.fillRect(-200, -260, 400, 520);                                                                  // polaroid
+    g.fillStyle = "#3a3a48"; g.fillRect(-176, -236, 352, 300); g.fillStyle = skin; g.beginPath(); g.arc(0, -96, 92, 0, 7); g.fill();  // victim portrait (pawn head)
+    g.fillStyle = hair; g.beginPath(); g.arc(0, -112, 96, Math.PI * 1.02, Math.PI * 1.98); g.fill(); g.fillStyle = skin; g.fillRect(-60, 8, 120, 56);
+    g.fillStyle = "#1d1d1d"; for (const s of [-1, 1]) { g.fillRect(s * 34 - 14, -96, 28, 6); } g.strokeStyle = "#a01818"; g.lineWidth = 10; g.beginPath(); g.moveTo(-150, -220); g.lineTo(150, 40); g.moveTo(150, -220); g.lineTo(-150, 40); g.stroke();   // a red X
+    g.fillStyle = "#1d1d1d"; g.font = "900 44px 'Caveat', cursive"; g.textAlign = "center"; g.fillText(name, 0, 120); g.font = "700 30px 'Caveat', cursive"; g.fillText(job, 0, 160);
+    g.fillStyle = "#16161c"; g.fillRect(-180, 182, 360, 64); mlPfp(g, -140, 214, 26); g.fillStyle = "#fff"; g.font = "800 26px Arial"; g.textAlign = "left"; g.fillText(user, -104, 224);
+    if (k3 > i / 4) { g.strokeStyle = "#e01818"; g.lineWidth = 8; g.beginPath(); g.moveTo(-108, 214); g.lineTo(-108 + Math.min(1, (k3 - i / 4) * 4) * 230, 210); g.stroke(); }   // username crossed out
+    if (k2 > i / 4) { g.save(); g.translate(150, -230); g.rotate(0.12); g.fillStyle = "#e8e0c8"; g.fillRect(-90, -60, 180, 150); g.fillStyle = "#1d1d1d"; g.font = "800 22px Georgia"; g.textAlign = "center"; g.fillText("IN MEMORIAM", 0, -26);
+      for (let k = 0; k < 5; k++) g.fillRect(-70, -6 + k * 16, 140 - (k % 2) * 30, 6); g.fillStyle = "#c01818"; g.font = "900 26px 'Caveat', cursive"; g.fillText("died " + (3 + i * 2) + " wks ago", 0, 84); g.restore(); }
+    g.restore(); });
+  g.strokeStyle = "#c81e24"; g.lineWidth = 7; g.lineCap = "round";   // red strings: every account's picture -> the same picture
+  VICS.forEach((_, i) => { const x = 260 + i * 510 - 140, y = 760 + 214, u = Math.max(0, Math.min(1, k1 * 4 - i)); if (u <= 0) return; const ex = cx + (x - cx) * (1 - u), ey = cy + 40 + (y - cy - 40) * (1 - u); g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo((x + ex) / 2, (y + ey) / 2 + 60, ex, ey); g.stroke(); });
+  for (const [x, y] of [[cx, cy - 190], ...VICS.map((_, i) => [260 + i * 510, 500])]) { g.fillStyle = "#d9262d"; g.beginPath(); g.arc(x, y, 17, 0, 7); g.fill(); }
+  mlTex.needsUpdate = true; }
+const mlBoard = add(new THREE.PlaneGeometry(BOARD.w, BOARD.h), mat({ map: mlTex, roughness: 0.95 }), 0, BOARD.y, BACK + 0.06, { cast: false }); mlBoard.visible = false;
+const imgCache = {}; function loadImg(u) { if (imgCache[u]) return imgCache[u]; const im = new Image(); im.src = u; imgCache[u] = im; return im; }
+function drawML(S, g, w, h, t) { const k = S.k || 0;
+  if (S.mode === "report") { g.fillText("Police Feed  -  Reports", 130, 28);
+    const bl = Math.sin(t * 9) > 0 ? 1 : 0.55; g.fillStyle = `rgba(200,30,40,${bl})`; g.fillRect(0, 56, w, 70); g.fillStyle = "#fff"; g.font = "900 40px Arial"; g.fillText("NEW DEATH REPORT", 30, 92);
+    const z = 1 + k * 1.4, px = 40, py = 150; g.save(); g.beginPath(); g.rect(px, py, 420, 480); g.clip(); g.translate(px + 210, py + 240); g.scale(z, z);
+    g.fillStyle = "#2a2e3e"; g.fillRect(-210, -240, 420, 480); g.fillStyle = "#5a4a3a"; g.fillRect(-210, 80, 420, 160); g.fillStyle = "#e8d8c0"; g.beginPath(); g.ellipse(-30, 120, 150, 50, 0.1, 0, 7); g.fill();   // a bed, someone lying
+    g.fillStyle = "#e8e2d8"; g.beginPath(); g.arc(-150, 100, 46, 0, 7); g.fill(); g.fillStyle = "#16161c"; g.fillRect(40, 150, 46, 84); g.fillStyle = "#4060c0"; g.fillRect(44, 156, 38, 70); g.restore();   // the phone on the bed
+    g.strokeStyle = "#cfd8f0"; g.lineWidth = 3; g.strokeRect(px, py, 420, 480);
+    const rows = [["Victim", "#2  ·  Theo Park"], ["Place", "Riverside Hostel, Rm 12"], ["Time", "03:14 AM"], ["Cause", "unknown"], ["Phone", "recovered"]];
+    rows.forEach(([a, b], i) => { const y = 180 + i * 90; g.fillStyle = "#7f8cb0"; g.font = "700 26px Arial"; g.fillText(a, 500, y); g.fillStyle = i === 4 ? "#ff5a5a" : "#e8eefc"; g.font = "800 34px Arial"; g.fillText(b, 500, y + 38); });
+  } else if (S.mode === "map") { g.fillText("Trace  -  account @ivy_after", 130, 28);
+    const z = 1 + Math.min(k, 0.7) / 0.7 * 5, mx = 640, my = 380;
+    g.save(); g.beginPath(); g.rect(0, 56, w, h - 56); g.clip(); g.translate(mx, my); g.scale(z, z); g.translate(-mx, -my);
+    g.fillStyle = "#1a2236"; g.fillRect(0, 56, w, h); g.strokeStyle = "#3a4668"; g.lineWidth = 14; for (let i = 0; i < 9; i++) { g.beginPath(); g.moveTo(i * 130 - 40, 56); g.lineTo(i * 130 + 60, h); g.stroke(); g.beginPath(); g.moveTo(0, 90 + i * 80); g.lineTo(w, 60 + i * 80); g.stroke(); }
+    g.fillStyle = "#24304a"; for (let i = 0; i < 40; i++) g.fillRect((i * 271) % w, 70 + (i * 157) % (h - 80), 40, 30);
+    g.fillStyle = "#e8eefc"; g.beginPath(); g.moveTo(mx, my - 6); g.lineTo(mx - 9, my - 24); g.arc(mx, my - 26, 10, Math.PI, 0); g.closePath(); g.fill(); g.restore();
+    const pr = 0.5 + 0.5 * Math.sin(t * 6); g.strokeStyle = `rgba(255,70,80,${pr})`; g.lineWidth = 6; g.beginPath(); g.arc(mx, my, 30 + pr * 30, 0, 7); g.stroke(); g.fillStyle = "#ff4a50"; g.beginPath(); g.arc(mx, my, 14, 0, 7); g.fill();
+    if (S.img && k > 0.55) { const im = loadImg(S.img), a = Math.min(1, (k - 0.55) / 0.2); if (im.complete && im.naturalWidth) { g.globalAlpha = a; const ih = h - 56, iw = ih * im.naturalWidth / im.naturalHeight * 1.0;
+      const s2 = 1 + (k - 0.55) * 0.6; g.save(); g.translate(w / 2, 56 + ih / 2); g.scale(s2, s2); g.drawImage(im, 0, im.naturalHeight * 0.2, im.naturalWidth, im.naturalHeight * 0.6 * (w / iw), -w / 2, -ih / 2, w, ih); g.restore(); g.globalAlpha = 1; } }
+    g.fillStyle = "rgba(10,14,24,.75)"; g.fillRect(0, h - 64, w, 64); g.fillStyle = "#ff5a5a"; g.font = "800 28px Arial"; g.fillText("LAST LOGIN: 14 Elm Hollow Rd  ·  1 occupant", 24, h - 22);
+  } }
 const LAP = new THREE.Group(); LAP.position.set(0.8, DESK.h + 0.006, DESK.z + 0.08); LAP.rotation.y = 0.35; scene.add(LAP); LAP.visible = false;
 const lapM = mat({ color: 0x2a2c34, roughness: 0.4, metalness: 0.5 });
 add(box(0.46, 0.022, 0.32, 0.012), lapM, 0, 0.011, 0, { parent: LAP });
@@ -431,6 +484,7 @@ const scrM = new THREE.MeshBasicMaterial({ map: scrTex, color: new THREE.Color(1
 add(new THREE.PlaneGeometry(0.42, 0.27), scrM, 0, 0.152, 0.0075, { parent: lid, cast: false });
 const scrLight = new THREE.SpotLight(0x9ab8ff, 0, 2.5, 0.9, 0.8, 1.4); scene.add(scrLight, scrLight.target);
 function placeLaptop(Lp, t) { LAP.visible = !!Lp; cal.visible = !Lp; if (!Lp) { scrLight.intensity = 0; return; } drawScreen(Lp, t);
+  if (Lp.pos) { LAP.position.set(...Lp.pos); LAP.rotation.y = Lp.ry ?? 0; } else { LAP.position.set(0.8, DESK.h + 0.006, DESK.z + 0.08); LAP.rotation.y = 0.35; }
   LAP.updateMatrixWorld(); const c = V(0, 0.15, 0.05).applyMatrix4(lid.matrixWorld); scrLight.position.copy(c); scrLight.target.position.set(0, 1.2, PZ); scrLight.intensity = Lp.light ?? 3.0; }
 
 
@@ -506,6 +560,8 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   applyMood(F.mood || "normal", F.mood2 || F.mood || "normal", F.moodK || 0, F.t); if (F.strike) moon.intensity += 140;
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
   bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
+  mlBoard.visible = !!F.board; if (F.board) drawMLBoard(F.board); if (F.dust === false) dust.visible = false;
+  if (F.laptop && F.laptop.img) { const im = loadImg(F.laptop.img); if (!im.complete) await new Promise(r => { im.onload = r; im.onerror = r; }); }
   placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag); clockSpot.intensity = F.clockLight || 0;
   { const LP = LIGHT_PRESETS[RIMP[F.mood2 && F.moodK > 0.5 ? F.mood2 : (F.mood || "normal")]] || LIGHT_PRESETS.interior_warm_lamp;
     await CHR.place(F.pion ? [Object.assign(F.pion.preset ? { cast: true } : { shadow: [1.0, 0.55], cast: true }, F.pion)] : [], { light: key, puffs: F.puffs, ...LP }); }

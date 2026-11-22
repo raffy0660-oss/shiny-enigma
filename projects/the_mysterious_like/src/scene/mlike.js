@@ -90,6 +90,7 @@ const add = (geo, m, x, y, z, o = {}) => { const me = new THREE.Mesh(geo, m); me
 const box = (w, h, d, r = 0.01) => new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2.1, h / 2.1, d / 2.1));
 const hand = (g, txt, x, y, size, col = "#1d2a5a", rot = 0, font = "Caveat, 'Comic Neue', cursive") => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.font = `700 ${size}px ${font}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 0, 0); g.restore(); };
 const group = (x, y, z, ry = 0) => { const G = new THREE.Group(); G.position.set(x, y, z); G.rotation.y = ry; scene.add(G); return G; };
+const lerp = (a, b, k) => a + (b - a) * k;
 
 
 // ================================================================ shared pieces
@@ -357,6 +358,106 @@ const FIG = new THREE.Group(); FIG.position.set(C.X, 0, -1.45); scene.add(FIG);
   for (const [x, y] of [[-0.05, 0.02], [0.07, 0.2]]) { const h = new THREE.Mesh(new THREE.SphereGeometry(0.05, 14, 10), mat({ color: 0x101114, roughness: 0.6 })); h.position.set(x, y + 0.42, 0.24); FIG.add(h); }   // dark gloves
   FIG.traverse(o => { if (o.isMesh) o.castShadow = true; }); }
 
+
+// ================================================================ film additions: screen modes, the victim's phone, held-phone inserts, the table of phones,
+// the house facade (exterior), the falling lamp (lightning) — all driven by F fields
+const UI = {};
+function uiTex(mode, o = {}) {   // generic video app (no real brand logo); modes: video | profile | history | notif
+  const key = mode + JSON.stringify(o); if (UI[key]) return UI[key];
+  if (mode === "video") return (UI[key] = screenTex(o.user, o.title, o.thumb, o.ago));
+  return (UI[key] = canvasTex(540, 1140, (g, w, h) => {
+    g.fillStyle = "#0f0f12"; g.fillRect(0, 0, w, h); g.fillStyle = "#e8e8ea"; g.font = "600 26px Montserrat, Arial"; g.fillText("11:42", 28, 44); g.fillText("●●● 23%", w - 150, 44);
+    if (mode === "profile") {
+      const bg = g.createLinearGradient(0, 70, w, 300); bg.addColorStop(0, "#ff9ab8"); bg.addColorStop(1, "#b080ff"); g.fillStyle = bg; g.fillRect(0, 70, w, 220);
+      g.fillStyle = "#f6e8ee"; g.beginPath(); g.arc(110, 300, 74, 0, 7); g.fill(); g.strokeStyle = "#0f0f12"; g.lineWidth = 8; g.stroke();
+      g.fillStyle = "#4a2a20"; g.beginPath(); g.arc(110, 286, 56, Math.PI * 1.05, Math.PI * 1.95); g.fill(); g.fillStyle = "#3a2a2a"; for (const s of [-1, 1]) { g.beginPath(); g.arc(110 + s * 18, 300, 5, 0, 7); g.fill(); }
+      g.strokeStyle = "#c04060"; g.lineWidth = 4; g.beginPath(); g.arc(110, 312, 14, 0.2, Math.PI - 0.2); g.stroke();
+      g.fillStyle = "#fff"; g.font = "800 40px Montserrat, Arial"; g.fillText("Mira Vale", 30, 430); g.fillStyle = "#3ea6ff"; g.beginPath(); g.arc(250, 418, 13, 0, 7); g.fill();
+      g.fillStyle = "#a9a9b0"; g.font = "600 26px Montserrat, Arial"; g.fillText("@mira.vale  ·  2.4M subscribers", 30, 474); g.fillText("142 videos", 30, 512);
+      g.fillStyle = "#26262c"; g.beginPath(); g.roundRect(30, 540, 220, 58, 29); g.fill(); g.fillStyle = "#fff"; g.font = "700 26px Montserrat, Arial"; g.fillText("Subscribed", 66, 578);
+      const cols = [["#ffb0c8", "#ff7aa0"], ["#ffd8a0", "#ffa860"], ["#c8b0ff", "#9070e0"], ["#a0e0ff", "#60a8e0"], ["#ffc0e0", "#e070b0"], ["#e0ffd0", "#90d070"]];
+      cols.forEach((c, i) => { const x = 20 + (i % 2) * 255, y = 630 + Math.floor(i / 2) * 165, gr = g.createLinearGradient(x, y, x + 240, y + 135); gr.addColorStop(0, c[0]); gr.addColorStop(1, c[1]); g.fillStyle = gr; g.fillRect(x, y, 240, 135);
+        if (i === 0) { g.fillStyle = "#ff2b3a"; g.fillRect(x, y + 4, 70, 30); g.fillStyle = "#fff"; g.font = "800 20px Montserrat"; g.fillText("NEW", x + 10, y + 26); } });
+    } else if (mode === "history") {
+      g.fillStyle = "#fff"; g.font = "800 40px Montserrat, Arial"; g.fillText("History", 30, 128);
+      const rows = [["last stream before I sleep", "#601820", "#e05050"], ["study with me (6 hours)", "#2b3a6a", "#7a8ad8"], ["ASMR rain sounds", "#204030", "#60a080"], ["5 min abs", "#503010", "#e0a050"], ["room tour 2026", "#402060", "#c070b0"]];
+      rows.forEach(([tt, a, b], i) => { const y = 170 + i * 180, gr = g.createLinearGradient(30, y, 250, y + 124); gr.addColorStop(0, a); gr.addColorStop(1, b); g.fillStyle = gr; g.fillRect(30, y, 220, 124);
+        if (i === (o.hi ?? 1)) { g.strokeStyle = "#ff2b3a"; g.lineWidth = 6; g.strokeRect(24, y - 6, w - 48, 136); }
+        g.fillStyle = "#fff"; g.font = "700 26px Montserrat, Arial"; g.fillText(tt.slice(0, 18), 270, y + 40); g.fillStyle = "#a9a9b0"; g.font = "500 22px Montserrat, Arial"; g.fillText("watched " + (i + 1) + "h ago", 270, y + 80); });
+    } else if (mode === "notif") {
+      const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, "#141a30"); bg.addColorStop(1, "#05060c"); g.fillStyle = bg; g.fillRect(0, 60, w, h - 60);
+      g.fillStyle = "#e8ecff"; g.font = "300 150px Montserrat, Arial"; g.textAlign = "center"; g.fillText("11:42", w / 2, 300); g.font = "500 30px Montserrat, Arial"; g.fillText("Friday, 14 November", w / 2, 350); g.textAlign = "left";
+      g.fillStyle = "rgba(40,44,60,.92)"; g.beginPath(); g.roundRect(24, 430, w - 48, 230, 30); g.fill(); g.strokeStyle = "#ff2b3a"; g.lineWidth = 4; g.stroke();
+      g.fillStyle = "#ff2b3a"; g.beginPath(); g.roundRect(48, 456, 52, 40, 10); g.fill(); g.fillStyle = "#fff"; g.beginPath(); g.moveTo(66, 464); g.lineTo(66, 488); g.lineTo(86, 476); g.closePath(); g.fill();
+      g.fillStyle = "#cfd4e8"; g.font = "600 24px Montserrat, Arial"; g.fillText("VIDEO  ·  now", 116, 484);
+      pfp(g, 110, 580, 58); g.fillStyle = "#fff"; g.font = "800 30px Montserrat, Arial"; g.fillText("@m0rn1ngdew_", 190, 566); g.font = "500 26px Montserrat, Arial"; g.fillStyle = "#e0e4f4"; g.fillText("liked your video", 190, 606);
+      g.fillStyle = "#a9a9b0"; g.font = "500 22px Montserrat, Arial"; g.fillText("\"how I solved case #3\"", 190, 642);
+    }
+  }));
+}
+function setScreen(P, mode, o) { P.screen.material.map = uiTex(mode, o); P.screen.material.needsUpdate = true; }
+// the victim's phone, lit on the floor by her hand (visible from the very first frame)
+PHONES.vic = phone(0.47, 0.0, 0.14, 0.75, 0, "@m0rn1ngdew_", "my morning routine (real)", ["#ff9ab8", "#ffd0e0"], "just now"); setScreen(PHONES.vic, "profile");
+PHONES.vic.G.children.find(c => c.isPointLight).intensity = 0.04;
+// held-phone inserts (upright, screen to the lens): in the apartment (scene 1) and in the house (Pion's own phone, scene 7)
+function heldPhone(x, y, z, ry) { const P = phone(x, y, z, ry, 1.32, "@m0rn1ngdew_", "my morning routine (real)", ["#ff9ab8", "#ffd0e0"], "just now"); P.G.children.find(c => c.isPointLight).intensity = 0.0; P.G.visible = false; return P; }
+PHONES.held = heldPhone(1.05, 0.55, 0.05, -0.35); PHONES.pion = heldPhone(60.35, 0.62, -0.05, 0.0);
+// second crime scene: the B1 phone switches History -> video
+setScreen(PHONES.m0, "history", { hi: 1 });
+// ---- the table of phones in the target's house (scene 6), under one narrow spot
+const TBL = group(C.X + 0.95, 0, -0.2, -0.25);
+add(box(0.9, 0.04, 0.55, 0.01), mat({ color: 0x2a2018, roughness: 0.6 }), 0, 0.56, 0, { parent: TBL }); for (const [x, z] of [[-0.4, -0.23], [0.4, -0.23], [-0.4, 0.23], [0.4, 0.23]]) add(new THREE.CylinderGeometry(0.02, 0.018, 0.54, 8), mat({ color: 0x1e1610 }), x, 0.27, z, { parent: TBL });
+const TUSERS = [["@m0rn1ngdew_", "last stream before I sleep", ["#601820", "#e05050"]], ["@quiet.hollow", "study with me (6 hours)", ["#2b3a6a", "#7a8ad8"]], ["@lantern_k", "what I eat in a day", ["#e8a040", "#f8e0a0"]],
+  ["@noah.sleeps", "goodnight vlog #212", ["#402060", "#c070b0"]], ["@mira.vale", "my morning routine (real)", ["#ff9ab8", "#ffd0e0"]], ["@ivy_after", "pov: you can't sleep", ["#103040", "#40a0c0"]]];
+const tablePhones = TUSERS.map(([u, tt, th], i) => { const P = phone(0, 0, 0, (i % 2 ? 0.25 : -0.2) + (i - 2.5) * 0.05, 0, u, tt, th, "just now"); TBL.add(P.G); P.G.position.set(-0.3 + (i % 3) * 0.3, 0.582, -0.12 + Math.floor(i / 3) * 0.25); P.G.children.find(c => c.isPointLight).intensity = 0.02; return P; });
+const tableSpot = new THREE.SpotLight(0xbfd0ff, 0, 4, 0.32, 0.6, 1.2); tableSpot.position.set(C.X + 0.95, C.H - 0.05, -0.2); tableSpot.target.position.set(C.X + 0.95, 0.56, -0.2); tableSpot.castShadow = true; tableSpot.shadow.mapSize.set(1024, 1024); scene.add(tableSpot, tableSpot.target);
+add(new THREE.CylinderGeometry(0.05, 0.08, 0.1, 14, 1, true), DARK, C.X + 0.95, C.H - 0.05, -0.2, { cast: false });
+// ---- the house facade (the outside of the back wall) + porch, roof edge, bushes, mailbox, a fence; exterior night light
+const sideT = canvasTex(1024, 1024, (g, w, h) => { g.fillStyle = "#4a5470"; g.fillRect(0, 0, w, h); for (let y = 0; y < h; y += 48) { g.fillStyle = "rgba(255,255,255,.06)"; g.fillRect(0, y, w, 6); g.strokeStyle = "#252a3a"; g.lineWidth = 4; g.beginPath(); g.moveTo(0, y + 46); g.lineTo(w, y + 46); g.stroke(); }
+  for (let i = 0; i < 2000; i++) { g.fillStyle = `rgba(0,0,0,${rnd() * .1})`; g.fillRect(rnd() * w, rnd() * h, 3, 3); } }, [3, 2]);
+{ const sm = mat({ map: sideT, roughness: 0.9 }), trimE = mat({ color: 0xd8d8d0, roughness: 0.6 }), ZF = C.BACK - 0.065, DW = 0.78, DH = 1.62, WX = 1.12, WY = 1.25, WW = 0.62, WHh = 0.92;
+  const pieceE = (x0, x1, y0, y1) => add(new THREE.PlaneGeometry(x1 - x0, y1 - y0), sm, C.X + (x0 + x1) / 2, (y0 + y1) / 2, ZF, { ry: Math.PI, cast: false });
+  const xs = [-C.W / 2 - 0.4, -WX - WW / 2, -WX + WW / 2, -DW / 2, DW / 2, WX - WW / 2, WX + WW / 2, C.W / 2 + 0.4];
+  pieceE(xs[0], xs[1], 0, 2.7); pieceE(xs[2], xs[3], 0, 2.7); pieceE(xs[4], xs[5], 0, 2.7); pieceE(xs[6], xs[7], 0, 2.7);
+  for (const [a, b] of [[1, 2], [5, 6]]) { pieceE(xs[a], xs[b], 0, WY - WHh / 2); pieceE(xs[a], xs[b], WY + WHh / 2, 2.7); } pieceE(xs[3], xs[4], DH, 2.7);
+  for (const s of [-1, 1]) { const cx = C.X + s * WX; for (const [w2, h2, x, y] of [[WW + 0.14, 0.07, 0, WY - WHh / 2], [WW + 0.14, 0.07, 0, WY + WHh / 2], [0.07, WHh, -WW / 2, WY], [0.07, WHh, WW / 2, WY]]) add(box(w2, h2, 0.06), trimE, cx + x, y, ZF - 0.03);
+    for (const k of [-1, 1]) add(box(0.26, WHh + 0.1, 0.03), mat({ color: 0x2a3450 }), cx + k * (WW / 2 + 0.17), WY, ZF - 0.04); }   // shutters
+  for (const [w2, h2, x, y] of [[0.09, DH + 0.1, -DW / 2 - 0.05, DH / 2], [0.09, DH + 0.1, DW / 2 + 0.05, DH / 2], [DW + 0.2, 0.09, 0, DH + 0.05]]) add(box(w2, h2, 0.07), trimE, C.X + x, y, ZF - 0.03);
+  add(box(C.W + 1.2, 0.12, 1.5, 0.01), mat({ map: wood("#5a4a3c", "#2a2018", 8), roughness: 0.7 }), C.X, 0.06, C.BACK - 0.8).userData.ground = true;   // porch
+  for (const k of [0, 1]) add(box(1.3, 0.1, 0.32, 0.01), mat({ color: 0x5a4a3c }), C.X, 0.02 - k * 0.0 - 0.0 + (k ? -0.04 : 0), C.BACK - 1.7 - k * 0.3);   // steps
+  for (const s of [-1, 1]) add(box(0.1, 2.4, 0.1, 0.01), trimE, C.X + s * 1.9, 1.2, C.BACK - 1.45);
+  add(box(C.W + 1.4, 0.12, 1.7, 0.01), mat({ color: 0x1e2232 }), C.X, 2.46, C.BACK - 0.75, { rx: -0.08 });   // porch roof
+  const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 3.4, 1.6, 4, 1), mat({ color: 0x1a1e2c, roughness: 0.9 })); roof.rotation.y = Math.PI / 4; roof.scale.set(1.0, 1, 0.75); roof.position.set(C.X, 3.4, 0.5); roof.castShadow = true; scene.add(roof);
+  add(box(C.W + 0.6, 0.3, 5.6, 0.01), mat({ color: 0x1a1e2c }), C.X, 2.62, 0.5);
+  const bush = mat({ color: 0x1e3a2c, roughness: 1 }); for (let i = 0; i < 9; i++) add(new THREE.SphereGeometry(0.28 + rnd() * 0.15, 12, 10), bush, C.X + (i < 5 ? -1 : 1) * (1.3 + rnd() * 1.1), 0.25, C.BACK - 0.35 - rnd() * 0.3, { cast: true });
+  add(box(0.18, 0.14, 0.3, 0.03), mat({ color: 0x2a2a30 }), C.X + 2.3, 1.0, C.BACK - 3.0); add(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 8), DARK, C.X + 2.3, 0.5, C.BACK - 3.0);   // mailbox
+  for (let i = 0; i < 18; i++) { const x = C.X - 3.4 + i * 0.4; if (Math.abs(x - C.X) < 0.7) continue; add(box(0.08, 0.7, 0.03, 0.01), mat({ color: 0x8a8e98 }), x, 0.35, C.BACK - 3.6); }
+  for (const s of [-1, 1]) add(box(2.7, 0.05, 0.03), mat({ color: 0x8a8e98 }), C.X + s * 2.05, 0.55, C.BACK - 3.6);   // picket fence, open gate in the middle (the camera walks through)
+  for (const s of [-1, 1]) { const tr = new THREE.Mesh(new THREE.ConeGeometry(0.9, 3.6, 10), mat({ color: 0x0c1610 })); tr.position.set(C.X + s * 3.6, 1.8, C.BACK - 1.0); scene.add(tr); }
+  add(new THREE.PlaneGeometry(30, 14), new THREE.MeshBasicMaterial({ fog: false, map: canvasTex(512, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#050a20"); gr.addColorStop(1, "#22305e"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 90; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .7})`; g.fillRect(rnd() * w, rnd() * h * 0.7, 1.5, 1.5); } g.fillStyle = "rgba(225,232,255,.95)"; g.beginPath(); g.arc(w * 0.75, h * 0.25, 13, 0, 7); g.fill(); }) }), C.X, 5, 9, { ry: Math.PI, cast: false });
+}
+const extMoon = new THREE.DirectionalLight(0x9ab0ff, 0); extMoon.position.set(C.X + 4, 7, C.BACK - 6); extMoon.target.position.set(C.X, 0, C.BACK); extMoon.castShadow = true; extMoon.shadow.mapSize.set(2048, 2048);
+Object.assign(extMoon.shadow.camera, { left: -6, right: 6, top: 6, bottom: -2, near: 1, far: 20 }); extMoon.shadow.camera.updateProjectionMatrix(); scene.add(extMoon, extMoon.target);
+const extHemi = new THREE.HemisphereLight(0x3a4a8a, 0x0a0c14, 0); scene.add(extHemi);
+const extDoorSpot = new THREE.SpotLight(0xa8bcff, 0, 6, 0.5, 0.6, 1.2); extDoorSpot.position.set(C.X + 1.2, 3.2, C.BACK - 3.2); extDoorSpot.target.position.set(C.X, 0.6, C.BACK); extDoorSpot.castShadow = true; scene.add(extDoorSpot, extDoorSpot.target);
+// ---- the falling lamp (lightning): a little lamp on a wall shelf at the left, tumbles down into the light pool in front of the door. F.fall = seconds since it slipped
+const SHELF = add(box(0.5, 0.04, 0.22, 0.01), mat({ color: 0x2a2018 }), C.X + 1.0, 1.52, C.BACK + 0.17);
+const FALL = new THREE.Group(); FALL.scale.setScalar(1.7); scene.add(FALL);
+add(new THREE.CylinderGeometry(0.07, 0.08, 0.04, 14), mat({ color: 0x6a5030, metalness: 0.5, roughness: 0.4 }), 0, 0.02, 0, { parent: FALL });
+add(new THREE.CylinderGeometry(0.012, 0.012, 0.22, 8), mat({ color: 0x6a5030, metalness: 0.5 }), 0, 0.13, 0, { parent: FALL });
+add(new THREE.CylinderGeometry(0.06, 0.11, 0.12, 16, 1, true), mat({ color: 0xf0e2c0, emissive: 0x3a2e1c, side: THREE.DoubleSide }), 0, 0.27, 0, { parent: FALL });
+const fallBulb = add(new THREE.SphereGeometry(0.03, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffd8a0, toneMapped: false }), 0, 0.25, 0, { parent: FALL, cast: false });
+const fallLight = new THREE.PointLight(0xffb870, 0, 1.4, 1.6); fallLight.position.set(0, 0.25, 0); FALL.add(fallLight);   // the bulb survives the fall: a dim warm flicker on the floor
+const FALL0 = new THREE.Vector3(C.X + 1.0, 1.54, C.BACK + 0.17), FALL1 = new THREE.Vector3(C.X + 0.42, 0.0, -0.95);   // from the right edge to the floor in front-right of the silhouette
+function placeFall(s) { const fk = s == null || s < 0 ? 0.25 : s < 0.5 ? 0.8 : (0.35 + 0.65 * (Math.sin(s * 37) * Math.sin(s * 11.3) > -0.2 ? 1 : 0.15)) * Math.max(0.35, Math.exp(-(s - 0.5) * 0.4));
+  fallLight.intensity = fk * 0.9; fallBulb.material.color.setRGB(fk, fk * 0.85, fk * 0.62);
+  if (s == null || s < 0) { FALL.position.copy(FALL0); FALL.rotation.set(0, 0, 0); return; }
+  const T = 0.5, tt = Math.min(s, T), u = tt / T, g = 9.81;
+  if (s <= T) { const vy = (FALL1.y - FALL0.y + 0.5 * g * T * T) / T; FALL.position.set(lerp(FALL0.x, FALL1.x, u), FALL0.y + vy * tt - 0.5 * g * tt * tt, lerp(FALL0.z, FALL1.z, u)); FALL.rotation.set(1.3 * u * 3.2, 0.4 * u, 2.2 * u * 3.0); return; }
+  const r = s - T, b = Math.max(0, Math.sin(Math.min(r, 0.3) / 0.3 * Math.PI)) * 0.06 * Math.exp(-r * 4), roll = (1 - Math.exp(-r * 5)) * 0.22;   // small bounce, rolls a little, rests on its side
+  FALL.position.set(FALL1.x - roll * 0.5, 0.12 + b, FALL1.z + roll * 0.3); FALL.rotation.set(Math.PI / 2, 0.4 - roll * 2, 0.2 - roll * 6); }
+
 // ================================================================ characters INSIDE the world (charlayer v2)
 const CHARS = createChars(scene, camera, renderer, { n: 2, E: 0.6, D: 0.22, hide: [aptBeam, ...winBeams, ...winGlass, FIG.userData.face], rim: 1.0, glow: 0.35, shade: 0.8 });
 composer.insertPass(CHARS.pass(pionRT), composer.passes.indexOf(pionComp)); CHARS.guard(gtao); CHARS.guard(bokeh);
@@ -364,10 +465,12 @@ const LOCS = {
   apt: { dyn: aptSpot, rim: aptSpot, LP: LIGHT_PRESETS.interior_warm_lamp, bg: 0x08080c, fog: 0.05, vig: 0.42 },
   phones: { dyn: null, rim: null, LP: LIGHT_PRESETS.interior_night, bg: 0x040406, fog: 0.04, vig: 0.5 },
   house: { dyn: pionKey, rim: winLight[1], LP: LIGHT_PRESETS.crime_scene, bg: 0x03040a, fog: 0.07, vig: 0.55 },
+  ext: { dyn: extDoorSpot, rim: extMoon, LP: LIGHT_PRESETS.crime_scene, bg: 0x050a20, fog: 0.035, vig: 0.5 },
 };
 let bakedLoc = null;
 const LIGHTSET = [[aptSpot, "apt"], [aptMoon, "apt"], [aptNeon, "apt"], [aptVanity, "apt"], [aptFill, "apt"], ...phoneSpots.map(([L]) => [L, "phones"]),
-  ...Object.values(PHONES).map(p => [p.G.children.find(c => c.isPointLight), "phones"]), ...winLight.map(L => [L, "house"]), [houseHemi, "house"], [flashL, "house"], [flashBack, "house"], [pionKey, "house"]];
+  ...Object.values(PHONES).map(p => [p.G.children.find(c => c.isPointLight), "phones"]), ...winLight.map(L => [L, "house"]), [houseHemi, "house"], [flashL, "house"], [flashBack, "house"], [pionKey, "house"], [tableSpot, "house"], ...tablePhones.map(p => [p.G.children.find(c => c.isPointLight), "house"]),
+  [extMoon, "ext"], [extHemi, "ext"], [extDoorSpot, "ext"], [fallLight, "house"], [PHONES.vic.G.children.find(c => c.isPointLight), "apt"]];
 const PTS = {};
 window.renderFrame = async (F) => {   // F: { t, loc, cam, pions, flash, door (rad, 0 = shut), figure, spotK, phonePfp (key) }
   const Lc = LOCS[F.loc || "apt"];
@@ -382,9 +485,14 @@ window.renderFrame = async (F) => {   // F: { t, loc, cam, pions, flash, door (r
   winLight.forEach(L => L.intensity = at === "house" ? 36 + fl * 110 : 0); winBeams.forEach(b => { b.visible = at === "house"; b.material.uniforms.k.value = 1 + fl * 3; });
   winGlass.forEach(g => g.material.color.setRGB(0.35 + fl * 0.65, 0.44 + fl * 0.56, 0.69 + fl * 0.31));
   houseHemi.intensity = at === "house" ? 0.03 + fl * 0.45 : 0; flashL.intensity = at === "house" ? fl * 2.0 : 0; flashBack.intensity = at === "house" ? fl * 12 : 0; pionKey.intensity = at === "house" ? (F.pkey ?? 0) * 7 : 0;
+  extMoon.intensity = at === "ext" ? 4.5 : 0; extHemi.intensity = at === "ext" ? 0.7 : 0; extDoorSpot.intensity = at === "ext" ? 26 : 0; tableSpot.intensity = at === "house" ? (F.tableK ?? 0) * 32 : 0;
+  PHONES.vic.G.visible = F.vicPhone !== false; if (F.vicMode) setScreen(PHONES.vic, F.vicMode.mode, F.vicMode.o);
+  for (const k of ["held", "pion"]) { const P = PHONES[k], hp = F[k + "Phone"]; P.G.visible = !!hp; if (hp) setScreen(P, hp.mode, hp.o); }
+  if (F.m0Mode) setScreen(PHONES.m0, F.m0Mode.mode, F.m0Mode.o);
+  placeFall(F.fall);
   DOOR.rotation.y = F.door ?? 0; FIG.visible = !!F.figure; FIG.userData.face.material.opacity = F.figure ? (F.faceK ?? 0.55) + fl * 0.4 : 0;
   grade.uniforms.flash.value = fl * 0.14;
-  if (bakedLoc !== at) { CHARS.bake([aptMoon, ...winLight]); bakedLoc = at; }
+  if (bakedLoc !== at) { CHARS.bake([aptMoon, ...winLight, extMoon].filter(l => l !== Lc.dyn)); bakedLoc = at; }
   const list = (F.pions || []);
   await CHARS.place(list, { light: Lc.dyn, rimLight: Lc.rim, ...Lc.LP });
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
