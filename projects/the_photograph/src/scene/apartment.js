@@ -19,7 +19,7 @@ const W = 1080, H = 1920;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1); renderer.setSize(W, H);
 renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // the set never moves: shadows are baked once per version
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1024);
 scene.fog = new THREE.FogExp2(0x1a2038, 0.05);
@@ -244,7 +244,7 @@ const clockStuff = [CLK]; scene.children.slice(-6, -1).forEach(o => { if (o.geom
 
 // ---------------------------------------------------------------- lights (base); applyVer() sets them per version
 const hemi = new THREE.HemisphereLight(0x5a6aa0, 0x2a2018, 0.5); scene.add(hemi);
-const bulbL = new THREE.PointLight(0xffc27a, 0, 5, 1.6); bulbL.position.copy(BULB).add(V(0, -0.05, 0)); bulbL.castShadow = true; bulbL.shadow.mapSize.set(1024, 1024); bulbL.shadow.bias = -0.002; scene.add(bulbL);
+const bulbL = new THREE.PointLight(0xffc27a, 0, 5, 1.6); bulbL.position.copy(BULB).add(V(0, -0.05, 0)); bulbL.castShadow = false;   // a point-light shadow = 6 extra renders per frame: off scene.add(bulbL);
 const gapTex = canvasTex(512, 512, (g, w, h) => { g.fillStyle = "#000"; g.fillRect(0, 0, w, h); g.fillStyle = "#fff"; for (const [y0, y1] of [[60, 92], [190, 222], [330, 352], [438, 470]]) g.fillRect(0, y0, w, y1 - y0); });
 const sun = new THREE.SpotLight(0xffe2b0, 0, 12, 0.32, 0.18, 1.0); sun.map = gapTex; sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0006;
 const SUNDIR = V(1.0, -0.62, 0.32).normalize(); sun.position.copy(V(XL, WIN.y, WIN.z).addScaledVector(SUNDIR, -3.2)); sun.target.position.copy(V(XL, WIN.y, WIN.z).addScaledVector(SUNDIR, 2.0)); scene.add(sun, sun.target);
@@ -278,7 +278,7 @@ function placeDust(t) { const O = V(XL + 0.05, WIN.y, WIN.z); for (let i = 0; i 
 // ---------------------------------------------------------------- versions (light + dressing)
 const VERS = {
   A: { hemi: 0.5, hemiCol: 0x6a6f9a, bulb: 3.2, sun: 0, moon: 9, fill: 0.35, beam: 0.05, beamCol: [0.7, 0.8, 1.0], dust: 0.25, fog: 0.06, fogCol: 0x2a2a34, sky: "A", vig: 0.55, sepia: 0.9, grain: 0.05, tint: [0, 0, 0], strobe: 0, body: true, bg: 0x101420 },
-  B: { hemi: 1.0, hemiCol: 0x8a98c8, bulb: 0, sun: 70, moon: 0, fill: 1.3, beam: 0.42, beamCol: [1.0, 0.86, 0.6], dust: 0.85, fog: 0.045, fogCol: 0x3a3a48, sky: "B", vig: 0.48, sepia: 0, grain: 0.025, tint: [-0.01, 0, 0.03], strobe: 0, body: false, bg: 0x1a1a24 },
+  B: { hemi: 1.7, hemiCol: 0x9aa8d8, bulb: 0, sun: 120, moon: 0, fill: 2.2, beam: 0.42, beamCol: [1.0, 0.86, 0.6], dust: 0.85, fog: 0.035, fogCol: 0x6a6a80, sky: "B", vig: 0.48, sepia: 0, grain: 0.025, tint: [-0.01, 0, 0.03], strobe: 0, body: false, bg: 0x1a1a24 },
   C: { hemi: 0.3, hemiCol: 0x2a46c8, bulb: 0, sun: 0, moon: 16, fill: 0.9, beam: 0.08, beamCol: [0.5, 0.6, 1.0], dust: 0.2, fog: 0.065, fogCol: 0x101a3a, sky: "C", vig: 0.62, sepia: 0, grain: 0.03, tint: [-0.03, 0, 0.08], strobe: 1, body: true, bg: 0x060a1c },
 };
 function applyVer(ver, t, o = {}) {
@@ -332,11 +332,12 @@ const tapeMul = new THREE.Color();   // tape picks up the strobe colour a little
 
 // ---------------------------------------------------------------- render
 const PTS = { clock: [CLOCK.p.x, 0.25, CLOCK.p.z + 0.1], clockFace: [0, 0, 0], body: [-0.35, 0.2, -0.55], door: [XR, 1.0, DOOR.z], window: [XL, WIN.y, WIN.z] };
+let lastVer = null;
 window.AP = { CLOCK: CLOCK.p.toArray(), BULB: BULB.toArray(), DOOR: [XR, 0, DOOR.z], WIN: [XL, WIN.y, WIN.z], SUNDIR: SUNDIR.toArray() };
 window.renderFrame = async (F) => {   // F: { t, ver, cam:{pos,tgt,fov,focus,roll}, pions:[{url,base,ppu,w,h,anchor,height,tint,roll,face,shadow}], sepia, flash, clockGlow, body, torch, bulbK, beamK, pts:{name:[x,y,z]} }
   camera.position.set(...F.cam.pos); camera.fov = F.cam.fov; camera.updateProjectionMatrix(); camera.lookAt(...F.cam.tgt); if (F.cam.roll) camera.rotateZ(F.cam.roll); camera.updateMatrixWorld();
   bokeh.uniforms.focus.value = F.cam.focus; bokeh.uniforms.aperture.value = F.cam.aperture ?? 0.0016; placeDust(F.t); grade.uniforms.time.value = F.t;
-  applyVer(F.ver || "A", F.t, F); grade.uniforms.flash.value = F.flash || 0;
+  applyVer(F.ver || "A", F.t, F); grade.uniforms.flash.value = F.flash || 0; if (lastVer !== F.ver) { renderer.shadowMap.needsUpdate = true; lastVer = F.ver; }
   const ph = Math.floor(F.t * 4) % 2; tapeM.color.copy(F.ver === "C" ? tapeMul.setRGB(ph ? 0.8 : 0.55, 0.55, ph ? 0.6 : 0.85) : tapeMul.setRGB(0.75, 0.75, 0.75));
   if (F.refl) { reflM.map = await loadTex(F.refl.url); reflM.opacity = F.refl.k; reflM.needsUpdate = true; refl.visible = true; } else refl.visible = false;
   const list = (F.pions || (F.pion ? [F.pion] : [])); await placeCards(list);

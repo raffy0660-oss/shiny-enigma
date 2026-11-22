@@ -4,14 +4,14 @@
 const { cam, key } = require("./lib.js");
 const C0 = require("./photo_still.js").C0, F0 = 2166;
 const K = [
-  { t: 36.1, pos: [1.25, 1.5, 1.6], tgt: [-0.1, 0.45, -0.8], fov: 64, focus: 2.4 },
-  { t: 36.9, pos: [1.15, 1.45, 1.45], tgt: [-0.1, 0.45, -0.8], fov: 63, focus: 2.3, ease: "lin" },
-  { t: 37.45, pos: [0.75, 0.95, 0.6], tgt: [0.15, 0.25, -0.6], fov: 50, focus: 1.3, ease: "io" },        // "dead body"
-  { t: 38.05, pos: [0.72, 0.93, 0.55], tgt: [0.15, 0.25, -0.6], fov: 50, focus: 1.25, ease: "lin" },
+  { t: 36.1, pos: [-0.9, 1.5, 1.6], tgt: [1.1, 0.5, -0.6], fov: 64, focus: 2.6 },
+  { t: 36.9, pos: [-0.8, 1.45, 1.45], tgt: [1.1, 0.5, -0.6], fov: 63, focus: 2.5, ease: "lin" },
+  { t: 37.45, pos: [0.95, 1.15, 0.85], tgt: [0.1, 0.25, -0.6], fov: 50, focus: 1.7, ease: "io" },        // "dead body"
+  { t: 38.05, pos: [0.9, 1.12, 0.78], tgt: [0.1, 0.25, -0.6], fov: 50, focus: 1.62, ease: "lin" },
   { t: 38.7, pos: [-1.6, 2.15, 1.5], tgt: [0.6, 0.4, -1.0], fov: 66, focus: 2.8, ease: "io" },           // "that exact apartment": the whole room + the doorway
   { t: 39.55, pos: [-1.5, 2.1, 1.4], tgt: [0.6, 0.4, -1.0], fov: 66, focus: 2.7, ease: "lin" },
-  { t: 40.15, pos: [-0.25, 0.75, 0.25], tgt: [-0.4, 0.2, -0.5], fov: 44, focus: 0.85, ease: "io" },      // "Daniel Cross": his face
-  { t: 41.05, pos: [-0.24, 0.73, 0.2], tgt: [-0.4, 0.2, -0.5], fov: 44, focus: 0.8, ease: "lin" },
+  { t: 40.15, pos: [0.1, 1.15, 0.9], tgt: [-0.35, 0.2, -0.5], fov: 46, focus: 1.65, ease: "io" },      // "Daniel Cross": his face
+  { t: 41.05, pos: [0.08, 1.12, 0.82], tgt: [-0.35, 0.2, -0.5], fov: 46, focus: 1.57, ease: "lin" },
   { t: 41.65, pos: C0.pos, tgt: C0.tgt, fov: C0.fov, focus: 1.9, ease: "io" },                          // the photo's exact viewpoint (overlay in assembly)
   { t: 43.15, pos: C0.pos, tgt: C0.tgt, fov: C0.fov - 1.5, focus: 1.9, ease: "lin" },
   { t: 43.95, pos: [0.47, 0.82, 0.17], tgt: [0.62, 0.1, -0.32], fov: 40, focus: 0.9, ease: "io" },      // "stopped at 11:42": the clock

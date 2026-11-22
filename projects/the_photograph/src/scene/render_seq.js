@@ -1,4 +1,4 @@
-// node render_seq.js <plan.js> <outdir> [--from f0] [--to f1] [--jobs 3] [--frames a,b,c]
+// node render_seq.js <plan.js> <outdir> [--from f0] [--to f1] [--jobs 3] [--frames a,b,c] [--skip]  (--skip: leave frames that already exist)
 // plan.js exports { N, set?, frame(f) -> { t, set?, cam, mood, mood2, moodK, lampK, pion: { eng, anchor, height, tint, ef? }, pions?: [...] , ...set-specific } }
 // eng = engine frames dir name in ../eng. set = scene module in this folder (office | apartment | exterior); one page per set per job.
 const { chromium } = require("playwright"); const http = require("http"), fs = require("fs"), path = require("path");
@@ -12,6 +12,7 @@ function bindPion(P, f) { if (!P || !P.eng) return; const tr = track(P.eng), ef 
 srv.listen(0, async () => {
   const port = srv.address().port, JOBS = +arg("jobs", 3), list = [];
   if (arg("frames")) arg("frames").split(",").forEach(x => list.push(+x)); else for (let f = +arg("from", 0); f < +arg("to", plan.N); f++) list.push(f);
+  if (argv.includes("--skip")) { const n0 = list.length; for (let i = list.length - 1; i >= 0; i--) if (fs.existsSync(path.join(out, String(list[i]).padStart(5, "0") + ".jpg"))) list.splice(i, 1); console.log(`skip ${n0 - list.length} done frames`); }
   const per = Math.ceil(list.length / JOBS), pts = {}, t0 = Date.now(); let done = 0;
   await Promise.all(Array.from({ length: JOBS }, (_, j) => list.slice(j * per, (j + 1) * per)).filter(c => c.length).map(async chunk => {
     const b = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });

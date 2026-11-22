@@ -508,7 +508,8 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); if (pionCard.visible) renderer.render(pionScene, camera); renderer.setRenderTarget(null);
   composer.render();
   const pr = (x, y, z) => { const q = V(x, y, z).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };
-  return { img: renderer.domElement.toDataURL("image/jpeg", 0.93), pts: { head: F.pion ? pr(F.pion.anchor[0], F.pion.anchor[1] + F.pion.height * 0.8, F.pion.anchor[2]) : null } };
+  const pts = { head: F.pion ? pr(F.pion.anchor[0], F.pion.anchor[1] + F.pion.height * 0.8, F.pion.anchor[2]) : null }; for (const [k, p] of Object.entries(F.pts || {})) pts[k] = pr(...p);
+  return { img: renderer.domElement.toDataURL("image/jpeg", 0.93), pts };
 };
 
 { const orig = gtao.render.bind(gtao); gtao.render = (...a) => { const H = [cone, dust, spill].filter(Boolean), v = H.map(o => o.visible); H.forEach(o => o.visible = false); orig(...a); H.forEach((o, i) => o.visible = v[i]); }; }   // volumes/particles stay out of the AO + ink depth
