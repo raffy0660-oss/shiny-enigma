@@ -47,6 +47,7 @@ no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesia
 | `PANDUAN_DUNIA3D.md`, `PROMPT_AI_DUNIA3D.md` | Mode 4 guide (three.js world in the castle style) and a ready-to-paste prompt for a future AI |
 | `PANDUAN_SINEMATIK.md`, `REFERENSI_CAHAYA.jpg`, `REFERENSI_KAMERA.jpg` | **Cinematic style learned from the user's 15 reference Shorts** (measured frame by frame): story beats, hook spotlight, night shift on "But/Until one night", white-flash payoff, practical lights, god rays, DOF, continuous fly-through camera (a move every ~1.65 s, 0.6 s sine ease, +2%/s drift), one-word captions. Read before any full-animation project |
 | `engine/render.js` `drawPiece` + cue `piece <knight\|rook\|bishop\|queen\|pawn>` | Other chess pieces for the detective series, same rig/face/arms as Pion, never red. `castle3d/remotion/src/CastSheet.tsx` makes the cast sheet |
+| cue `style2d` + `outfit <daniel\|police>` | **2D reference look** for every model (Pion and the pieces): flat fills, soft two-tone, faces almost flat, no gloss, near-black ink outline x1.3, thin ink stick arms. Outfits are shells that follow the piece profile (shirt, vest, tie, collar, belt, cap...); add new outfits in `outfitKit`/`outfitParts` per story |
 | `castle3d/remotion/src/GreenFX.tsx` | Green-screen FX: words flying out of a mouth (`BossWords`), spit spray at the camera (`BossSpit`) |
 | `examples/proj6`, `examples/proj7` | Flood/underwater project; Las Vegas Sphere project (three.js city, Remotion overlay, SFX, assembly) |
 

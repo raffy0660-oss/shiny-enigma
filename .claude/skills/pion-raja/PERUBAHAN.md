@@ -7,6 +7,10 @@
 - Gesture baru `call` (telepon di telinga) dan `gun` (senapan kartun di dada), dipakai di proj9 v2.
 - Remotion: item `rage` (burst marah bergerigi), tag diklamp ke layar, `inOut` aman untuk item pendek, `GreenFX.tsx`
   (kata keluar dari mulut, semprotan ludah), `CastSheet.tsx` (cast sheet detektif).
+- **Gaya 2D referensi** (cue `style2d`): shader `uR2` (dua nada lembut, muka hampir rata, tanpa rim/spec/AO), warna isi rata (Pion: badan merah, kepala oranye),
+  outline hampir hitam x1,3, lengan garis tinta tipis tanpa bola bahu, kilau kepala dimatikan.
+- **Baju bidak** (cue `outfit`): `daniel` (kemeja biru muda, rompi rajut mustard berleher V, dasi merah, kancing) dan `police`
+  (seragam navy, dasi hitam, sabuk + gesper emas, lencana, papan nama, epolet, topi polisi bertengger di atas gerigi benteng).
 - **`PANDUAN_SINEMATIK.md`**: hasil analisis frame per frame 15 video referensi user (cahaya, warna, kamera, struktur cerita, caption).
 
 ## v5: Mode 4, dunia 3D three.js dengan gaya istana (proj7, Sphere Las Vegas)

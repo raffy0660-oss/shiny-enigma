@@ -362,7 +362,7 @@ function posePion(base, t, gs, look, hurt) {
     const gh = g.head && HR ? mat.xform(HR, [...g.h, 1]) : g.h; // hands on the head follow its turn
     const Hh = [lerp(start[0], gh[0], e), lerp(start[1], gh[1], e), lerp(start[2], gh[2], e)];
     const mid = [(S[0] + Hh[0]) / 2 + side * .3, (S[1] + Hh[1]) / 2 - .25, (S[2] + Hh[2]) / 2 + .2];
-    buildArm(M.arm[k], S, mid, Hh, .15 * g.env, .13 * g.env);
+    buildArm(M.arm[k], S, mid, Hh, (window.STYLE2D ? .07 : .15) * g.env, (window.STYLE2D ? .065 : .13) * g.env);   // 2D style: thin ink stick arms
     const hsz = clamp(g.env * 1.1, 0, 1) * (g.hs ?? 1); // hs < 1: a hand half hidden (hands in pockets)
     const handM = mat.chain(base, mat.T(...Hh), mat.S(hsz, hsz, hsz));
     let fing = null, tip = null;
@@ -373,6 +373,8 @@ function posePion(base, t, gs, look, hurt) {
   return { headM, crownM: crownH, collarM, arms, hands, crownLift: CLf.u };
 }
 /* ---------- other chess pieces (cast for the detective series): same rig, arms and face as Pion, own silhouette + palette ---------- */
+const INK2 = [.07, .065, .08], P2D = { body: [.86, .14, .17], head: [1, .47, .25] };   // 2D reference style: flat fills
+let NOGLOSS = null; const noGloss = () => NOGLOSS || (NOGLOSS = texFromCanvas(Object.assign(document.createElement('canvas'), { width: 4, height: 4 }), false));
 const PALS = {   // dark -> light gradient stops, bottom of the body to the top of the head (never red: red belongs to Pion)
   knight: [[.06, .06, .09], [.14, .15, .2], [.25, .27, .34], [.43, .46, .56]],
   bishop: [[.2, .07, .33], [.38, .16, .58], [.57, .32, .82], [.8, .6, .97]],
@@ -396,13 +398,76 @@ const PK = {};
 function pieceKit(type) {
   if (PK[type]) return PK[type];
   const D = PDEF[type], cf = palCol(PALS[type]), sp = spline2D(D.sp, 64);
-  const K = PK[type] = { D, P: PALS[type], body: new Mesh(lathe(sp, 64, 0, Math.PI * 2, cf)), rings: D.sp.slice(2, 6).map(([r, y]) => ({ y, mesh: new Mesh(torus(r, .035, 48, 8)) })),
+  const K = PK[type] = { D, sp, P: PALS[type], body: new Mesh(lathe(sp, 64, 0, Math.PI * 2, cf)), rings: D.sp.slice(2, 6).map(([r, y]) => ({ y, mesh: new Mesh(torus(r, .035, 48, 8)) })),
     collar: new Mesh(torus(D.collar[0], D.collar[1], 40, 14, y => cf(2.05 + y))), head: new Mesh(sphere(1, 48, 32, y => cf(2.95 + y * .9))) };
   K.box = PK.box || (PK.box = new Mesh(lathe([[0, -.5], [.7071, -.5], [.7071, .5], [0, .5]], 4, Math.PI / 4, Math.PI * 2))); K.ball = PK.ball || (PK.ball = new Mesh(sphere(1, 20, 14)));
   K.cone = PK.cone || (PK.cone = new Mesh(cone(1, 1, 14)));
   if (type === 'rook') { K.turret = new Mesh(lathe([[0, -.2], [1.12, -.2], [1.06, .2], [1.06, .24], [0, .24]], 44, 0, Math.PI * 2)); K.badge = new Mesh(lathe([[0, -.04], [.17, -.04], [.21, 0], [.17, .04], [0, .04]], 28, 0, Math.PI * 2)); }
   if (type === 'queen') { K.band = new Mesh(cylinder(.84, .76, .3, 40, true)); K.ring = new Mesh(torus(.84, .07, 40, 8)); }
   return K;
+}
+/* ---------- outfits on the chess pieces (cue `outfit <name>`): shells that follow the body profile + drawn details ---------- */
+function profR(K, y) { // body radius at height y on the stem (above the base steps)
+  const sp = K.sp; for (let i = sp.length - 1; i > 0; i--) { const a = sp[i - 1], b = sp[i]; if (b[1] >= y && a[1] <= y && b[1] > a[1] + 1e-4 && a[1] > .45) return lerp(a[0], b[0], (y - a[1]) / (b[1] - a[1])); }
+  return sp[sp.length - 1][0];
+}
+// grid patch on the body: rows along y, each row spans angle a0(y)..a1(y) at radius r(y)+off (front of the piece = +z = angle 0)
+function wrapPatch(K, y0, y1, a0, a1, off, rows = 22, cols = 40) {
+  const g = G();
+  for (let i = 0; i < rows; i++) { const y = lerp(y0, y1, i / (rows - 1)), r = profR(K, y) + off, A0 = a0(y), A1 = a1(y);
+    for (let j = 0; j < cols; j++) { const a = lerp(A0, A1, j / (cols - 1)), sa = Math.sin(a), ca = Math.cos(a); g.pos.push(r * sa, y, r * ca); g.nrm.push(sa, 0, ca); g.col.push(1, 1, 1); g.uv.push(j / (cols - 1), i / (rows - 1)); } }
+  gridIdx(g, rows, cols); const m = fin(g); m.rows = rows; m.cols = cols; return new Mesh(fixWinding(m));
+}
+const shellOf = (K, y0, y1, off) => new Mesh(lathe(Array.from({ length: 26 }, (_, i) => { const y = lerp(y0, y1, i / 25); return [profR(K, y) + off, y]; }), 56, 0, Math.PI * 2));
+function outfitKit(K, name) {
+  K.of = K.of || {}; if (K.of[name]) return K.of[name];
+  const O = {}, TAU = Math.PI * 2;
+  if (name === 'daniel') {   // ordinary office guy: light-blue shirt, mustard knitted V-neck vest, dark red tie, white collar points
+    O.shirt = shellOf(K, .62, 1.93, .025);
+    const vee = y => y < 1.2 ? 0 : Math.min(.95, (y - 1.2) / .62 * .95);
+    O.vest = wrapPatch(K, .6, 1.84, y => vee(y), y => TAU - vee(y), .055, 26, 64);
+    O.vestHem = new Mesh(torus(profR(K, .62) + .06, .045, 48, 8));
+    O.tie = wrapPatch(K, 1.12, 1.9, y => -(y > 1.78 ? .075 : y > 1.3 ? .075 + .07 * (1.78 - y) / .48 : .145 * (y - 1.12) / .18), y => (y > 1.78 ? .075 : y > 1.3 ? .075 + .07 * (1.78 - y) / .48 : .145 * (y - 1.12) / .18), .04, 18, 8);
+    O.collarL = wrapPatch(K, 1.78, 1.96, y => .03 + .02 * (1.96 - y) / .18, y => .03 + .3 * (y - 1.78) / .18 + .02, .07, 6, 8);
+    O.collarR = wrapPatch(K, 1.78, 1.96, y => -(.03 + .3 * (y - 1.78) / .18 + .02), y => -(.03 + .02 * (1.96 - y) / .18), .07, 6, 8);
+  }
+  if (name === 'police') {   // navy uniform shirt, black tie + belt with a gold buckle, epaulets, name tag, peaked cap perched on the battlements
+    O.shirt = shellOf(K, .6, 1.94, .03);
+    O.belt = new Mesh(torus(profR(K, .68) + .05, .07, 56, 10));
+    O.tie = wrapPatch(K, 1.2, 1.92, y => -(y > 1.8 ? .06 : .06 + .05 * (1.8 - y) / .4) * (y < 1.32 ? (y - 1.2) / .12 : 1), y => (y > 1.8 ? .06 : .06 + .05 * (1.8 - y) / .4) * (y < 1.32 ? (y - 1.2) / .12 : 1), .045, 16, 8);
+    O.collarL = wrapPatch(K, 1.8, 1.97, y => .03, y => .03 + .26 * (y - 1.8) / .17 + .02, .075, 6, 8);
+    O.collarR = wrapPatch(K, 1.8, 1.97, y => -(.03 + .26 * (y - 1.8) / .17 + .02), y => -.03, .075, 6, 8);
+    O.cap = new Mesh(lathe([[0, -.13], [.6, -.13], [.64, 0], [.74, .12], [.72, .17], [0, .17]], 44, 0, TAU));
+    O.capBand = new Mesh(torus(.62, .055, 44, 8));
+    O.visor = new Mesh(lathe([[.58, .0], [.95, -.07]], 24, -1.05, 2.1));
+  }
+  return (K.of[name] = O);
+}
+function outfitParts(K, name, base, headM, add) {
+  const O = outfitKit(K, name), S = (a, b, c) => mat.S(a, b, c);
+  const frontAt = (y, off, ang = 0) => { const r = profR(K, y) + off; return mat.chain(base, mat.T(r * Math.sin(ang), y, r * Math.cos(ang)), mat.RY(ang)); };
+  if (name === 'daniel') {
+    add(O.shirt, base, { color: [.64, .8, .96] }, .04);
+    add(O.vest, base, { color: [.88, .63, .2], dbl: true }, .05);
+    add(O.vestHem, mat.mul(base, mat.T(0, .62, 0)), { color: [.74, .5, .14] }, .03);
+    add(O.tie, base, { color: [.66, .1, .13] }, .025);
+    add(O.collarL, base, { color: [.98, .98, .96], dbl: true }, .025); add(O.collarR, base, { color: [.98, .98, .96], dbl: true }, .025);
+    for (const y of [1.08, .88, .7]) add(pieceKit('pawn').ball, mat.mul(frontAt(y, .07), S(.05, .05, .03)), { color: [.42, .26, .1] }, .015);
+  }
+  if (name === 'police') {
+    const NAVY = [.11, .17, .35], DARK = [.06, .06, .08];
+    add(O.shirt, base, { color: NAVY }, .04);
+    add(O.belt, mat.mul(base, mat.T(0, .68, 0)), { color: DARK }, .03);
+    add(K.box, mat.mul(frontAt(.68, .1), S(.24, .17, .06)), { color: GOLD }, .02);
+    add(O.tie, base, { color: DARK }, .025);
+    add(O.collarL, base, { color: [.17, .25, .47], dbl: true }, .025); add(O.collarR, base, { color: [.17, .25, .47], dbl: true }, .025);
+    for (const s of [-1, 1]) add(K.box, mat.chain(base, mat.T(s * (profR(K, 1.9) + .02), 1.93, 0), mat.RZ(-s * .12), S(.14, .07, .42)), { color: NAVY.map(v => v * .7) }, .02);
+    add(K.box, mat.mul(frontAt(1.5, .07, -.45), S(.3, .09, .03)), { color: [.86, .88, .92] }, .015);     // name tag (left chest)
+    const cap = mat.chain(headM, mat.T(0, 1.56, 0), mat.RZ(.1), mat.RX(-.08));
+    add(O.cap, cap, { color: NAVY }, .045); add(O.capBand, mat.mul(cap, mat.T(0, -.08, 0)), { color: DARK }, .03);
+    add(O.visor, mat.mul(cap, mat.T(0, -.1, 0)), { color: DARK, dbl: true }, 0);
+    add(K.badge, mat.chain(cap, mat.T(0, .02, .66), mat.RX(Math.PI / 2 - .2), S(.8, 1, .8)), { color: GOLD }, .02);
+  }
 }
 function drawPiece(PP, base, VP, L, face) {
   const type = face.piece, K = pieceKit(type), D = K.D, P = K.P, { headM, collarM, arms } = PP, { ex, blink, talk, exp, tint } = face;
@@ -413,7 +478,7 @@ function drawPiece(PP, base, VP, L, face) {
   if (type === 'rook') {
     add(K.turret, mat.mul(headM, mat.T(0, .8, 0)), { color: MID }, .06);
     for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + Math.PI / 6; add(K.box, mat.chain(headM, mat.RY(a), mat.T(0, 1.2, .84), mat.S(.5, .38, .34)), { color: MID }, .05); }
-    const ang = .42; add(K.badge, mat.chain(base, mat.T(.94 * Math.sin(ang), 1.5, .94 * Math.cos(ang) + .02), mat.RY(ang), mat.RX(Math.PI / 2)), { color: GOLD, spec: .85 }, .03);
+    const ang = .42; add(K.badge, mat.chain(base, mat.T((.94 + (face.outfit === 'police' ? .06 : 0)) * Math.sin(ang), 1.5, (.94 + (face.outfit === 'police' ? .06 : 0)) * Math.cos(ang) + .02), mat.RY(ang), mat.RX(Math.PI / 2)), { color: GOLD, spec: .85 }, .03);
   }
   if (type === 'bishop') {
     add(K.ball, mat.chain(headM, mat.T(0, 1.3, 0), mat.S(.2, .2, .2)), { color: LIGHT }, .04);
@@ -432,26 +497,28 @@ function drawPiece(PP, base, VP, L, face) {
     add(K.ball, mat.chain(headM, mat.T(0, -.72, .7), mat.S(.6, .4, .58)), { color: LIGHT }, .06);
     for (const s of [-1, 1]) add(K.ball, mat.chain(headM, mat.T(s * .19, -.64, 1.24), mat.S(.08, .055, .04)), { color: DARK }, 0);
   }
+  if (face.outfit) outfitParts(K, face.outfit, base, headM, add);
   // ---- outlines
   gl.disable(gl.BLEND); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.clear(gl.DEPTH_BUFFER_BIT);
   const TH = .09;
   drawOutline(K.body, base, VP, TH); drawOutline(K.collar, cM, VP, TH * .8); drawOutline(K.head, hM, VP, TH);
   for (const [m, M, , th] of parts) if (th > 0) drawOutline(m, M, VP, th);
-  for (const A of arms) { drawOutline(A.mesh, base, VP, .06); drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
+  for (const A of arms) { drawOutline(A.mesh, base, VP, .06); if (!window.STYLE2D) drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
   // ---- fills
-  drawToon(K.body, base, VP, L, { vc: true, ao: [1.55, 2.02, 9, 10, .32] });
+  const V2 = window.STYLE2D, FILL = MID, HEADC = P[2].map((v, i) => lerp(v, P[3][i], .3));
+  drawToon(K.body, base, VP, L, V2 ? { color: FILL } : { vc: true, ao: [1.55, 2.02, 9, 10, .32] });
   for (const r of K.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: DARK.map(v => v * .6) });
-  drawToon(K.collar, cM, VP, L, { vc: true });
-  drawToon(K.head, hM, VP, L, { vc: true, ao: [-.5, -.86, .36, .64, .2] });
+  drawToon(K.collar, cM, VP, L, V2 ? { color: FILL } : { vc: true });
+  drawToon(K.head, hM, VP, L, V2 ? { color: HEADC, face: true } : { vc: true, ao: [-.5, -.86, .36, .64, .2] });
   for (const [m, M, o] of parts) drawToon(m, M, VP, L, Object.assign({ noSoot: true }, o));
-  for (const A of arms) { drawToon(A.mesh, base, VP, L, { color: MID, noSoot: true }); drawToon(M.shoulder, A.shM, VP, L, { color: MID, noSoot: true }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE }); } }
+  for (const A of arms) { drawToon(A.mesh, base, VP, L, { color: window.STYLE2D ? INK2 : MID, noSoot: true }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: MID, noSoot: true }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE }); } }
   // ---- face (same expression textures as Pion)
   const glasses = face.glasses || 0, faceTex = k => faceTexture(k, blink, talk);
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -2);
   gl.useProgram(faceP.p); gl.uniformMatrix4fv(faceP.u.uVP, false, VP); gl.uniformMatrix4fv(faceP.u.uM, false, hM); gl.uniformMatrix3fv(faceP.u.uNM, false, normalMat(hM));
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.a)); gl.uniform1i(faceP.u.uA, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.b)); gl.uniform1i(faceP.u.uB, 1);
-  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, GLOSS); gl.uniform1i(faceP.u.uGloss, 2);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, window.STYLE2D ? noGloss() : GLOSS); gl.uniform1i(faceP.u.uGloss, 2);
   gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, glasses === 2 ? NERD : glasses ? GLASSES : HURT); gl.uniform1i(faceP.u.uHurt, 3); gl.uniform1f(faceP.u.uHurtA, glasses ? 1 : 0);
   gl.uniform1f(faceP.u.uMix, ex.m); gl.uniform1f(faceP.u.uSq, ex.sq); gl.uniform1f(faceP.u.uFlash, FLASH); gl.uniform1f(faceP.u.uExp, clamp(exp * 1.05, .5, 1)); gl.uniform3fv(faceP.u.uTint, tint.map(v => lerp(1, v, .3)));
   gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); M.face.draw();
@@ -479,12 +546,12 @@ function drawPion(PP, base, VP, L, face) {
   for (const tm of [M.edgeL, M.edgeR, M.hem]) drawOutline(tm, base, VP, .06);
   drawOutline(M.ermColl, mat.mul(base, mat.T(0, 2.12, 0)), VP, .06); }
   if (hurt) { drawOutline(M.bandRing, bandM, VP, .05); drawOutline(M.bandKnot, knotM, VP, .05); for (const m of plasters) drawOutline(M.plaster, m, VP, .035); }
-  for (const A of arms) { drawOutline(A.mesh, base, VP, .06); drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
+  for (const A of arms) { drawOutline(A.mesh, base, VP, .06); if (!window.STYLE2D) drawOutline(M.shoulder, A.shM, VP, .06); drawOutline(M.hand, A.handM, VP, .07); if (A.fing) { drawOutline(M.finger, A.fing, VP, .05); drawOutline(M.fingerTip, A.tip, VP, .05); } }
   // fills
-  drawToon(M.body, base, VP, L, swim ? { tex: TEX.swim, ao: [1.55, 2.02, 9, 10, .2] } : doc ? { color: SCRUB, ao: [1.55, 2.02, 9, 10, .32] } : { vc: true, ao: [1.55, 2.02, 9, 10, .32] });     // body darkens under the fur collar
+  drawToon(M.body, base, VP, L, swim ? { tex: TEX.swim, ao: [1.55, 2.02, 9, 10, .2] } : doc ? { color: SCRUB, ao: [1.55, 2.02, 9, 10, .32] } : window.STYLE2D ? { color: P2D.body } : { vc: true, ao: [1.55, 2.02, 9, 10, .32] });     // body darkens under the fur collar
   for (const r of M.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: RINGC });
-  drawToon(M.collar, collarM, VP, L, swim ? { color: SWIM_NAVY } : doc ? { color: SCRUB } : { vc: true });
-  drawToon(M.head, headM, VP, L, { vc: true, ao: [-.5, -.86, .36, .64, .26 * (1 - clamp(PP.crownLift || 0, 0, 1))] }); // chin over the collar, forehead under the crown
+  drawToon(M.collar, collarM, VP, L, swim ? { color: SWIM_NAVY } : doc ? { color: SCRUB } : window.STYLE2D ? { color: P2D.body } : { vc: true });
+  drawToon(M.head, headM, VP, L, window.STYLE2D ? { color: P2D.head, face: true } : { vc: true, ao: [-.5, -.86, .36, .64, .26 * (1 - clamp(PP.crownLift || 0, 0, 1))] }); // chin over the collar, forehead under the crown
   const GS = .85; // toon specular + fresnel glint on gold
   if (det) { drawToon(M.hatDome, hatM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBrim, brimM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBow, bowM, VP, L, { color: [.3, .18, .09], noSoot: true }); }
   if (!det && !doc) drawToon(M.crownBand, crownM, VP, L, { color: GOLD, dbl: true, spec: GS });
@@ -497,7 +564,7 @@ function drawPion(PP, base, VP, L, face) {
   if (hair > .001) drawHair(headM, VP, L, hair);
   if (hurt) { drawToon(M.bandRing, bandM, VP, L, Object.assign({ color: BAND }, NS)); drawToon(M.bandKnot, knotM, VP, L, Object.assign({ color: BAND }, NS)); for (const m of plasters) drawToon(M.plaster, m, VP, L, Object.assign({ color: PLST }, NS)); }
   arms.forEach((A, i) => { A.col = hurt && arms.length && A.mesh === M.arm[1] ? BAND : doc ? COAT : swim ? SKIN : ARMC; });
-  for (const A of arms) { drawToon(A.mesh, base, VP, L, { color: A.col, noSoot: A.col !== ARMC && A.col !== SKIN }); drawToon(M.shoulder, A.shM, VP, L, { color: A.col, noSoot: A.col !== ARMC }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE }); } }
+  for (const A of arms) { const ac = window.STYLE2D && A.col === ARMC ? INK2 : A.col; drawToon(A.mesh, base, VP, L, { color: ac, noSoot: A.col !== ARMC && A.col !== SKIN }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: A.col, noSoot: A.col !== ARMC }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE }); } }
   // magnifying glass in the hand of an active 'magnify' gesture
   if (face.t !== undefined && PP.hands) for (const G of TL.gest) {
     if (G.type !== 'magnify' || face.t < G.t0 || face.t > G.t1) continue; const Hd = PP.hands[(G.side || 1) > 0 ? 1 : 0]; if (!Hd) continue;
@@ -512,7 +579,7 @@ function drawPion(PP, base, VP, L, face) {
   gl.useProgram(faceP.p); gl.uniformMatrix4fv(faceP.u.uVP, false, VP); gl.uniformMatrix4fv(faceP.u.uM, false, headM); gl.uniformMatrix3fv(faceP.u.uNM, false, normalMat(headM));
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.a)); gl.uniform1i(faceP.u.uA, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, faceTex(ex.b)); gl.uniform1i(faceP.u.uB, 1);
-  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, GLOSS); gl.uniform1i(faceP.u.uGloss, 2);
+  gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, window.STYLE2D ? noGloss() : GLOSS); gl.uniform1i(faceP.u.uGloss, 2);
   gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, det ? MONOCLE : glasses === 3 ? GOGGLES : glasses === 2 ? NERD : glasses ? GLASSES : HURT); gl.uniform1i(faceP.u.uHurt, 3); gl.uniform1f(faceP.u.uHurtA, det ? 1 : glasses ? Math.min(1, glasses) : hurt);
   gl.uniform1f(faceP.u.uMix, ex.m); gl.uniform1f(faceP.u.uSq, ex.sq); gl.uniform1f(faceP.u.uFlash, FLASH); gl.uniform1f(faceP.u.uExp, clamp(exp * 1.05, .5, 1)); gl.uniform3fv(faceP.u.uTint, tint.map(v => lerp(1, v, .3)));
   gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); M.face.draw();

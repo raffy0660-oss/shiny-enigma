@@ -132,6 +132,8 @@ function parseCues(txt) {
     else if (cmd === 'hearteyes' || cmd === 'matahati') C.fx.push({ type: 'hearteyes', t0: t, t1: t + +(w[2] || 1) }); // heart eyes pop in with a jelly wobble
     else if (cmd === 'stomp' || cmd === 'injak') C.fx.push({ type: 'stomp', t0: t, t1: t + +(w[2] || 1.2) });       // hops on the spot (on the torn book)
     else if (cmd === 'hide') C.fx.push({ type: 'hide', t0: t, t1: 999 });
+    else if (cmd === 'outfit' || cmd === 'baju') C.fx.push({ type: 'outfit', t0: -1, t1: 1e9, kind: (w[2] || '').toLowerCase() }); // clothes on a chess piece: daniel, police
+    else if (cmd === 'style2d' || cmd === 'gaya2d') C.fx.push({ type: 'style2d', t0: -1, t1: 1e9 }); // flat 2D reference look (PANDUAN_SINEMATIK §7)
     else if (cmd === 'piece' || cmd === 'bidak') C.fx.push({ type: 'piece', t0: -1, t1: 1e9, kind: (w[2] || 'pawn').toLowerCase() }); // another chess piece instead of Pion: knight rook bishop queen pawn
     else if (cmd === 'detective' || cmd === 'detektif') C.fx.push({ type: 'detective', t0: t, t1: t + +(w[2] || 99) });
     else if (cmd === 'poof') C.fx.push({ type: 'poof', t0: t, t1: t + +(w[2] || .5) });
