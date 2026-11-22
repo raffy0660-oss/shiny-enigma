@@ -1,0 +1,6 @@
+0 style2d
+0 toon
+0 piece pawn
+0 outfit influencer
+0 lega
+0 look 0 -4 0
