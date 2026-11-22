@@ -1,0 +1,6 @@
+0 style2d
+0 toon
+0 detective 999 light2
+40.85 curiga
+40.85 look 0 -8 0
+43.00 penasaran

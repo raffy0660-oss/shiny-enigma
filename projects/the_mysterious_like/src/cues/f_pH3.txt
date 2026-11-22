@@ -1,0 +1,10 @@
+0 style2d
+0 toon
+0 detective 999 light2
+57.95 datar
+57.95 look 0 -4 0
+59.20 kaget
+59.75 cemas
+60.40 look 25 2 0
+61.60 look 50 3 0
+62.60 look 82 4 0

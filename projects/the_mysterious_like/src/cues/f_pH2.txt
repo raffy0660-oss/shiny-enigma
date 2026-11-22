@@ -1,0 +1,8 @@
+0 style2d
+0 toon
+0 detective 999 light2
+52.60 datar
+52.60 look 0 -6 0
+52.85 gest phone 4.5 kanan
+53.10 penasaran
+53.10 look 0 -20 0
