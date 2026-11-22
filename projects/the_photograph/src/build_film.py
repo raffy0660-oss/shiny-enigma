@@ -37,7 +37,7 @@ for f in range(TO):
     S = sources(f)
     if len(S) == 1 and not (PHOTO[0] <= f <= PHOTO[1]) and S[0][0].split("/")[-2] not in LIFT:
         if os.path.lexists(dst): os.remove(dst)
-        os.symlink(S[0][0], dst); continue
+        os.link(S[0][0], dst); continue   # hardlink: Remotion copies its public dir and drops nested symlinks
     im = load(S[0][0])
     if len(S) > 1: im = Image.blend(im, load(S[1][0]), S[1][1] / (S[0][1] + S[1][1]))
     if PHOTO[0] <= f <= PHOTO[1]:   # the photo laid over the crime scene, matched to the C0 camera (photo = centre 3:4 crop of a fov-72 render)

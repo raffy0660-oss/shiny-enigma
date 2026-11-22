@@ -7,13 +7,14 @@ for f in sorted(glob.glob(P + "/out/*/pts.json")):
     if "/prev" in f or "test" in f or f.endswith("s23_t/pts.json"): continue
     for k, v in json.load(open(f)).items(): pts.setdefault(k, {}).update({n: p for n, p in (v or {}).items() if p})
 pub = P + "/pub_film"; os.makedirs(pub, exist_ok=True)
-if not os.path.exists(pub + "/film"): os.symlink(P + "/film", pub + "/film")
+if os.path.lexists(pub + "/film"): os.remove(pub + "/film")
+os.symlink(P + "/film", pub + "/film")
 items = [
   {"type": "pop", "t0": 14.08, "t1": 15.3, "at": "clockFace", "text": "11:42", "size": 0.1, "dy": -0.12},          # scene 3: frozen at exactly 11:42
   {"type": "caption", "t0": 24.85, "t1": 27.7, "text": "DANIEL CROSS", "label": "MISSING  ·  5 YEARS", "pos": "top"},   # scene 5
   {"type": "tag", "t0": 31.1, "t1": 31.8, "at": "floor", "text": "NO BODY", "dx": 0.0, "dy": -0.06, "color": "#e04848"},   # scene 6: the three "no"s
   {"type": "tag", "t0": 31.92, "t1": 32.6, "at": "rug", "text": "NO BLOOD", "dx": 0.0, "dy": -0.06, "color": "#e04848"},
-  {"type": "tag", "t0": 33.38, "t1": 34.0, "at": "knob", "text": "0 FINGERPRINTS", "dx": -0.05, "dy": -0.08, "color": "#e04848"},
+  {"type": "tag", "t0": 33.38, "t1": 34.0, "at": "pion0", "text": "0 FINGERPRINTS", "dx": 0.12, "dy": -0.16, "color": "#e04848"},
   {"type": "pop", "t0": 34.74, "t1": 35.75, "at": "cal", "text": "FRIDAY", "size": 0.11, "dy": -0.2},              # scene 7
   {"type": "pop", "t0": 44.2, "t1": 45.35, "at": "clockFace", "text": "11:42", "size": 0.1, "dy": -0.12},           # scene 8
 ]
