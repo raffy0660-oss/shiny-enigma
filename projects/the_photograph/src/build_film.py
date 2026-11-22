@@ -31,7 +31,8 @@ if "--check" in sys.argv:
     print("complete" if not miss else "incomplete"); sys.exit()
 photo = Image.open(os.path.dirname(os.path.abspath(__file__)) + "/scene/tex/photo_front.jpg").convert("RGB")
 TO = int(sys.argv[sys.argv.index("--to") + 1]) if "--to" in sys.argv else N
-for f in range(TO):
+FROM = int(sys.argv[sys.argv.index("--from") + 1]) if "--from" in sys.argv else 0
+for f in range(FROM, TO):
     dst = f"{OUT}/{f:05d}.jpg"
     if f >= BLACK_FROM: Image.new("RGB", (1080, 1920), (0, 0, 0)).save(dst, quality=92); continue
     S = sources(f)

@@ -18,7 +18,8 @@ type Item =
   | { type: "caption"; t0: number; t1: number; text: string; label?: string; pos?: "top" | "bottom" }
   | { type: "tag"; t0: number; t1: number; at: string; text: string; dx: number; dy: number; color?: string }
   | { type: "stamp"; t0: number; t1: number; text: string; sub?: string; x: number; y: number; rot?: number; color?: string; size?: number }
-  | { type: "rage"; t0: number; t1: number; at: string; text: string; dx: number; dy: number; rot?: number; size?: number };
+  | { type: "rage"; t0: number; t1: number; at: string; text: string; dx: number; dy: number; rot?: number; size?: number }
+  | { type: "word"; t0: number; t1: number; text: string; at?: string; x?: number; y?: number; dx?: number; dy?: number; size?: number; color?: string; sub?: string; rot?: number };
 export type SceneOverlayProps = {
   frames: number; fps: number; width: number; height: number;
   seq: string; seqFrom?: number; intro?: { src: string; until: number } | null;
@@ -189,6 +190,29 @@ const Stamp: React.FC<{ it: Extract<Item, { type: "stamp" }> }> = ({ it }) => {
   );
 };
 
+
+/* word: one big bold word slammed onto the frame (detective data: "11:42", "FRIDAY", "NO BODY"), ink outline + drop, a short quake,
+   optional small gold label above; pinned to a tracked point (at + dx/dy, clamped inside the frame) or placed at x/y (0..1) */
+const Word: React.FC<{ it: Extract<Item, { type: "word" }>; pts: SceneOverlayProps["pts"] }> = ({ it, pts }) => {
+  const f = useCurrentFrame(), { fps, width: W, height: H } = useVideoConfig(), e = (f - it.t0 * fps) / fps;
+  if (e < 0 || f > it.t1 * fps) return null;
+  const p = it.at ? usePt(pts, it.at, f) : null; if (it.at && !p) return null;
+  const fs = W * (it.size ?? 0.16), tw = it.text.length * fs * 0.62;
+  const x = Math.min(W - tw / 2 - W * 0.04, Math.max(tw / 2 + W * 0.04, ((p ? p[0] : it.x ?? 0.5) + (it.dx ?? 0)) * W));
+  const y = Math.min(H * 0.9, Math.max(H * 0.08, ((p ? p[1] : it.y ?? 0.5) + (it.dy ?? 0)) * H));
+  const sc = e < 0.1 ? interpolate(e, [0, 0.1], [1.9, 0.94], { ...C, easing: Easing.in(Easing.quad) }) : interpolate(e, [0.1, 0.28], [0.94, 1], { ...C, easing: Easing.out(Easing.back(2.5)) });
+  const op = interpolate(f, [it.t0 * fps, it.t0 * fps + 2, it.t1 * fps - 0.18 * fps, it.t1 * fps], [0, 1, 1, 0], C);
+  const q = Math.max(0, 1 - e / 0.35), sx = Math.sin(e * 95) * q * W * 0.01, sy = Math.cos(e * 81) * q * W * 0.008, col = it.color || "#fffaf0";
+  return (
+    <div style={{ position: "absolute", left: x + sx, top: y + sy, translate: "-50% -50%", rotate: `${it.rot ?? 0}deg`, scale: String(sc), opacity: op, textAlign: "center", whiteSpace: "nowrap" }}>
+      {it.sub && <div style={{ fontFamily: "Inter, sans-serif", fontWeight: 900, fontSize: fs * 0.24, letterSpacing: "0.24em", color: GOLD, WebkitTextStroke: `${fs * 0.012}px ${INK}`, paintOrder: "stroke fill",
+        textShadow: `0 ${fs * 0.03}px 0 ${INK}`, marginBottom: fs * 0.02 }}>{it.sub}</div>}
+      <div style={{ fontFamily: "'Inter Display', Inter, 'Arial Black', sans-serif", fontWeight: 900, fontSize: fs, lineHeight: 1, color: col, letterSpacing: "0.02em",
+        WebkitTextStroke: `${fs * 0.075}px ${INK}`, paintOrder: "stroke fill", textShadow: `0 ${fs * 0.07}px 0 ${INK}, 0 0 ${fs * 0.35}px rgba(0,0,0,.55)` }}>{it.text}</div>
+    </div>
+  );
+};
+
 export const SceneOverlay: React.FC<SceneOverlayProps> = (P) => {
   const f = useCurrentFrame(), { fps } = useVideoConfig(), t = f / fps;
   const useIntro = P.intro && t < P.intro.until;
@@ -202,7 +226,7 @@ export const SceneOverlay: React.FC<SceneOverlayProps> = (P) => {
           : <Img src={staticFile(`${P.seq}/${idx}.jpg`)} style={{ width: "100%", height: "100%" }} />}
       </AbsoluteFill>
       {P.items.map((it, i) => it.type === "dim" ? <Dim key={i} it={it} pts={P.pts} /> : it.type === "counter" ? <Counter key={i} it={it} pts={P.pts} />
-        : it.type === "pop" ? <Pop key={i} it={it} pts={P.pts} /> : it.type === "tag" ? <Tag key={i} it={it} pts={P.pts} /> : it.type === "rage" ? <Rage key={i} it={it} pts={P.pts} /> : it.type === "stamp" ? <Stamp key={i} it={it} /> : <Caption key={i} it={it} />)}
+        : it.type === "pop" ? <Pop key={i} it={it} pts={P.pts} /> : it.type === "tag" ? <Tag key={i} it={it} pts={P.pts} /> : it.type === "rage" ? <Rage key={i} it={it} pts={P.pts} /> : it.type === "stamp" ? <Stamp key={i} it={it} /> : it.type === "word" ? <Word key={i} it={it} pts={P.pts} /> : <Caption key={i} it={it} />)}
     </AbsoluteFill>
   );
 };
