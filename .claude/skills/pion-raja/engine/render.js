@@ -439,6 +439,18 @@ function outfitTex() {
       g.fillStyle = '#1b2a55'; g.beginPath(); g.moveTo(cx - 44, 200); g.lineTo(cx + 44, 200); g.lineTo(cx + 44, 232); g.lineTo(cx, 248); g.lineTo(cx - 44, 232); g.closePath(); g.fill(); g.stroke();
       g.fillStyle = '#d9deea'; g.beginPath(); g.arc(cx, 234, 6, 0, 7); g.fill(); g.lineWidth = 2.5; g.stroke(); }
   });
+  OTEX.blouse = mk(1024, 512, (g, W, H) => {   // influencer victim: pink blouse, messy: stains, smears, a tear, dirt (muted, not gory)
+    g.fillStyle = '#ea8fae'; g.fillRect(0, 0, W, H); const R = rng(77);
+    g.globalAlpha = .35; g.strokeStyle = '#b8587a'; g.lineCap = 'round';
+    for (const x of [180, 330, 690, 860]) { g.lineWidth = 7; g.beginPath(); g.moveTo(x, H); g.quadraticCurveTo(x + 30, H * .55, x - 10, H * .2); g.stroke(); }   // folds
+    g.globalAlpha = 1; g.strokeStyle = '#a24a6a'; g.lineWidth = 5; g.setLineDash([12, 8]); g.beginPath(); g.moveTo(0, H - 40); g.lineTo(W, H - 40); g.stroke(); g.setLineDash([]);
+    const blot = (x, y, r, col, a) => { g.globalAlpha = a; g.fillStyle = col; g.beginPath(); for (let k = 0; k <= 18; k++) { const t = k / 18 * 6.283, rr = r * (.7 + .5 * R()); g.lineTo(x + Math.cos(t) * rr, y + Math.sin(t) * rr * .8); } g.closePath(); g.fill(); };
+    for (let i = 0; i < 9; i++) blot(R() * W, 120 + R() * (H - 160), 18 + R() * 40, i % 3 ? '#6e3a2a' : '#7a2430', .55);   // stains
+    for (let i = 0; i < 26; i++) blot(R() * W, R() * H, 3 + R() * 7, '#4a2a22', .5);                                        // dirt speckles
+    g.globalAlpha = .45; g.strokeStyle = '#5a2e26'; g.lineWidth = 14; for (let i = 0; i < 3; i++) { const x = R() * W, y = 200 + R() * 200; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 70 + R() * 60, y + 30 - R() * 60); g.stroke(); }   // smears
+    g.globalAlpha = 1; g.fillStyle = '#3a1c1c'; g.beginPath(); const tx = W * .62, ty = H * .55; g.moveTo(tx, ty); for (const [dx, dy] of [[14, 22], [-6, 40], [18, 62], [2, 84], [-16, 60], [-4, 38], [-18, 18]]) g.lineTo(tx + dx, ty + dy); g.closePath(); g.fill();   // tear
+    g.globalAlpha = 1;
+  });
   OTEX.vestToon = mk(1024, 512, (g, W, H) => {   // cartoon vest: one flat mustard block, thick rib bands, no knit noise
     g.fillStyle = '#e8aa38'; g.fillRect(0, 0, W, H); g.fillStyle = '#c98a22'; g.fillRect(0, H - 56, W, 56); g.fillRect(0, 0, 30, H); g.fillRect(W - 30, 0, 30, H);
     g.strokeStyle = '#7a4c10'; g.lineWidth = 6; for (const x of [30, W - 30]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H - 56); g.stroke(); } g.beginPath(); g.moveTo(0, H - 56); g.lineTo(W, H - 56); g.stroke();
@@ -477,6 +489,13 @@ function outfitKit(K, name) {
     O.capBand = new Mesh(torus(.62, .055, 44, 8));
     O.visor = new Mesh(lathe([[.58, .0], [.95, -.07]], 24, -1.05, 2.1));
   }
+  if (name === 'influencer') {   // the first victim: flat hair stuck to the head (no volume), messy stained blouse, female chest shape (subtle)
+    O.top = shellOf(K, .6, 1.95, .03);
+    O.hem = new Mesh(torus(profR(K, .62) + .045, .04, 56, 8));
+    const sph = (p0, p1, n) => Array.from({ length: n }, (_, i) => { const p = lerp(p0, p1, i / (n - 1)); return [1.035 * Math.sin(p), 1.035 * Math.cos(p)]; });
+    O.hairTop = new Mesh(lathe(sph(0.001, .92, 16), 48, 0, TAU));                 // crown + fringe line on the forehead
+    O.hairBack = new Mesh(lathe(sph(.6, 2.1, 22), 44, .78, TAU - 1.56));         // sides + back down to the shoulders, face left open
+  }
   return (K.of[name] = O);
 }
 function outfitParts(K, name, base, headM, add) {
@@ -489,6 +508,13 @@ function outfitParts(K, name, base, headM, add) {
     add(O.tie, base, { color: [.66, .1, .13] }, .025);
     add(O.collarL, base, { color: [.98, .98, .96], dbl: true }, .025); add(O.collarR, base, { color: [.98, .98, .96], dbl: true }, .025);
     const bs = window.TOON ? .08 : .05; for (const y of [1.08, .88, .7]) add(pieceKit('pawn').ball, mat.mul(frontAt(y, .07), S(bs, bs, .03)), { color: [.42, .26, .1] }, .015);
+  }
+  if (name === 'influencer') {
+    const PINK = [.92, .56, .68], HAIR = [.27, .15, .11];
+    add(O.top, base, { tex: outfitTex().blouse, ao: [1.62, 1.95, 9, 10, .3] }, .04);
+    add(O.hem, mat.mul(base, mat.T(0, .62, 0)), { color: [.66, .3, .42] }, .03);
+    for (const sx of [-1, 1]) add(pieceKit('pawn').ball, mat.mul(frontAt(1.42, .0, sx * .3), S(.19, .16, .15)), { color: PINK }, .04);   // chest shape under the blouse
+    add(O.hairTop, headM, { color: HAIR, dbl: true, flat: true }, .035); add(O.hairBack, headM, { color: HAIR, dbl: true, flat: true }, .035);
   }
   if (name === 'police') {
     const NAVY = [.11, .17, .35], DARK = [.06, .06, .08];
