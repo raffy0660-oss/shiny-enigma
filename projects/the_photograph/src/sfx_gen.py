@@ -3,6 +3,9 @@ python3 sfx_gen.py [names...]   (existing mp3s are skipped unless named)"""
 import json, sys, subprocess, os, urllib.request
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); A = REPO + "/assets/sfx"; W = os.path.expanduser("~/pion/proj10/sfx"); os.makedirs(W, exist_ok=True)
 SFX = {   # name: (prompt, seconds, prompt_influence, loop)
+ "mus_a":      ("instrumental mystery detective music loop, curious sneaky pizzicato strings, soft low piano motif, light ticking clock percussion, upright bass, dark playful investigation mood, no vocals", 30.0, .65, True),
+ "mus_b":      ("instrumental suspense thriller music loop, urgent low string ostinato, pulsing timpani heartbeat, ticking clock, rising tension, dark cinematic mystery, no vocals", 30.0, .65, True),
+ "mus_c":      ("instrumental eerie reveal music loop, haunting slow music box melody over deep cold drone and dissonant strings, chilling plot twist mood, no vocals", 15.0, .65, True),
  "noir_loop":   ("dark film noir detective jazz loop, muted trumpet, slow upright bass walk, brushed drums, mysterious rainy night, no vocals", 22.0, .55, True),
  "tension_bed": ("suspense thriller underscore, low pulsing synth drone with slow ticking clock and rising strings, ominous", 22.0, .5, True),
  "reveal_bed":  ("eerie dark ambient drone, deep sub bass and cold glassy textures, unsettling horror reveal atmosphere", 20.0, .5, True),

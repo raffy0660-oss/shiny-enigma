@@ -3,6 +3,19 @@
 Catatan dari user (Nov 2026, episode "The Photograph"): kalender di meja seharusnya berada **di depan** Pion, tapi tertutup karakternya.
 User ingin karakter **benar-benar masuk ke dalam video**: tertutup objek di depannya, kena cahaya dan bayangan set, dan ikut efek fisika.
 
+## Masukan user setelah "The Photograph" (wajib untuk konten berikutnya)
+1. **Karakter langsung di dalam dunia 3D, bukan ditempel.** Walau sudah ada oklusi, bayangan proxy, dan cahaya set di kartu (`charlayer.js`),
+   user masih merasa karakternya "ditempel": cahaya dan bayangannya kurang realistis. Untuk episode berikutnya pakai **opsi 2** di bawah
+   (model karakter jadi mesh three.js di scene yang sama), bukan kartu 2D.
+2. **Cahaya dan bayangan realistis di karakter:** bayangan jatuh dari setiap lampu utama, karakter menerima bayangan benda lain,
+   rim light/backlight, pantulan warna lingkungan (bounce: merah dari strobo, emas dari lampu meja), kontak dan AO di lantai.
+3. **Style pakaian lebih cartoonish:** baju lebih tebal dan membulat, siluet dibesar-besarkan (kerah besar, topi besar, kancing besar),
+   warna lebih cerah dan blok warna sederhana, garis jahitan tebal, lipatan sedikit tapi tegas. Hindari tekstur kain yang terlalu detail/realistis.
+4. **Audio:** voice-over harus jauh lebih keras dari musik dan SFX (user minta volume VO 100 -> 1000). Patokan: VO -13 LUFS,
+   musik -24 LUFS (sekitar 11 dB di bawah VO), SFX -25 LUFS, limiter -1,5 dBTP (lihat `projects/the_photograph/src/mix_film.py`).
+   Selalu ada backsound musik yang sesuai genre (misteri: pizzicato/piano -> ostinato suspense -> music box mencekam saat twist).
+   Akun ElevenLabs gratis tidak bisa memakai Music API: buat musik dari SFX v3 `loop: true` (maks 30 dtk per bagian) dan perhatikan kuota kredit.
+
 ## Kenapa terjadi
 Pipeline sekarang (mode 4, proj10): Pion dirender engine sebagai PNG transparan, lalu ditempel ke dunia three.js sebagai **kartu**
 yang digambar di render target terpisah **tanpa depth test**, lalu dikomposit di atas dunia. Akibatnya:
