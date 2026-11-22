@@ -500,6 +500,73 @@ function outfitParts(K, name, base, headM, add) {
     add(K.badge, mat.chain(cap, mat.T(0, .02, .66), mat.RX(Math.PI / 2 - .2), S(.8, 1, .8)), { color: GOLD }, .02);
   }
 }
+
+/* ---------- anime detective outfit on Pion (cue `detective <dur> light|akechi`): school-blazer detective, drawn 2D ----------
+   Same Pion (red pawn body, orange head, ink arms, monocle); only the clothes change. Style rules (BRIEF_KONTEN.md §2, outfit spec):
+   flat colour blocks + one soft fold tone, bold ink outline on every cloth piece, few but clear folds, readable silhouette pieces
+   (lapels, hem, flaps, buttons), deerstalker with BIG flat checks.  light = beige single-breasted blazer, white shirt, red tie, white gloves;
+   akechi = grey-beige double-breasted blazer (6 buttons), pawn crest on the breast, white shirt, black gloves. */
+const ANIME = {
+  light:  { coat: [.80, .66, .47], coatD: [.62, .48, .32], lapel: [.93, .83, .66], tie: [.66, .07, .1], glove: null, dbl: false, veeY: .98, veeA: .95, base: '#cba679', fold: '#9c7a50', seam: '#8a6a43' },
+  akechi: { coat: [.66, .64, .57], coatD: [.47, .46, .41], lapel: [.80, .78, .72], tie: null, glove: [.1, .1, .12], dbl: true, veeY: 1.3, veeA: .78, base: '#a9a493', fold: '#7c786a', seam: '#6c685b' } };
+const PION_K = { sp: bodySp };
+const ATEX = {};
+function animeTex(kind) {
+  if (ATEX[kind]) return ATEX[kind]; const A = ANIME[kind];
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512; const g = c.getContext('2d');
+  g.fillStyle = A.base; g.fillRect(0, 0, 1024, 512);
+  g.lineCap = 'round'; g.strokeStyle = A.fold; g.globalAlpha = .55;                       // few, clear anime folds (v = up: canvas y flipped)
+  for (const [x, w] of [[300, 1], [724, -1]]) { g.lineWidth = 7; g.beginPath(); g.moveTo(x - 40 * w, 470); g.quadraticCurveTo(x + 10 * w, 330, x - 18 * w, 190); g.stroke();
+    g.lineWidth = 5; g.beginPath(); g.moveTo(x + 50 * w, 440); g.quadraticCurveTo(x + 70 * w, 360, x + 40 * w, 300); g.stroke(); }
+  g.globalAlpha = .28; g.fillStyle = A.fold; g.fillRect(0, 440, 1024, 72);                // tone under the hem / waist
+  g.globalAlpha = .9; g.strokeStyle = A.seam; g.lineWidth = 4;                              // side seams
+  for (const x of [256, 768]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 512); g.stroke(); }
+  g.globalAlpha = 1; return (ATEX[kind] = texFromCanvas(c, false));
+}
+function animeKit(kind) {
+  const K = PION_K; K.an = K.an || {}; if (K.an[kind]) return K.an[kind];
+  const A = ANIME[kind], TAU = Math.PI * 2, O = {};
+  const vee = y => y < A.veeY ? 0 : Math.min(A.veeA, (y - A.veeY) / (1.96 - A.veeY) * A.veeA);
+  O.shirt = shellOf(K, 1.0, 1.98, .03);
+  O.coat = wrapPatch(K, .6, 1.97, y => vee(y), y => TAU - vee(y), .065, 32, 80);
+  const lw = y => { const t = (y - A.veeY) / (1.96 - A.veeY); return y > 1.8 ? .14 : Math.max(0, (A.dbl ? .42 : .36) * Math.min(1, t * 1.35)); };   // lapel width, notch at the top
+  O.lapL = wrapPatch(K, A.veeY, 1.97, y => vee(y), y => vee(y) + lw(y) + .001, .09, 18, 6);
+  O.lapR = wrapPatch(K, A.veeY, 1.97, y => TAU - vee(y) - lw(y) - .001, y => TAU - vee(y), .09, 18, 6);
+  const cx = A.dbl ? .2 : 0;                                                                   // closing line (double-breasted overlaps to one side)
+  O.close = wrapPatch(K, .6, A.veeY + .01, () => cx - .014, () => cx + .014, .072, 8, 3);
+  if (A.tie) O.tie = wrapPatch(K, 1.12, 1.97, y => -(y > 1.84 ? .07 : y > 1.3 ? .07 + .06 * (1.84 - y) / .54 : .13 * (y - 1.12) / .18), y => (y > 1.84 ? .07 : y > 1.3 ? .07 + .06 * (1.84 - y) / .54 : .13 * (y - 1.12) / .18), .045, 18, 8);
+  O.colL = wrapPatch(K, 1.82, 1.99, y => .02 + .03 * (1.99 - y) / .17, y => .04 + .34 * (y - 1.82) / .17, .1, 6, 8);   // white shirt collar points
+  O.colR = wrapPatch(K, 1.82, 1.99, y => -(.04 + .34 * (y - 1.82) / .17), y => -(.02 + .03 * (1.99 - y) / .17), .1, 6, 8);
+  O.hem = new Mesh(torus(profR(K, .62) + .07, .04, 56, 8));
+  // ink lines (open cloth patches have no shell outline from the front): V edges, lapel edges with the notch, closing line
+  const P = (y, a, off) => { const r = profR(K, y) + off; return [r * Math.sin(a), y, r * Math.cos(a)]; }, N = 40, ys = Array.from({ length: N }, (_, i) => lerp(A.veeY, 1.97, i / (N - 1)));
+  const IR = .03; O.ink = [];
+  for (const sg of [1, -1]) {
+    O.ink.push(new Mesh(tubeGeo(ys.map(y => P(y, sg * vee(y), .095)), IR, 6, 1)));                        // V edge (inner lapel edge)
+    O.ink.push(new Mesh(tubeGeo(ys.map(y => P(y, sg * (vee(y) + lw(y)), .095)), IR, 6, 1)));              // outer lapel edge (steps in at the notch)
+  }
+  O.ink.push(new Mesh(tubeGeo(Array.from({ length: 16 }, (_, i) => P(lerp(.62, A.veeY, i / 15), cx, .078)), IR * .9, 6, 1)));   // closing line
+  return (K.an[kind] = O);
+}
+function animeParts(kind, base, add) {
+  const A = ANIME[kind], O = animeKit(kind), K = PION_K, S = (a, b, c) => mat.S(a, b, c), pk = pieceKit('pawn');
+  const at = (y, off, ang = 0) => { const r = profR(K, y) + off; return mat.chain(base, mat.T(r * Math.sin(ang), y, r * Math.cos(ang)), mat.RY(ang)); };
+  const W = [.97, .97, .95], INKB = [.09, .08, .1];
+  add(O.shirt, base, { color: W }, .03);
+  if (O.tie) add(O.tie, base, { color: A.tie }, .03);
+  add(O.colL, base, { color: W, dbl: true }, .03); add(O.colR, base, { color: W, dbl: true }, .03);
+  add(O.coat, base, { tex: animeTex(kind), dbl: true }, .06);
+  add(O.lapL, base, { color: A.lapel, dbl: true }, .045); add(O.lapR, base, { color: A.lapel, dbl: true }, .045);
+  add(O.close, base, { color: A.coatD }, 0);
+  for (const m of O.ink) add(m, base, { color: [.055, .05, .065], flat: true }, 0);
+  add(O.hem, mat.mul(base, mat.T(0, .62, 0)), { color: A.coatD }, .035);
+  const btn = (y, ang) => add(pk.ball, mat.mul(at(y, .085, ang), S(.06, .06, .03)), { color: INKB }, .012);
+  if (A.dbl) for (const y of [.84, 1.04, 1.24]) for (const ang of [-.2, .2]) btn(y, ang); else for (const y of [.88, 1.08]) btn(y, .03);
+  for (const s of [-1, 1]) add(pk.box || pieceKit('rook').box, mat.mul(at(.86, .08, s * .95), S(.36, .07, .03)), { color: A.coatD }, .02);   // hip pocket flaps
+  if (A.dbl) { add(pk.box, mat.mul(at(1.5, .085, -.62), S(.2, .24, .03)), { color: [.12, .16, .3] }, .02);               // breast crest: navy shield + gold pawn
+    add(pk.ball, mat.mul(at(1.53, .11, -.62), S(.05, .05, .02)), { color: GOLD }, .01); add(pk.box, mat.mul(at(1.45, .11, -.62), S(.1, .04, .02)), { color: GOLD }, 0); }
+  else add(pk.box, mat.mul(at(1.5, .085, -.62), S(.26, .03, .02)), { color: A.coatD }, .015);                              // breast pocket welt
+}
 function drawPiece(PP, base, VP, L, face) {
   const type = face.piece, K = pieceKit(type), D = K.D, P = K.P, { headM, collarM, arms } = PP, { ex, blink, talk, exp, tint } = face;
   const hM = mat.mul(headM, mat.S(...D.head)), cM = mat.chain(base, mat.T(0, 2.05, 0), mat.S(1, 1, .8));
@@ -561,6 +628,9 @@ function drawPion(PP, base, VP, L, face) {
   const { headM, crownM, collarM, arms } = PP, { ex, blink, talk, exp, tint, backView } = face, hurt = face.hurt || 0, glasses = face.glasses || 0, det = face.det || 0, doc = face.doc || 0, hair = face.hair || 0, swim = face.swim || 0;
   SOOT = .7 * hurt;
   const BAND = [.98, .97, .93], PLST = [.97, .8, .6], NS = { noSoot: true };
+  const AK = det && face.detKind && ANIME[face.detKind] ? face.detKind : null, AP = [];   // anime outfit parts [mesh, M, fill, outline]
+  if (AK) animeParts(AK, base, (m, Mx, o, th = .05) => AP.push([m, Mx, o, th]));
+  const GLV = AK && ANIME[AK].glove || GLOVE;
   const bandM = mat.chain(headM, mat.RZ(.5), mat.RX(-.3), mat.T(0, .12, 0), mat.S(1.0, 1.0, 1.0)), knotM = mat.chain(headM, mat.RZ(.5), mat.RX(-.3), mat.T(1.0, .12, .15));
   const pl = (x, y, z, rz) => mat.chain(base, mat.T(x, y, z), mat.RY(Math.atan2(x, z)), mat.RX(-.32), mat.RZ(rz));
   const plasters = hurt ? [pl(-.24, 1.2, .53, .6), pl(-.24, 1.2, .55, -.6)] : [];
@@ -568,12 +638,13 @@ function drawPion(PP, base, VP, L, face) {
   gl.disable(gl.BLEND); gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL); gl.clear(gl.DEPTH_BUFFER_BIT);
   const TH = .09, TS = .05;
   // outlines
-  drawOutline(M.body, base, VP, TH); drawOutline(M.collar, collarM, VP, TH * .8); drawOutline(M.head, headM, VP, TH);
+  drawOutline(M.body, base, VP, TH); drawOutline(M.collar, det && face.detKind && ANIME[face.detKind] ? mat.mul(collarM, mat.S(.86, .5, .86)) : collarM, VP, TH * .8); drawOutline(M.head, headM, VP, TH);
   const hatM = mat.chain(headM, mat.T(0, .62, -.08), mat.RX(-.32), mat.S(.86, .52, .86)), brimM = mat.chain(headM, mat.T(0, .58, -.02), mat.RX(-.32), mat.S(.98, .05, 1.2)), bowM = mat.chain(headM, mat.T(0, 1.13, -.32), mat.RX(-.32), mat.S(1.4, .6, .9));
-  if (det) { drawOutline(M.hatDome, hatM, VP, .05); drawOutline(M.hatBrim, brimM, VP, .05); drawOutline(M.hatBow, bowM, VP, .04); }
+  if (det) { const ht = AK ? .07 : .05; drawOutline(M.hatDome, hatM, VP, ht); drawOutline(M.hatBrim, brimM, VP, ht); drawOutline(M.hatBow, bowM, VP, AK ? .05 : .04); }
   if (!det && !doc) drawOutline(M.crownBand, crownM, VP, TS, false, true); if (!det && !doc) drawOutline(M.crownRing, mat.mul(crownM, mat.T(0, .19, 0)), VP, TS);
   if (!det && !doc) for (const sp of M.spikes) { const mm = mat.chain(crownM, mat.RY(sp.a), mat.T(0, .17, .8), mat.RX(.12)); drawOutline(sp.cone, mm, VP, TS); drawOutline(sp.ball, mat.mul(mm, mat.T(0, sp.h, 0)), VP, TS); }
-  if (!swim) { drawOutline(M.cape, base, VP, TH, true, !backView); // seen from behind, a two-sided shell would sit in front of the cape
+  for (const [m, Mx, , th] of AP) if (th > 0) drawOutline(m, Mx, VP, th);
+  if (!swim && !AK) { drawOutline(M.cape, base, VP, TH, true, !backView); // seen from behind, a two-sided shell would sit in front of the cape
   for (const tm of [M.edgeL, M.edgeR, M.hem]) drawOutline(tm, base, VP, .06);
   drawOutline(M.ermColl, mat.mul(base, mat.T(0, 2.12, 0)), VP, .06); }
   if (hurt) { drawOutline(M.bandRing, bandM, VP, .05); drawOutline(M.bandKnot, knotM, VP, .05); for (const m of plasters) drawOutline(M.plaster, m, VP, .035); }
@@ -581,21 +652,23 @@ function drawPion(PP, base, VP, L, face) {
   // fills
   drawToon(M.body, base, VP, L, swim ? { tex: TEX.swim, ao: [1.55, 2.02, 9, 10, .2] } : doc ? { color: SCRUB, ao: [1.55, 2.02, 9, 10, .32] } : { vc: true, flat: window.STYLE2D, ao: [1.55, 2.02, 9, 10, .32] });     // body darkens under the fur collar
   for (const r of M.rings) drawToon(r.mesh, mat.mul(base, mat.T(0, r.y, 0)), VP, L, { color: RINGC, flat: window.STYLE2D });
-  drawToon(M.collar, collarM, VP, L, swim ? { color: SWIM_NAVY } : doc ? { color: SCRUB } : { vc: true, flat: window.STYLE2D });
+  drawToon(M.collar, AK ? mat.mul(collarM, mat.S(.86, .5, .86)) : collarM, VP, L, AK ? { color: [.97, .97, .95] } : swim ? { color: SWIM_NAVY } : doc ? { color: SCRUB } : { vc: true, flat: window.STYLE2D });
   drawToon(M.head, headM, VP, L, Object.assign(window.STYLE2D ? { vc: true, face: true, flat: true, color: [1, .8, .84] } : { vc: true }, { ao: [-.5, -.86, .36, .64, (window.STYLE2D ? .5 : .26) * (1 - clamp(PP.crownLift || 0, 0, 1))] })); // chin over the collar, forehead under the crown
   const GS = .85; // toon specular + fresnel glint on gold
-  if (det) { drawToon(M.hatDome, hatM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBrim, brimM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBow, bowM, VP, L, { color: [.3, .18, .09], noSoot: true }); }
+  if (det && AK) { drawToon(M.hatDome, hatM, VP, L, { tex: TEX.check2d, noSoot: true, flat: true }); drawToon(M.hatBrim, brimM, VP, L, { tex: TEX.check2d, noSoot: true, flat: true }); drawToon(M.hatBow, bowM, VP, L, { color: [.36, .2, .09], noSoot: true, flat: true }); }
+  else if (det) { drawToon(M.hatDome, hatM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBrim, brimM, VP, L, { tex: TEX.tweed, noSoot: true }); drawToon(M.hatBow, bowM, VP, L, { color: [.3, .18, .09], noSoot: true }); }
   if (!det && !doc) drawToon(M.crownBand, crownM, VP, L, { color: GOLD, dbl: true, spec: GS });
   if (!det && !doc) drawToon(M.crownRing, mat.mul(crownM, mat.T(0, .19, 0)), VP, L, { color: GOLD, spec: GS });
   if (!det && !doc) for (const sp of M.spikes) { const mm = mat.chain(crownM, mat.RY(sp.a), mat.T(0, .17, .8), mat.RX(.12)); drawToon(sp.cone, mm, VP, L, { color: GOLD, spec: GS }); drawToon(sp.ball, mat.mul(mm, mat.T(0, sp.h, 0)), VP, L, { color: GOLD, spec: GS }); }
-  if (!swim) { drawToon(M.cape, base, VP, L, det ? { tex: TEX.plaid, dbl: true } : doc ? { color: COAT, dbl: true } : { color: CRIMSON, dbl: true });   // detective: tan plaid Inverness cape
+  for (const [m, Mx, o] of AP) drawToon(m, Mx, VP, L, Object.assign({ noSoot: true }, o));
+  if (!swim && !AK) { drawToon(M.cape, base, VP, L, det ? { tex: TEX.plaid, dbl: true } : doc ? { color: COAT, dbl: true } : { color: CRIMSON, dbl: true });   // detective: tan plaid Inverness cape
   for (const tm of [M.edgeL, M.edgeR, M.hem]) drawToon(tm, base, VP, L, det ? { tex: TEX.tweed } : doc ? { color: COAT2 } : { tex: TEX.erm });
   drawToon(M.ermColl, mat.mul(base, mat.T(0, 2.12, 0)), VP, L, det ? { tex: TEX.tweed } : doc ? { color: COAT2 } : { tex: TEX.erm }); }
   if (doc) drawDoctorKit(PP, base, VP, L, face);
   if (hair > .001) drawHair(headM, VP, L, hair);
   if (hurt) { drawToon(M.bandRing, bandM, VP, L, Object.assign({ color: BAND }, NS)); drawToon(M.bandKnot, knotM, VP, L, Object.assign({ color: BAND }, NS)); for (const m of plasters) drawToon(M.plaster, m, VP, L, Object.assign({ color: PLST }, NS)); }
   arms.forEach((A, i) => { A.col = hurt && arms.length && A.mesh === M.arm[1] ? BAND : doc ? COAT : swim ? SKIN : ARMC; });
-  for (const A of arms) { const ac = window.STYLE2D && A.col === ARMC ? INK2 : A.col; drawToon(A.mesh, base, VP, L, { color: ac, noSoot: A.col !== ARMC && A.col !== SKIN, flat: window.STYLE2D }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: A.col, noSoot: A.col !== ARMC }); drawToon(M.hand, A.handM, VP, L, { color: GLOVE, flat: window.STYLE2D }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLOVE, flat: window.STYLE2D }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLOVE, flat: window.STYLE2D }); } }
+  for (const A of arms) { const ac = window.STYLE2D && A.col === ARMC ? INK2 : A.col; drawToon(A.mesh, base, VP, L, { color: ac, noSoot: A.col !== ARMC && A.col !== SKIN, flat: window.STYLE2D }); if (!window.STYLE2D) drawToon(M.shoulder, A.shM, VP, L, { color: A.col, noSoot: A.col !== ARMC }); drawToon(M.hand, A.handM, VP, L, { color: GLV, flat: window.STYLE2D }); if (A.fing) { drawToon(M.finger, A.fing, VP, L, { color: GLV, flat: window.STYLE2D }); drawToon(M.fingerTip, A.tip, VP, L, { color: GLV, flat: window.STYLE2D }); } }
   // magnifying glass in the hand of an active 'magnify' gesture
   if (face.t !== undefined && PP.hands) for (const G of TL.gest) {
     if (G.type !== 'magnify' || face.t < G.t0 || face.t > G.t1) continue; const Hd = PP.hands[(G.side || 1) > 0 ? 1 : 0]; if (!Hd) continue;

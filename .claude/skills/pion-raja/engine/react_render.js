@@ -135,7 +135,7 @@ function parseCues(txt) {
     else if (cmd === 'outfit' || cmd === 'baju') C.fx.push({ type: 'outfit', t0: -1, t1: 1e9, kind: (w[2] || '').toLowerCase() }); // clothes on a chess piece: daniel, police
     else if (cmd === 'style2d' || cmd === 'gaya2d') C.fx.push({ type: 'style2d', t0: -1, t1: 1e9 }); // flat 2D reference look (PANDUAN_SINEMATIK §7)
     else if (cmd === 'piece' || cmd === 'bidak') C.fx.push({ type: 'piece', t0: -1, t1: 1e9, kind: (w[2] || 'pawn').toLowerCase() }); // another chess piece instead of Pion: knight rook bishop queen pawn
-    else if (cmd === 'detective' || cmd === 'detektif') C.fx.push({ type: 'detective', t0: t, t1: t + +(w[2] || 99) });
+    else if (cmd === 'detective' || cmd === 'detektif') C.fx.push({ type: 'detective', t0: t, t1: t + +(w[2] || 99), kind: (w[3] || '').toLowerCase() || null }); // detective <dur> [light|akechi]: anime blazer outfit + 2D deerstalker (none = the old plaid cape)
     else if (cmd === 'poof') C.fx.push({ type: 'poof', t0: t, t1: t + +(w[2] || .5) });
     else if (cmd === 'aha') C.fx.push({ type: 'aha', t0: t, t1: t + +(w[2] || 1) });
     else if (cmd === 'glasses' || cmd === 'kacamata') C.fx.push({ type: 'glasses', t0: t, t1: t + +(w[2] || 99) });
@@ -224,12 +224,13 @@ async function openPage(data) {
     const { b, p } = await openPage(data); await p.evaluate(c => { document.body.style.background = c; }, '#' + BGHEX);
     const ts = String(PREVIEW).split(',').map(Number), shots = [];
     for (const t of ts) shots.push(await p.evaluate(([f, bg, mb]) => mb ? window.grabReactMB(f, bg) : (window.renderReact(f), window.grabReact(bg)), [Math.min(au.n - 1, Math.round(t * FPS)), '#' + BGHEX, BLUR > 1]));
-    const sheet = await p.evaluate(async ([imgs, labels]) => {
+    const PW = +arg('pw', 270);   // --pw <cell width px> for a bigger contact sheet
+    const sheet = await p.evaluate(async ([imgs, labels, PW]) => {
       const ims = await Promise.all(imgs.map(s => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = 'data:image/jpeg;base64,' + s; })));
-      const w = 270, h = 480, cols = Math.min(6, ims.length), c = document.createElement('canvas'); c.width = w * cols; c.height = h * Math.ceil(ims.length / cols); const g = c.getContext('2d');
+      const w = PW, h = Math.round(PW * 16 / 9), cols = Math.min(6, ims.length), c = document.createElement('canvas'); c.width = w * cols; c.height = h * Math.ceil(ims.length / cols); const g = c.getContext('2d');
       ims.forEach((im, i) => { g.drawImage(im, (i % cols) * w, Math.floor(i / cols) * h, w, h); g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 4; g.font = '700 22px Inter, sans-serif'; g.strokeText(labels[i], (i % cols) * w + 8, Math.floor(i / cols) * h + 28); g.fillText(labels[i], (i % cols) * w + 8, Math.floor(i / cols) * h + 28); });
       return c.toDataURL('image/jpeg', .9).split(',')[1];
-    }, [shots, ts.map(t => 't=' + t.toFixed(2))]);
+    }, [shots, ts.map(t => 't=' + t.toFixed(2)), PW]);
     fs.writeFileSync(OUT + '_preview.jpg', Buffer.from(sheet, 'base64')); console.log('preview ->', OUT + '_preview.jpg'); await b.close(); return;
   }
 

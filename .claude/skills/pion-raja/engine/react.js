@@ -670,10 +670,10 @@ function drawReact(f, u) {
   const yawNow = fr.yaw + bp.yaw + turnAt(t);
   const exNow = ex.m > .5 ? ex.b : ex.a; // expression 'soktahu' puts the nerd glasses on by itself
   const swim = fxActive('costume', t).some(e => e.kind === 'swim') ? 1 : 0;
-  const glasses = swim ? 3 : fxActive('glasses', t).length ? 1 : exNow === 'soktahu' ? 2 : 0, det = fxActive('detective', t).length ? 1 : 0;
+  const glasses = swim ? 3 : fxActive('glasses', t).length ? 1 : exNow === 'soktahu' ? 2 : 0, det = fxActive('detective', t).length ? 1 : 0, detKind = det ? (fxActive('detective', t)[0].kind || null) : null;
   const ng = nerdGlow(t), Lg = ng > .01 ? glowLight(L, ng) : L;
   const doc = fxActive('costume', t).some(e => e.kind === 'doc') ? 1 : 0, hE = RX.fxl.find(e => e.type === 'hair' && t >= e.t0), hairAmt = hE ? easeOutBack(clamp((t - hE.t0) / .38, 0, 1)) : 0;
-  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, doc, swim, hair: hairAmt, t, piece: (fxActive('piece', t)[0] || {}).kind || null, outfit: (fxActive('outfit', t)[0] || {}).kind || null });
+  FLASH = 0; drawPion(PP, base, VP, Lg, { ex, blink, talk: ex.since < SWAP * .5 ? 0 : mouth, exp: 1, tint: [1, 1, 1], backView: Math.cos(yawNow) < -.2, hurt, glasses, det, detKind, doc, swim, hair: hairAmt, t, piece: (fxActive('piece', t)[0] || {}).kind || null, outfit: (fxActive('outfit', t)[0] || {}).kind || null });
   drawProps(t, PP, base, VP, Lg, cam);
   drawExtras(t, PP, base, VP, Lg, cam);
   drawProps4(t, PP, base, VP, Lg, cam);
