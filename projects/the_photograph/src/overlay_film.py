@@ -3,8 +3,8 @@ python3 overlay_film.py [--frames a-b]"""
 import json, os, subprocess, sys, glob
 P = os.path.expanduser("~/pion/proj10"); REM = os.path.expanduser("~/pion/castle3d/remotion"); CHROME = glob.glob("/opt/pw-browsers/chromium-*/chrome-linux*/chrome")[0]
 pts = {}
-for f in sorted(glob.glob(P + "/out/*/pts.json")):
-    if "/prev" in f or "test" in f or f.endswith("s23_t/pts.json"): continue
+SCENES = ["s12", "s23", "s4", "s5", "s6", "s7", "s78", "s9", "s10", "s1113"]   # only the real scene renders (test/preview dirs like s11_t would overwrite the tracks)
+for f in [P + "/out/" + s + "/pts.json" for s in SCENES]:
     for k, v in json.load(open(f)).items(): pts.setdefault(k, {}).update({n: p for n, p in (v or {}).items() if p})
 pub = P + "/pub_film"; os.makedirs(pub, exist_ok=True)
 os.makedirs(pub + "/fonts", exist_ok=True)
@@ -43,7 +43,8 @@ while i < len(words):
     chunks.append([a, b, txt]); i = j
 for k, (a, b, txt) in enumerate(chunks):
     t1 = min(chunks[k + 1][0], b + 0.35) if k + 1 < len(chunks) else b + 0.35
-    on = pion_on_screen(int(round(a * 60)) + 3)
+    fr_ = range(int(round(a * 60)), max(int(round(a * 60)) + 1, int(round(t1 * 60))))
+    on = sum(pion_on_screen(f) for f in fr_) >= 0.4 * len(fr_)   # speaker visible for >=40% of the chunk (a camera swing landing on him counts)
     items.append({"type": "cap", "t0": round(a, 3), "t1": round(t1, 3), "text": txt.upper().rstrip(".,") if on else txt, **({"name": "SUCCIFY"} if on else {})})
 print("captions:", len(chunks), "named:", sum(1 for it in items if it.get("name")))
 fr = [a for a in sys.argv if a.startswith("--frames")]
