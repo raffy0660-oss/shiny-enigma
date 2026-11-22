@@ -166,7 +166,7 @@ for (const [x, z] of [[2.0, FZ + 0.9], [-6.0, FZ + 0.9], [9.0, FZ + 0.9], [-3.0,
   add(new THREE.CylinderGeometry(0.06, 0.08, 3.4, 10), lampM, x, 1.85, z); add(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 8), lampM, x, 3.5, z + (z < 0 ? 0.3 : -0.3), { rx: Math.PI / 2 });
   const hd = add(new THREE.CylinderGeometry(0.12, 0.22, 0.22, 14), lampM, x, 3.45, z + (z < 0 ? 0.62 : -0.62));
   add(new THREE.SphereGeometry(0.1, 14, 10), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.85, 0.6).multiplyScalar(6) }), x, 3.36, z + (z < 0 ? 0.62 : -0.62), { cast: false });
-  const L = new THREE.SpotLight(0xffc98a, 18, 9, 0.75, 0.6, 1.4); L.position.set(x, 3.3, z + (z < 0 ? 0.62 : -0.62)); L.target.position.set(x, 0, z + (z < 0 ? 1.2 : -1.2)); scene.add(L, L.target); lamps.push(L); }
+  const L = new THREE.SpotLight(0xffc98a, 25, 9, 0.75, 0.5, 1.4); L.position.set(x, 3.3, z + (z < 0 ? 0.62 : -0.62)); L.target.position.set(x, 0, z + (z < 0 ? 1.2 : -1.2)); scene.add(L, L.target); lamps.push(L); }
 const posterTex = canvasTex(512, 720, (g, w, h) => { g.fillStyle = "#f2ead3"; g.fillRect(0, 0, w, h); for (let i = 0; i < 1500; i++) { g.fillStyle = `rgba(120,90,50,${rnd() * .07})`; g.fillRect(rnd() * w, rnd() * h, 3, 3); }
   g.fillStyle = "#1d1d1d"; g.font = "900 96px Arial Black, sans-serif"; g.textAlign = "center"; g.fillText("MISSING", w / 2, 110);
   g.fillStyle = "#e9e2cf"; g.fillRect(96, 150, 320, 300); g.strokeStyle = "#1d1d1d"; g.lineWidth = 6; g.strokeRect(96, 150, 320, 300);
@@ -200,14 +200,14 @@ const rain = new THREE.LineSegments(rainGeo, new THREE.LineBasicMaterial({ color
 function placeRain(t) { for (let i = 0; i < rainN; i++) { const [x, y0, z, s] = rainS[i]; const y = ((y0 - t * 9 * s) % 9 + 9) % 9; rainP.set([x + camera.position.x * 0.5, y, z + camera.position.z * 0.3, x + camera.position.x * 0.5 - 0.02, y + 0.22, z + camera.position.z * 0.3], i * 6); } rainGeo.attributes.position.needsUpdate = true; }
 
 // ---------------------------------------------------------------- lights
-scene.add(new THREE.HemisphereLight(0xb0a0ff, 0x4a3050, 0.9));
-const dusk = new THREE.DirectionalLight(0xffa080, 2.2); dusk.position.set(-26, 9, 1.5); dusk.target.position.set(0, 0, FZ + 1.2); dusk.castShadow = true;   // low sun down the street (from the left): long dusk shadows, not blocked by the buildings across the street
+scene.add(new THREE.HemisphereLight(0xb0a0ff, 0x4a3050, 0.6));   // lower ambient: the lamp pools and the low sun carve the street
+const dusk = new THREE.DirectionalLight(0xffa080, 2.8); dusk.position.set(-26, 9, 1.5); dusk.target.position.set(0, 0, FZ + 1.2); dusk.castShadow = true;   // low sun down the street (from the left): long dusk shadows, not blocked by the buildings across the street
 Object.assign(dusk.shadow.camera, { left: -14, right: 14, top: 14, bottom: -4, near: 1, far: 50 }); dusk.shadow.camera.updateProjectionMatrix(); dusk.shadow.mapSize.set(2048, 2048); dusk.shadow.bias = -0.0005; scene.add(dusk, dusk.target);
 const rim = new THREE.DirectionalLight(0x8a7aff, 0.8); rim.position.set(8, 6, -10); scene.add(rim);
 
 // ---------------------------------------------------------------- characters INSIDE the world (charlayer.js): street light on him, his shadow from the dusk sun
 lamps[0].castShadow = true; lamps[0].shadow.mapSize.set(1024, 1024); lamps[0].shadow.bias = -0.0008; lamps[0].shadow.camera.near = 0.2; lamps[0].shadow.autoUpdate = false;   // the street lamp next to Pion draws his shadow
-const CHR = createChars(scene, camera, renderer, { n: 3, E: 0.55, D: 0.35, light: lamps[0], hide: [rain], rim: 0.5, glow: 0.2 });
+const CHR = createChars(scene, camera, renderer, { n: 3, E: 0.55, D: 0.35, light: lamps[0], hide: [rain], rim: 1.0, glow: 0.35, shade: 0.75 });
 let baked = false;
 composer.insertPass(CHR.pass(pionRT), composer.passes.indexOf(pionComp)); CHR.guard(gtao); CHR.guard(bokeh);
 dusk.shadow.autoUpdate = false;
@@ -220,7 +220,7 @@ window.renderFrame = async (F) => {   // F: { t, cam, pions:[...] }
   bokeh.uniforms.focus.value = F.cam.focus; bokeh.uniforms.aperture.value = F.cam.aperture ?? 0.0008; grade.uniforms.time.value = F.t; placeRain(F.t);
   const t = F.t, fl = (Math.sin(t * 23) > 0.85 || (t % 2.7) < 0.09) ? 0.15 : 1; neonM.emissiveIntensity = 2.2 * fl; neonL.intensity = 3.5 * fl;   // neon flicker
   for (const [c, x0] of clouds) c.position.x = x0 + t * 0.4;
-  const list = (F.pions || (F.pion ? [F.pion] : [])); if (!baked) { CHR.bake([dusk]); baked = true; } await CHR.place(list, { light: lamps[0], puffs: F.puffs, rimCol: LIGHT_PRESETS.exterior_dusk.rimCol, rimK: LIGHT_PRESETS.exterior_dusk.rimK });
+  const list = (F.pions || (F.pion ? [F.pion] : [])); if (!baked) { CHR.bake([dusk]); baked = true; } await CHR.place(list, { light: lamps[0], puffs: F.puffs, ...LIGHT_PRESETS.exterior_dusk });
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   composer.render();
   const pr = (p) => { const q = V(...p).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };

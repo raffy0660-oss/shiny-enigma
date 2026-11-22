@@ -24,30 +24,42 @@ export function createChars(scene, camera, renderer, o = {}) {
   const N = o.n || 4, TL = new THREE.TextureLoader(), cache = new Map();
   const cards = [], proxies = [], blobs = [];
   const blobTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
-    gr.addColorStop(0, "rgba(10,12,30,.72)"); gr.addColorStop(0.22, "rgba(10,12,30,.55)"); gr.addColorStop(0.55, "rgba(10,12,30,.22)"); gr.addColorStop(1, "rgba(10,12,30,0)");   // tight core + long soft falloff (not a hard dark disc) g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    gr.addColorStop(0, "rgba(6,8,22,.9)"); gr.addColorStop(0.25, "rgba(6,8,22,.7)"); gr.addColorStop(0.6, "rgba(6,8,22,.28)"); gr.addColorStop(1, "rgba(10,12,30,0)");   // tight core + long soft falloff (not a hard dark disc) g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
   for (let i = 0; i < N; i++) {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshLambertMaterial({ transparent: true, alphaTest: 0.04, side: THREE.DoubleSide, depthWrite: true, fog: true }));
-    const U = { uPush: { value: 0 }, uRimDir: { value: new THREE.Vector2(0, 1) }, uRimPx: { value: new THREE.Vector2(0.004, 0.002) }, uRimCol: { value: new THREE.Color(0, 0, 0) }, uRim: { value: 0 }, uGlow: { value: 0 } };
+    const U = { uPush: { value: 0 }, uRimDir: { value: new THREE.Vector2(0, 1) }, uRimPx: { value: new THREE.Vector2(0.004, 0.002) }, uRimCol: { value: new THREE.Color(0, 0, 0) }, uRim: { value: 0 }, uGlow: { value: 0 }, uShade: { value: 0 }, uShadeCol: { value: new THREE.Color(0.42, 0.46, 0.66) }, uLitCol: { value: new THREE.Color(1.08, 1.0, 0.9) }, uSpan: { value: new THREE.Vector2(0.02, 0.01) } };
     m.userData.U = U;
     m.material.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, U);
       sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float uPush;').replace('#include <project_vertex>', `#include <project_vertex>
         if (uPush > 0.0) { float Lp = length(mvPosition.xyz); vec4 cp = projectionMatrix * vec4(mvPosition.xyz * max(0.05, (Lp - uPush) / Lp), 1.0); gl_Position.z = cp.z / cp.w * gl_Position.w; }   // depth-only push`);
       sh.fragmentShader = sh.fragmentShader.replace('#include <lights_lambert_pars_fragment>',
         THREE.ShaderChunk.lights_lambert_pars_fragment.replace('float dotNL = saturate( dot( geometryNormal, directLight.direction ) );', 'float dotNL = 0.25 + 0.75 * abs( dot( geometryNormal, directLight.direction ) );'))   // two-sided "paper cut-out" light: a light behind him still lights him
-        .replace('#include <common>', '#include <common>\nuniform vec2 uRimDir; uniform vec2 uRimPx; uniform vec3 uRimCol; uniform float uRim; uniform float uGlow;')
+        .replace('#include <common>', '#include <common>\nuniform vec2 uRimDir; uniform vec2 uRimPx; uniform vec3 uRimCol; uniform float uRim; uniform float uGlow; uniform float uShade; uniform vec3 uShadeCol; uniform vec3 uLitCol; uniform vec2 uSpan;')
         .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        float shT = 0.0, inkF = 0.0;
         #ifdef USE_MAP
+        if (uShade > 0.0) {   // two-tone form light: where is this pixel between the lit edge (0) and the far edge (1) of the silhouette along the light direction
+          vec4 cs = texture2D(map, vMapUv); inkF = 1.0 - smoothstep(0.07, 0.2, dot(cs.rgb, vec3(0.3, 0.59, 0.11)));
+          float dl = 1.0, ds = 1.0;
+          for (int k = 1; k <= 12; k++) { float f = float(k) / 12.0;
+            if (dl > 0.999 && texture2D(map, vMapUv + uRimDir * uSpan * f).a < 0.5) dl = f;
+            if (ds > 0.999 && texture2D(map, vMapUv - uRimDir * uSpan * f).a < 0.5) ds = f; }
+          shT = smoothstep(0.44, 0.56, dl / (dl + ds));   // crisp cel terminator
+        }
         if (uRim + uGlow > 0.0) {   // light-side rim inside the ink line + a soft gradient: distance to the lit edge from a few alpha taps
           vec4 c0 = texture2D(map, vMapUv); float a0 = step(0.5, c0.a), lum = dot(c0.rgb, vec3(0.3, 0.59, 0.11)), ink = 1.0 - smoothstep(0.07, 0.2, lum);
           vec2 d = uRimDir * uRimPx; float rim = 0.0, glw = 0.0;
           for (int k = 1; k <= 3; k++) rim += 1.0 - step(0.5, texture2D(map, vMapUv + d * float(k)).a);
           for (int k = 2; k <= 5; k++) glw += 1.0 - step(0.5, texture2D(map, vMapUv + d * float(k) * 2.2).a);
           rim = a0 * min(1.0, rim / 2.0) * (1.0 - 0.9 * ink); glw = a0 * (glw / 4.0) * (1.0 - 0.85 * ink);
-          totalEmissiveRadiance += uRimCol * (0.55 * c0.rgb + 0.45) * (uRim * rim + uGlow * glw);
+          totalEmissiveRadiance += uRimCol * (0.55 * c0.rgb + 0.45) * (uRim * rim + uGlow * glw) * (1.0 - 0.7 * shT);
         }
-        #endif`); };
-    m.material.customProgramCacheKey = () => "card2s_v2";
+        #endif`).replace('#include <opaque_fragment>', `
+        outgoingLight *= mix(vec3(1.0), mix(uLitCol, uShadeCol, shT), uShade * (1.0 - 0.8 * inkF));   // lit side warm, far side cool + dark (ink stays ink)
+        { float mx = max(outgoingLight.r, max(outgoingLight.g, outgoingLight.b)); if (mx > 0.96) outgoingLight *= 0.96 / mx; }   // never burn to white: strong, not over
+        #include <opaque_fragment>`); };
+    m.material.customProgramCacheKey = () => "card2s_v3";
     m.layers.set(L_CARD); m.receiveShadow = true; m.castShadow = false; m.visible = false; m.renderOrder = 20; scene.add(m); cards.push(m);
     const px = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, depthTest: false, alphaTest: 0.5, side: THREE.DoubleSide }));   // the shadow pass copies map/alphaTest from this material
     px.castShadow = true; px.receiveShadow = false; px.visible = false; px.frustumCulled = false;
@@ -106,16 +118,18 @@ export function createChars(scene, camera, renderer, o = {}) {
       // ---- rim + glow toward the key light (screen space), stronger when the light is behind the character
       const rim = (P.rim ?? o.rim ?? 0) * (opts.rimK ?? o.rimK ?? 1), glow = (P.glow ?? o.glow ?? 0) * (opts.rimK ?? o.rimK ?? 1);
       const rimL = opts.rimLight || keyL;   // rim direction: the key light of the shot (may differ from the shadow light)
-      if (rimL && rim + glow > 0) {
+      if (rimL && rim + glow + (P.shade ?? o.shade ?? 0) > 0) {
         const mid = V().copy(A).addScaledVector(V(0, 1, 0).applyQuaternion(C.quaternion), P.height * 0.45), lp = lightPos(rimL, mid);
         const a = mid.clone().project(camera), b = lp.clone().project(camera), behind = V().subVectors(lp, mid).normalize().dot(V().subVectors(mid, camera.position).normalize());
         let dx = b.x - a.x, dy = b.y - a.y; const dirToCam = V().subVectors(lp, camera.position).dot(V(0, 0, -1).applyQuaternion(camera.quaternion)) < 0;
         if (dirToCam) { dx = -dx; dy = -dy; }                                                         // light behind the lens: projection flips
         const ln = Math.hypot(dx, dy) || 1, r = -(P.roll || 0); dx /= ln; dy /= ln; const rx = dx * Math.cos(r) - dy * Math.sin(r), ry = dx * Math.sin(r) + dy * Math.cos(r);
-        U.uRimDir.value.set(rx, ry); U.uRimPx.value.set(0.09 * P.ppu / P.w, 0.09 * P.ppu / P.h);   // tap step relative to the drawing scale (ink line ~0.12 model units)
-        const lc = opts.rimCol || P.rimCol || o.rimCol || [rimL.color.r, rimL.color.g, rimL.color.b], lk = 0.35 + 0.65 * Math.max(0, behind);
+        U.uRimDir.value.set(rx, ry); U.uRimPx.value.set(0.09 * P.ppu / P.w, 0.09 * P.ppu / P.h); U.uSpan.value.set(2.2 * P.ppu / P.w, 2.2 * P.ppu / P.h);   // span ~ one body part (head = 2 model units): each part gets its own lit / dark side
+        const sh = (P.shade ?? o.shade ?? 0) * (opts.shadeK ?? 1), sc = P.shadeCol || opts.shadeCol || o.shadeCol || [0.42, 0.46, 0.66], lc2 = P.litCol || opts.litCol || o.litCol || [1.08, 1.0, 0.9];   // character > shot preset > set default
+        U.uShade.value = sh; U.uShadeCol.value.setRGB(...sc); U.uLitCol.value.setRGB(...lc2);   // tap step relative to the drawing scale (ink line ~0.12 model units)
+        const lc = P.rimCol || opts.rimCol || o.rimCol || [rimL.color.r, rimL.color.g, rimL.color.b], lk = 0.35 + 0.65 * Math.max(0, behind);
         U.uRimCol.value.setRGB(lc[0] * lk, lc[1] * lk, lc[2] * lk); U.uRim.value = rim; U.uGlow.value = glow;
-      } else { U.uRim.value = 0; U.uGlow.value = 0; }
+      } else { U.uRim.value = 0; U.uGlow.value = 0; U.uShade.value = 0; }
       C.visible = true;
       // ---- cast shadow: proxy with the same silhouette, upright, turned toward the light (horizontally), a little behind the card
       if (keyL && P.cast !== false && !P.face && P.contact !== "body" && facing !== "floor") {
