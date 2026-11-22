@@ -8,7 +8,8 @@ const MIME = { ".html": "text/html", ".js": "text/javascript", ".json": "applica
 const srv = http.createServer((q, r) => { const p = path.join(ROOT, decodeURIComponent(q.url.split("?")[0])); fs.readFile(p, (e, b) => { if (e) { r.writeHead(404); r.end(); return; } r.writeHead(200, { "Content-Type": MIME[path.extname(p)] || "application/octet-stream" }); r.end(b); }); });
 const tracks = {}; const track = n => tracks[n] || (tracks[n] = JSON.parse(fs.readFileSync(path.join(ROOT, "eng", n + "_track.json"))));
 function bindPion(P, f) { if (!P || !P.eng) return; const tr = track(P.eng), ef = Math.min(P.ef ?? f, tr.frames.length - 1), fr = tr.frames[ef];
-  Object.assign(P, { url: `/eng/${P.eng}_frames/${String(ef).padStart(5, "0")}.png`, base: fr.base, ppu: fr.ppu, w: tr.W, h: tr.H }); }
+  const k = tr.W / 1080;   // the engine track is in 1080-wide reference pixels even for a 2160x3840 render
+  Object.assign(P, { url: `/eng/${P.eng}_frames/${String(ef).padStart(5, "0")}.png`, base: [fr.base[0] * k, fr.base[1] * k], ppu: fr.ppu * k, w: tr.W, h: tr.H }); }
 srv.listen(0, async () => {
   const port = srv.address().port, JOBS = +arg("jobs", 3), list = [];
   if (arg("frames")) arg("frames").split(",").forEach(x => list.push(+x)); else for (let f = +arg("from", 0); f < +arg("to", plan.N); f++) list.push(f);

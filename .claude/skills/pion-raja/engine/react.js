@@ -17,7 +17,7 @@ const FRAMES = {
 };
 const frameOf = v => typeof v === 'string' ? (FRAMES[v] || FRAMES.mid) : v;
 window.setReact = d => {
-  RX = d; RX.bangS = new Set(d.bangF || []); RX.takeS = new Set(d.takeF || []);
+  RX = d; RX.bangS = new Set(d.bangF || []); RX.takeS = new Set(d.takeF || []); if (d.paperImg) { PROP.ok = false; initProps(); } // early: start loading the `paperimg` picture before the first frame
   TL.expr = d.expr.length ? d.expr : [[0, 'datar']]; TL.gest = d.gest; TL.startle = d.startle;
   RX.fr = Object.assign({ cx: 0, yaw: 0, tiltDeg: 6 }, FRAMES[d.frame] || FRAMES.mid, d.frameOverride || {});
   RX.fly = (d.fly || []).slice().sort((p, q) => p.t0 - q.t0); RX.hover = d.hover || [];
@@ -186,7 +186,8 @@ function initProps() {
     g.fillStyle = '#e1262c'; const bx = 60, by = 110, bw = w - 120, bh = 160; g.beginPath(); g.moveTo(bx + 30, by); g.arcTo(bx + bw, by, bx + bw, by + bh, 30); g.arcTo(bx + bw, by + bh, bx, by + bh, 30); g.arcTo(bx, by + bh, bx, by, 30); g.arcTo(bx, by, bx + bw, by, 30); g.fill();
     g.fillStyle = '#fff'; g.font = '900 78px Inter, Arial Black, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('SUBSCRIBE', w / 2, by + bh / 2 + 4);
     g.fillStyle = '#2a0f08'; g.font = '800 34px Inter, sans-serif'; g.fillText('👑 ROYAL ORDER 👑', w / 2, 60); g.fillText('tap it. now.', w / 2, 330); });
-  if (RX.paperImg) { const im = new Image(); im.onload = () => { PROP.paper = canvasTex(600, 400, (g, w, h) => { g.fillStyle = '#fffaf0'; g.fillRect(0, 0, w, h);
+  window.__paperReady = !RX.paperImg;
+  if (RX.paperImg) { const im = new Image(); im.onload = () => { window.__paperReady = true; PROP.paper = canvasTex(600, 400, (g, w, h) => { g.fillStyle = '#fffaf0'; g.fillRect(0, 0, w, h);
       const r = Math.max((w - 24) / im.width, (h - 24) / im.height), dw = im.width * r, dh = im.height * r; g.save(); g.beginPath(); g.rect(12, 12, w - 24, h - 24); g.clip(); g.drawImage(im, (w - dw) / 2, (h - dh) / 2, dw, dh); g.restore(); }); }; im.src = RX.paperImg; }   // cue `paperimg file`: a photo on the sheet
   PROP.splat = canvasTex(512, 512, (g, w, h) => { // white egg-splat sculpture with a QR in the middle (like the one in the video)
     const R = rng(5), pts = []; for (let i = 0; i < 18; i++) { const a = i / 18 * Math.PI * 2, r = 200 + R() * 46; pts.push([w / 2 + Math.cos(a) * r, h / 2 + Math.sin(a) * r]); }

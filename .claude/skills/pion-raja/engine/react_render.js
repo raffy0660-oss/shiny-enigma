@@ -173,6 +173,7 @@ async function openPage(data) {
   await p.goto('file://' + path.resolve(__dirname, 'react.html') + `?w=${RW}&h=${RH}`);
   await p.waitForFunction(() => window.__reactReady === true, null, { timeout: 60000 });
   await p.evaluate(d => window.setReact(d), data);
+  await p.waitForFunction(() => window.__paperReady !== false, null, { timeout: 30000 });   // `paperimg` loads async: wait before the first frame
   await p.evaluate(([n, s]) => { window.MB.maxN = n; window.MB.shutter = s; }, [BLUR, SHUTTER]);
   await p.evaluate(() => Promise.all(Object.values(RX.imgs).map(i => i.decode().catch(() => 0))));
   return { b, p };
