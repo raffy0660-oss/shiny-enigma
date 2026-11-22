@@ -16,8 +16,8 @@ const SH = [   // shots: [t0, loc, camera keys]
   [8.64, "phones", [look(8.64, P(2, 0, 0.24, 0.001), P(2, 0, 0, 0), 40, "io", { roll: 0.5 }), look(8.85, P(2, 0, 0.17, 0.001), P(2, 0, 0, 0), 40, "out", { roll: 0.0 }),
                     look(9.5, P(2, 0, 0.15, 0.001), P(2, 0, 0, 0), 40, "lin", { roll: -0.04 })]],
   [9.5, "phones", [look(9.5, P(3, -0.06, 0.1, 0.07), P(3, 0, 0, 0), 40, "io", { roll: -0.2 }), look(10.32, P(3, -0.03, 0.06, 0.035), P(3, 0, 0, 0), 40, "in", { roll: -0.24 })]],
-  [10.32, "house", [look(10.32, [60.0, 0.72, 1.95], [60.0, 0.58, -0.6], 44), look(12.0, [60.0, 0.72, 1.7], [60.0, 0.6, -0.6], 44, "lin")]],
-  [12.0, "house", [look(12.0, [60.02, 0.86, 0.72], [60.0, 0.82, -0.35], 34), look(13.17, [60.01, 0.86, 0.58], [60.0, 0.83, -0.35], 34, "lin")]],
+  [10.32, "house", [look(10.32, [60.12, 0.75, 1.95], [59.92, 0.62, -0.7], 44), look(12.0, [60.1, 0.75, 1.7], [59.9, 0.63, -0.7], 44, "lin")]],   // Pion left of the door: the slam reads beside him
+  [12.0, "house", [look(12.0, [59.78, 0.72, 0.95], [59.72, 0.62, -0.35], 36), look(13.17, [59.77, 0.71, 0.8], [59.72, 0.62, -0.35], 36, "lin")]],   // close-up on the face (sweat, the slow look back)
   [13.17, "house", [look(13.17, [60.0, 0.75, 1.65], [60.0, 0.62, -1.45], 42), look(16.6, [60.0, 0.73, 1.2], [60.0, 0.64, -1.45], 42, "lin")]],
 ];
 // impacts: [time, strength] -> decaying camera shake
@@ -45,5 +45,5 @@ module.exports = { N, set: "mlike", SH, frame(f) {
                { eng: "victim", ef: f, anchor: [0.78, 0, 0.36], ground: 0, height: 1.1, preset: "victim", facing: "faceCam", bodyDir: [0, -1], push: 0.35, tint: [1, 0.95, 0.95] }];   // victim: drawn LYING by the engine (`lie`) from this camera, body along -z
     F.puffs = t > 3.66 ? [0, 1, 2].map(q => ({ p: [lerp(1.72, 1.3, Math.min(1, q / 2)), 0, lerp(0.12, -0.32, Math.min(1, q / 2))], age: t - (3.66 + q * 0.46) })) : []; }
   if (loc === "house") { F.door = door(t); F.figure = s === 7; F.flash = flash(t); F.pkey = s < 7 ? 1 : 0;
-    if (s < 7) F.pions = [{ eng: "pionC", ef: Math.round((t - 10.32) * FPS), anchor: [60, 0, -0.35], height: 1.15, preset: "detective", tint: [0.92, 0.95, 1.05] }]; }
+    if (s < 7) F.pions = [{ eng: "pionC", ef: Math.round((t - 10.32) * FPS), anchor: [59.72, 0, -0.35], height: 1.15, preset: "detective", tint: [0.92, 0.95, 1.05] }]; }
   return F; } };

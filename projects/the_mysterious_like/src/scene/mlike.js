@@ -141,7 +141,7 @@ function phone(x, y, z, ry, rx, user, title, thumb, ago, rz = 0) {
   const b = add(box(0.13, 0.012, 0.27, 0.012), mat({ color: 0x15151a, roughness: 0.35, metalness: 0.4 }), 0, 0.006, 0, { parent: G });
   const s = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.253), new THREE.MeshBasicMaterial({ map: screenTex(user, title, thumb, ago), toneMapped: false }));
   s.rotation.x = -Math.PI / 2; s.position.y = 0.0125; G.add(s);
-  const glow = new THREE.PointLight(0xc8d4ff, 0.35, 0.6, 2); glow.position.set(0, 0.08, 0); G.add(glow);
+  const glow = new THREE.PointLight(0xc8d4ff, 0.05, 0.45, 2); glow.position.set(0, 0.16, 0); G.add(glow);   // faint screen spill (close to the surface it burns a hot spot)
   return { G, screen: s, pfpAt: new THREE.Vector3(-0.0338, 0.013, 0.0577).applyEuler(G.rotation).add(G.position) };   // world point of the profile picture
 }
 
@@ -268,18 +268,18 @@ const aptBeam = beam([1.05, A.H - 0.06, 0.4], [0.98, 0, 0.1], 0.06, 1.2, 0xffd8b
 // ================================================================ B: the phones of the other victims (four small worlds, far apart)
 const PB = [
   { x: 30, surf: () => { const m = add(new THREE.PlaneGeometry(2, 2), mat({ map: canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#6e6a84"; g.fillRect(0, 0, w, h); for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .06})`; g.fillRect(rnd() * w, rnd() * h, 2, 2); } }, [4, 4]), roughness: 1 }), 30, 0, 0, { rx: -Math.PI / 2, cast: false }); m.userData.ground = true; },
-    light: [0x7f9cff, 6], ph: ["@quiet.hollow", "study with me (6 hours)", ["#2b3a6a", "#7a8ad8"], "2 days ago", -0.35] },
+    light: [0x7f9cff, 4], ph: ["@quiet.hollow", "study with me (6 hours)", ["#2b3a6a", "#7a8ad8"], "2 days ago", -0.35] },
   { x: 33, surf: () => { add(box(1.6, 0.06, 0.9, 0.01), mat({ map: canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#d8d8dc"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(90,90,100,.35)"; g.lineWidth = 2; for (let i = 0; i < 12; i++) { g.beginPath(); g.moveTo(rnd() * w, 0); g.bezierCurveTo(rnd() * w, h * .3, rnd() * w, h * .6, rnd() * w, h); g.stroke(); } }), roughness: 0.25 }), 33, -0.03, 0); add(new THREE.CylinderGeometry(0.05, 0.045, 0.11, 16), mat({ color: 0x9a2a2a }), 33.28, 0.055, -0.18); },
-    light: [0xd8f0ff, 7], ph: ["@lantern_k", "what I eat in a day", ["#e8a040", "#f8e0a0"], "5 hours ago", 0.5] },
+    light: [0xd8f0ff, 2.6], ph: ["@lantern_k", "what I eat in a day", ["#e8a040", "#f8e0a0"], "5 hours ago", 0.5] },
   { x: 36, surf: () => { const g = new THREE.PlaneGeometry(2, 2, 40, 40); const p = g.attributes.position; for (let i = 0; i < p.count; i++) p.setZ(i, Math.sin(p.getX(i) * 7 + p.getY(i) * 3) * 0.012 + Math.sin(p.getY(i) * 11) * 0.008); g.computeVertexNormals();
       add(g, mat({ color: 0xe8e4f0, roughness: 0.95 }), 36, 0, 0, { rx: -Math.PI / 2, cast: false }); },
-    light: [0xffc79a, 5], ph: ["@noah.sleeps", "goodnight vlog #212", ["#402060", "#c070b0"], "1 day ago", 0.2] },
+    light: [0xffc79a, 2.4], ph: ["@noah.sleeps", "goodnight vlog #212", ["#402060", "#c070b0"], "1 day ago", 0.2] },
   { x: 39, surf: () => { add(new THREE.PlaneGeometry(2, 2), mat({ map: canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#1a1a1e"; g.fillRect(0, 0, w, h); for (let i = 0; i < 5000; i++) { g.fillStyle = `rgba(200,200,210,${rnd() * .1})`; g.fillRect(rnd() * w, rnd() * h, 2, 2); } }, [3, 3]), roughness: 0.18, metalness: 0.3 }), 39, 0, 0, { rx: -Math.PI / 2, cast: false });
       add(new THREE.CircleGeometry(0.35, 32), new THREE.MeshStandardMaterial({ color: 0x050608, roughness: 0.02, metalness: 0.9 }), 39.15, 0.002, 0.1, { rx: -Math.PI / 2, cast: false }); },
     light: [0xff9a40, 9], ph: ["@m0rn1ngdew_", "last stream before I sleep", ["#601820", "#e05050"], "just now", -0.8] },
 ];
 const phoneSpots = [];
-PB.forEach((b, i) => { b.surf(); const [col, int] = b.light, L = new THREE.SpotLight(col, 0, 3, 0.5, 0.7, 1.3); L.position.set(b.x - 0.4, 1.0, 0.5); L.target.position.set(b.x, 0, 0); scene.add(L, L.target); phoneSpots.push([L, int]);
+PB.forEach((b, i) => { b.surf(); const [col, int] = b.light, L = new THREE.SpotLight(col, 0, 3.5, 0.45, 0.8, 1.3); L.position.set(b.x - 0.7, 1.6, 0.9);   // higher + farther: a soft pool, no blown hot spot L.target.position.set(b.x, 0, 0); scene.add(L, L.target); phoneSpots.push([L, int]);
   const [u, t, th, ago, ry] = b.ph; PHONES["m" + i] = phone(b.x, 0.0, 0, ry, 0, u, t, th, ago); });
 
 // ================================================================ C: the target's house: closed front door between two windows, almost dark
