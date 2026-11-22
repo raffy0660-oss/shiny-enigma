@@ -7,10 +7,10 @@ const K = [
   { t: 15.4, pos: [0, PH + 0.44, PHZ + 0.004], tgt: [0, PH, PHZ], fov: 40, focus: 0.44 },
   { t: 16.25, pos: [0.05, 1.25, 0.55], tgt: [0, 1.05, -1.4], fov: 42, focus: 1.95, ease: "io" },              // pull out + tilt up: Pion holding the photo
   { t: 17.5, pos: [0.04, 1.23, 0.42], tgt: [0, 1.04, -1.4], fov: 42, focus: 1.82, ease: "lin" },
-  { t: 18.1, pos: [0.02, 1.08, -0.15], tgt: [0, 1.0, -1.4], fov: 40, focus: 1.2, ease: "io" },                // "five words" -> the sheet + his face
-  { t: 19.2, pos: [0.02, 1.07, -0.22], tgt: [0, 1.0, -1.4], fov: 40, focus: 1.13, ease: "lin" },
-  { t: 19.75, pos: [0.0, 1.0, -0.5], tgt: [0, 0.98, -1.4], fov: 38, focus: 0.86, ease: "io" },               // "Find him before Friday." the handwriting fills the frame
-  { t: 21.1, pos: [0.0, 1.0, -0.6], tgt: [0, 0.98, -1.4], fov: 38, focus: 0.76, ease: "lin" },
+  { t: 18.1, pos: [0.0, 1.06, 0.2], tgt: [0, 1.0, -1.4], fov: 40, focus: 1.35, ease: "io" },                // "five words" -> the sheet + his face
+  { t: 19.2, pos: [0.0, 1.05, 0.15], tgt: [0, 1.0, -1.4], fov: 40, focus: 1.3, ease: "lin" },
+  { t: 19.75, pos: [0.0, 1.0, 0.06], tgt: [0.0, 0.98, -1.4], fov: 40, focus: 1.18, ease: "io" },               // "Find him before Friday." the handwriting fills the frame
+  { t: 21.1, pos: [0.0, 1.0, 0.0], tgt: [0.0, 0.98, -1.4], fov: 40, focus: 1.12, ease: "lin" },
 ];
 function lamp(t) { const d = t - 20.1; if (d < 0 || d > 0.4) return 1; return d < 0.06 ? 0.1 : d < 0.12 ? 1 : d < 0.2 ? 0.15 : d < 0.26 ? 0.8 : 1; }
 module.exports = { N: 1267, F0, set: "office", K, frame(f) { const t = f / 60, L = lamp(t);
