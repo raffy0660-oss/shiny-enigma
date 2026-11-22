@@ -365,6 +365,7 @@ const clockTex = canvasTex(512, 512, (g, w, h) => { g.fillStyle = "#efe6cf"; g.b
 const clock = add(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 40), mat({ map: clockTex }), RW / 2 - 0.03, 1.9, -0.9, { rz: Math.PI / 2 }); clock.rotation.set(0, 0, Math.PI / 2); clock.rotation.y = 0; clock.material.map.rotation = -Math.PI / 2; clock.material.map.center.set(.5, .5);
 const handM = mat({ color: 0x1b1210 });
 const hourH = add(box(0.012, 0.11, 0.008, 0.003), handM, RW / 2 - 0.065, 1.9, -0.9), minH = add(box(0.008, 0.17, 0.008, 0.003), handM, RW / 2 - 0.07, 1.9, -0.9);
+const clockSpot = new THREE.SpotLight(0xbfd4ff, 0, 3, 0.35, 0.6, 1.2); clockSpot.position.set(RW / 2 - 1.1, 2.15, -0.75); clockSpot.target.position.set(RW / 2, 1.9, -0.9); scene.add(clockSpot, clockSpot.target);   // the final shot: a cold pin light on the wall clock
 function setClock(hh, mm) { for (const [m, len, a] of [[hourH, 0.11, ((hh % 12) + mm / 60) / 12], [minH, 0.17, mm / 60]]) { const ang = a * Math.PI * 2; m.rotation.set(ang, 0, 0); m.position.set(m.position.x, 1.9 + Math.cos(ang) * len / 2, -0.9 + Math.sin(ang) * len / 2); } }
 setClock(11, 41);
 // bookshelf on the left back corner
@@ -505,7 +506,7 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   applyMood(F.mood || "normal", F.mood2 || F.mood || "normal", F.moodK || 0, F.t); if (F.strike) moon.intensity += 140;
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
   bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
-  placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag);
+  placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag); clockSpot.intensity = F.clockLight || 0;
   { const sig = JSON.stringify([F.env, F.anon, F.calTear, F.mag, !!F.laptop, F.anonVis]); if (sig !== lastSig) { renderer.shadowMap.needsUpdate = true; lastSig = sig; } }
   await placePion(F.pion);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;

@@ -31,5 +31,5 @@ const K = [
 ];
 module.exports = { N: 4405, F0, set: "office", K, frame(f) { const t = f / 60, rv = t >= 54.56;
   const laptop = t < 55.4 ? undefined : t < 64.45 ? { mode: "meta", k: key([[59.9, 0], [60.25, 1, "lin"]], t) } : { mode: "mail", k: key([[68.7, 0], [68.85, 0.31, "lin"], [70.9, 0.31], [71.1, 0.7, "lin"]], t) };
-  return { t, cam: cam(K, t), mood: rv ? "reveal" : "tension", lampK: rv ? key([[66, 1], [72.4, 0.25, "lin"]], t) : 1, laptop, clock: t < 73.12 ? [11, 41] : [11, 42],
+  return { t, cam: cam(K, t), mood: rv ? "reveal" : "tension", lampK: rv ? key([[66, 1], [72.4, 0.25, "lin"]], t) : 1, laptop, clock: t < 73.12 ? [11, 41] : [11, 42], clockLight: key([[72.3, 0], [72.9, 9, "io"]], t),
     pion: { eng: process.env.ENG || "s11", ef: f - F0, anchor: [0, 0.48, PZ], height: 1.15, tint: rv ? [0.58, 0.8, 0.86] : [0.85, 0.86, 1.0] } }; } };
