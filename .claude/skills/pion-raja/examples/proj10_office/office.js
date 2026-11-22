@@ -163,14 +163,41 @@ const handset = add(new THREE.CapsuleGeometry(0.025, 0.17, 6, 12), phoneM, 0.62,
 // mug + magnifier + pen + envelope
 add(new THREE.CylinderGeometry(0.04, 0.036, 0.1, 20), mat({ color: 0xe7e2d6 }), 0.32, DESK.h + 0.05, DESK.z - 0.25); add(new THREE.TorusGeometry(0.025, 0.007, 8, 16), mat({ color: 0xe7e2d6 }), 0.365, DESK.h + 0.055, DESK.z - 0.25, { ry: Math.PI / 2 });
 add(new THREE.CylinderGeometry(0.036, 0.036, 0.004, 20), mat({ color: 0x2a140a }), 0.32, DESK.h + 0.098, DESK.z - 0.25, { cast: false });
-const magR = add(new THREE.TorusGeometry(0.06, 0.009, 10, 32), mat({ color: 0xd9b040, metalness: .85, roughness: .3 }), 0.15, DESK.h + 0.012, DESK.z + 0.22, { rx: -Math.PI / 2 });
-add(new THREE.CylinderGeometry(0.058, 0.058, 0.004, 32), new THREE.MeshPhysicalMaterial({ color: 0xbfe4ff, roughness: 0.05, transmission: 0.6, transparent: true, opacity: 0.35 }), 0.15, DESK.h + 0.012, DESK.z + 0.22, { cast: false });
-add(new THREE.CylinderGeometry(0.012, 0.014, 0.13, 10), mat({ color: 0x4a2412 }), 0.255, DESK.h + 0.012, DESK.z + 0.28, { rz: Math.PI / 2, ry: -0.5 });
-add(new THREE.CylinderGeometry(0.006, 0.006, 0.15, 8), mat({ color: 0x1a1a40 }), -0.02, DESK.h + 0.02, DESK.z + 0.27, { rz: Math.PI / 2, ry: 0.7 });
+const magR = add(new THREE.TorusGeometry(0.06, 0.009, 10, 32), mat({ color: 0xd9b040, metalness: .85, roughness: .3 }), 0.31, DESK.h + 0.012, DESK.z + 0.3, { rx: -Math.PI / 2 });
+add(new THREE.CylinderGeometry(0.058, 0.058, 0.004, 32), new THREE.MeshPhysicalMaterial({ color: 0xbfe4ff, roughness: 0.05, transmission: 0.6, transparent: true, opacity: 0.35 }), 0.31, DESK.h + 0.012, DESK.z + 0.3, { cast: false });
+add(new THREE.CylinderGeometry(0.012, 0.014, 0.13, 10), mat({ color: 0x4a2412 }), 0.415, DESK.h + 0.012, DESK.z + 0.36, { rz: Math.PI / 2, ry: -0.5 });
+add(new THREE.CylinderGeometry(0.006, 0.006, 0.15, 8), mat({ color: 0x1a1a40 }), -0.3, DESK.h + 0.02, DESK.z + 0.12, { rz: Math.PI / 2, ry: 0.7 });
 const envTex = canvasTex(512, 340, (g, w, h) => { g.fillStyle = "#e9dcbc"; g.fillRect(0, 0, w, h); g.strokeStyle = "#3a2e22"; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6); g.beginPath(); g.moveTo(0, 0); g.lineTo(w / 2, h * .55); g.lineTo(w, 0); g.stroke(); g.fillStyle = "#8a1d1d"; g.beginPath(); g.arc(w / 2, h * .55, 26, 0, 7); g.fill(); hand(g, "NO SENDER", w / 2, h * .82, 34, "#2a2a2a"); });
 add(box(0.22, 0.004, 0.145, 0.001), mat({ map: envTex }), -0.3, DESK.h + 0.03, DESK.z + 0.27, { ry: -0.12 });
 // papers that slid onto the floor
 for (let k = 0; k < 6; k++) { const p = add(box(0.21, 0.003, 0.28, 0.001), mat({ map: paperTex(["typed", "note", "photo"][k % 3], k + 3) }), -0.9 + k * 0.36 + (rnd() - .5) * 0.1, 0.006 + k * 0.001, -0.1 + (rnd() - .5) * 0.5, { ry: rnd() * 3 }); }
+
+
+// ---------------------------------------------------------------- the case data on the desk (scene 1: the camera visits these instead of the wall)
+const anonTex = canvasTex(800, 960, (g, w, h) => {   // the anonymous photograph: Daniel lying in the dark apartment, broken clock at 11:42
+  g.fillStyle = "#fbf8f0"; g.fillRect(0, 0, w, h); g.strokeStyle = "#2b2018"; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8);
+  const X = 50, Y = 50, S = w - 100; const gr = g.createLinearGradient(0, Y, 0, Y + S); gr.addColorStop(0, "#1b2340"); gr.addColorStop(1, "#2c2a3a"); g.fillStyle = gr; g.fillRect(X, Y, S, S);
+  g.fillStyle = "#3a2c26"; g.fillRect(X, Y + S * .62, S, S * .38); g.strokeStyle = "#241a15"; g.lineWidth = 4; for (let k = 0; k < 5; k++) { g.beginPath(); g.moveTo(X, Y + S * .62 + k * 34); g.lineTo(X + S, Y + S * .62 + k * 34); g.stroke(); }
+  g.fillStyle = "rgba(255,230,160,.18)"; g.beginPath(); g.moveTo(X + S * .55, Y); g.lineTo(X + S * .85, Y); g.lineTo(X + S * .95, Y + S); g.lineTo(X + S * .25, Y + S); g.closePath(); g.fill();   // light from a window
+  g.save(); g.translate(X + S * .42, Y + S * .78); g.rotate(-0.08);   // the body: an ivory pawn in a mustard vest, lying on its side (eyes closed, no blood)
+  g.lineWidth = 7; g.strokeStyle = "#1b1410"; g.fillStyle = "#efe8d8"; g.beginPath(); g.moveTo(-60, -40); g.lineTo(150, -70); g.lineTo(150, 70); g.lineTo(-60, 40); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = "#e3a536"; g.beginPath(); g.moveTo(-30, -36); g.lineTo(100, -55); g.lineTo(100, 55); g.lineTo(-30, 36); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = "#a8161c"; g.fillRect(-30, -6, 110, 12); g.fillStyle = "#efe8d8"; g.beginPath(); g.ellipse(-70, 0, 22, 52, 0, 0, 7); g.fill(); g.stroke();
+  g.beginPath(); g.arc(-150, 0, 70, 0, 7); g.fill(); g.stroke(); g.lineWidth = 6; g.beginPath(); g.moveTo(-175, -20); g.lineTo(-158, -16); g.moveTo(-175, 22); g.lineTo(-158, 18); g.stroke();
+  g.fillStyle = "#efe8d8"; g.fillRect(150, -85, 40, 170); g.strokeRect(150, -85, 40, 170); g.restore();
+  g.save(); g.translate(X + S * .78, Y + S * .5); g.fillStyle = "#efe6cf"; g.strokeStyle = "#1b1410"; g.lineWidth = 9; g.beginPath(); g.arc(0, 0, 70, 0, 7); g.fill(); g.stroke();   // the broken clock: 11:42
+  g.lineWidth = 8; g.beginPath(); g.moveTo(0, 0); g.lineTo(-8, -44); g.moveTo(0, 0); g.lineTo(52, 22); g.stroke();
+  g.strokeStyle = "#6a6a72"; g.lineWidth = 3; g.beginPath(); g.moveTo(-50, -50); g.lineTo(-6, -8); g.lineTo(-30, 46); g.moveTo(-6, -8); g.lineTo(40, -42); g.moveTo(-6, -8); g.lineTo(55, 20); g.stroke(); g.restore();
+  hand(g, "11:42", w / 2, h - 75, 70, "#a01d22");
+});
+const anon = add(box(0.22, 0.004, 0.264, 0.002), mat({ map: anonTex, roughness: 0.6 }), 0.0, DESK.h + 0.016, DESK.z + 0.33, { ry: -0.06 });
+const calTex = canvasTex(512, 600, (g, w, h) => { g.fillStyle = "#f6f1e4"; g.fillRect(0, 0, w, h); g.fillStyle = "#b3262a"; g.fillRect(0, 0, w, 150); g.strokeStyle = "#2b2018"; g.lineWidth = 10; g.strokeRect(5, 5, w - 10, h - 10);
+  g.fillStyle = "#fff"; g.font = "900 92px Arial Black, sans-serif"; g.textAlign = "center"; g.fillText("FRIDAY", w / 2, 112); g.fillStyle = "#222"; g.font = "900 260px Georgia, serif"; g.fillText("14", w / 2, 420);
+  g.strokeStyle = "#a01d22"; g.lineWidth = 16; g.beginPath(); g.ellipse(w / 2, 335, 190, 140, -0.06, 0, 7); g.stroke(); hand(g, "3 days", w / 2, 545, 64, "#a01d22"); });
+const cal = new THREE.Group(); cal.position.set(0.47, DESK.h + 0.005, DESK.z + 0.2); cal.rotation.y = -0.35; scene.add(cal);
+add(box(0.15, 0.17, 0.006, 0.002), mat({ map: calTex }), 0, 0.08, 0.02, { rx: -0.32, parent: cal });
+add(box(0.15, 0.17, 0.006, 0.002), mat({ color: 0x2a2a2a }), 0, 0.08, -0.03, { rx: 0.32, parent: cal });
+for (const x of [-0.05, 0, 0.05]) add(new THREE.TorusGeometry(0.008, 0.002, 6, 12), mat({ color: 0xbfc4c8, metalness: .9 }), x, 0.165, 0.0, { ry: Math.PI / 2, parent: cal });
 
 // ---------------------------------------------------------------- the pendant lamp + its light (the hero of the shot)
 const LAMP = V(0, 2.32, DESK.z + 0.02);

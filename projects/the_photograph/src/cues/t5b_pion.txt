@@ -1,0 +1,12 @@
+0.00 style2d
+0.00 detective 99
+0.00 licik
+0.00 look 0 -4 0
+0.45 gest point 0.9 kanan
+1.55 penasaran
+1.55 look 20 12 0
+2.55 sinis
+2.55 look 0 18 0
+3.10 gest magnify 1.5 kanan
+4.45 datar
+4.45 look -6 -4 0
