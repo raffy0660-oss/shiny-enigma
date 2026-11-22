@@ -1,0 +1,5 @@
+0 style2d
+0 licik
+0 look -10 -2 0
+0 acting 0
+0 gest phone 9 kanan

@@ -1,0 +1,10 @@
+# Scene 9 office (45.40-50.50): back to the photograph with the magnifier, tension light
+0 style2d
+0 detective 99
+45.40 curiga
+45.40 look 0 18 0
+45.70 gest magnify 2.9 kanan
+47.10 penasaran
+47.10 look 0 24 0
+48.90 kaget
+48.90 look 0 26 0

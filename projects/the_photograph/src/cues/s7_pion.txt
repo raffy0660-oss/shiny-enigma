@@ -1,0 +1,9 @@
+# Scene 7 office (34.00-36.20): the calendar tears to FRIDAY, lightning
+0 style2d
+0 detective 99
+34.00 curiga
+34.00 look 20 12 0
+34.50 syok
+34.50 look 15 8 0
+35.40 cemas
+35.40 look 0 -4 0

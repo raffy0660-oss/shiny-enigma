@@ -192,6 +192,7 @@ for (const x of [-0.05, 0, 0.05]) add(new THREE.TorusGeometry(0.008, 0.002, 6, 1
 
 const PROPS1 = scene.children.length, PIV = V(DESK.x, DESK.h, DESK.z), PS = 1.5, SPREAD = V(1.3, PS, 1.0);
 for (const o of scene.children.slice(PROPS0, PROPS1)) { if (o.position.y < DESK.h - 0.05) continue; o.position.sub(PIV).multiply(SPREAD).add(PIV); o.scale.multiplyScalar(PS); }
+const ANON0 = { p: anon.position.clone(), r: anon.rotation.clone() };
 window.PROPS = { anon: anon.position.toArray(), cal: cal.position.toArray(), mag: magR.position.toArray() };
 
 // ---------------------------------------------------------------- the pendant lamp + its light (the hero of the shot)
@@ -377,6 +378,57 @@ const licTex = canvasTex(512, 380, (g, w, h) => { g.fillStyle = "#f1e8cf"; g.fil
 add(box(0.5, 0.38, 0.03, 0.01), mat({ color: 0x2b1a10 }), -1.42, 1.62, BACK + 0.03); add(new THREE.PlaneGeometry(0.44, 0.32), mat({ map: licTex }), -1.42, 1.62, BACK + 0.047, { cast: false });
 
 
+
+// ---------------------------------------------------------------- scene 7: the THURSDAY page on the desk calendar (tears off on "Then Friday"); scenes 12-13: the laptop
+const thuTex = canvasTex(512, 600, (g, w, h) => { g.fillStyle = "#f6f1e4"; g.fillRect(0, 0, w, h); g.fillStyle = "#3a5a8a"; g.fillRect(0, 0, w, 150); g.strokeStyle = "#2b2018"; g.lineWidth = 10; g.strokeRect(5, 5, w - 10, h - 10);
+  g.fillStyle = "#fff"; g.font = "900 78px Arial Black, sans-serif"; g.textAlign = "center"; g.fillText("THURSDAY", w / 2, 108); g.fillStyle = "#222"; g.font = "900 260px Georgia, serif"; g.fillText("13", w / 2, 420); hand(g, "1 day", w / 2, 545, 64, "#a01d22"); });
+const calPivot = new THREE.Group(); calPivot.position.set(0, 0.165, 0.004); cal.add(calPivot);
+const thuPage = add(box(0.15, 0.17, 0.004, 0.002), mat({ map: thuTex }), 0, -0.085, 0.03, { rx: -0.32, parent: calPivot }); calPivot.visible = false;
+function placeCalPage(k) { if (k === undefined || k >= 1) { calPivot.visible = false; return; } calPivot.visible = true;
+  const u = Math.max(0, k); calPivot.rotation.set(-u * 2.2, 0, u * 0.8); calPivot.position.set(u * 0.25, 0.165 + u * 0.35, 0.004 + u * 0.3); }
+const photoImg = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = "./tex/photo_front.jpg"; });
+const scrCanvas = document.createElement("canvas"); scrCanvas.width = 1024; scrCanvas.height = 680; const scrTex = new THREE.CanvasTexture(scrCanvas); scrTex.colorSpace = THREE.SRGBColorSpace; scrTex.anisotropy = 8;
+function drawScreen(S, t) { const g = scrCanvas.getContext("2d"), w = 1024, h = 680, k = S.k || 0;
+  g.fillStyle = "#0e1424"; g.fillRect(0, 0, w, h); g.fillStyle = "#1c2640"; g.fillRect(0, 0, w, 56); g.fillStyle = "#e05a5a"; g.beginPath(); g.arc(30, 28, 10, 0, 7); g.fill(); g.fillStyle = "#e0b05a"; g.beginPath(); g.arc(60, 28, 10, 0, 7); g.fill(); g.fillStyle = "#5ae07a"; g.beginPath(); g.arc(90, 28, 10, 0, 7); g.fill();
+  g.font = "700 30px Arial, sans-serif"; g.fillStyle = "#cfd8f0"; g.textBaseline = "middle";
+  if (S.mode === "meta") {
+    g.fillText("Photo Info  -  IMG_1142.JPG", 130, 28); g.drawImage(photoImg, 40, 90, 330, 412); g.strokeStyle = "#cfd8f0"; g.lineWidth = 3; g.strokeRect(40, 90, 330, 412);
+    const rows = [["File", "IMG_1142.JPG"], ["Date taken", null], ["Time", "11:42 PM"], ["Place", "Apt. 7B"], ["Sent by", "unknown"]];
+    rows.forEach(([a, b], i) => { const y = 130 + i * 92; g.fillStyle = "#7f8cb0"; g.font = "700 28px Arial, sans-serif"; g.fillText(a, 410, y); g.fillStyle = "#e8eefc"; g.font = "800 40px Arial, sans-serif";
+      if (b) g.fillText(b, 410, y + 40); else { const old = k < 0.5; g.fillStyle = old ? "#e8eefc" : "#ff4a4a"; g.fillText(old ? "3 DAYS AGO" : "5 YEARS AGO", 410, y + 40); if (!old) { g.fillRect(410, y + 66, 300, 5); } } });
+    const gl = Math.max(0, 1 - Math.abs(k - 0.5) * 6);   // glitch around the switch
+    if (gl > 0) { for (let i = 0; i < 14; i++) { const y = ((Math.sin(t * 91 + i * 7.3) * 0.5 + 0.5) * h) | 0, hh = 6 + ((i * 13) % 30), dx = Math.sin(t * 57 + i) * 60 * gl; const d = g.getImageData(0, y, w, hh); g.putImageData(d, dx, y); }
+      g.fillStyle = `rgba(255,40,60,${0.25 * gl})`; g.fillRect(0, 0, w, h); }
+  } else if (S.mode === "mail") {
+    g.fillText("Mail  -  Inbox", 130, 28); g.fillStyle = "#141c32"; g.fillRect(0, 56, 300, h - 56);
+    for (let i = 0; i < 6; i++) { g.fillStyle = i === 0 ? "#2a3a66" : "#141c32"; g.fillRect(10, 70 + i * 92, 280, 82); g.fillStyle = "#cfd8f0"; g.font = "700 24px Arial, sans-serif"; g.fillText(i === 0 ? "(no subject)" : "...", 26, 100 + i * 92); g.fillStyle = "#7f8cb0"; g.font = "600 20px Arial, sans-serif"; g.fillText(i === 0 ? "5 years ago" : "", 26, 132 + i * 92); }
+    const L = (lab, val, y, hi) => { g.fillStyle = "#7f8cb0"; g.font = "700 28px Arial, sans-serif"; g.fillText(lab, 330, y); g.fillStyle = hi ? "#ff5a5a" : "#e8eefc"; g.font = "800 34px Arial, sans-serif"; g.fillText(val, 450, y); };
+    L("From:", "succify@succify.mail", 110, k > 0.3); L("To:", "succify@succify.mail", 160, false); L("Sent:", "5 years ago, 11:42 PM", 210, k > 0.65);
+    if (k > 0.3) { g.fillStyle = "#ff5a5a"; g.fillRect(450, 132, Math.min(1, (k - 0.3) * 5) * 360, 4); }
+    g.fillStyle = "#26304e"; g.fillRect(330, 250, 660, 2); g.drawImage(photoImg, 340, 280, 260, 325); g.strokeStyle = "#cfd8f0"; g.lineWidth = 3; g.strokeRect(340, 280, 260, 325);
+    g.fillStyle = "#cfd8f0"; g.font = "700 26px Arial, sans-serif"; g.fillText("IMG_1142.JPG", 630, 300); g.fillStyle = "#7f8cb0"; g.font = "600 24px Arial, sans-serif"; g.fillText("1 attachment", 630, 340);
+  }
+  scrTex.needsUpdate = true; }
+const LAP = new THREE.Group(); LAP.position.set(0.8, DESK.h + 0.006, DESK.z + 0.08); LAP.rotation.y = 0.35; scene.add(LAP); LAP.visible = false;
+const lapM = mat({ color: 0x2a2c34, roughness: 0.4, metalness: 0.5 });
+add(box(0.46, 0.022, 0.32, 0.012), lapM, 0, 0.011, 0, { parent: LAP });
+const keysTex = canvasTex(256, 160, (g, w, h) => { g.fillStyle = "#1a1c22"; g.fillRect(0, 0, w, h); g.fillStyle = "#3a3d48"; for (let r = 0; r < 5; r++) for (let c = 0; c < 12; c++) g.fillRect(8 + c * 20, 8 + r * 22, 16, 16); g.fillRect(70, 118, 110, 16); });
+add(new THREE.PlaneGeometry(0.4, 0.2), mat({ map: keysTex }), 0, 0.0225, 0.03, { rx: -Math.PI / 2, parent: LAP, cast: false });
+const lid = new THREE.Group(); lid.position.set(0, 0.022, -0.16); lid.rotation.x = -0.28; LAP.add(lid);
+add(box(0.46, 0.3, 0.014, 0.012), lapM, 0, 0.15, 0, { parent: lid });
+const scrM = new THREE.MeshBasicMaterial({ map: scrTex, color: new THREE.Color(1.25, 1.25, 1.25) });
+add(new THREE.PlaneGeometry(0.42, 0.27), scrM, 0, 0.152, 0.0075, { parent: lid, cast: false });
+const scrLight = new THREE.SpotLight(0x9ab8ff, 0, 2.5, 0.9, 0.8, 1.4); scene.add(scrLight, scrLight.target);
+function placeLaptop(Lp, t) { LAP.visible = !!Lp; cal.visible = !Lp; if (!Lp) { scrLight.intensity = 0; return; } drawScreen(Lp, t);
+  LAP.updateMatrixWorld(); const c = V(0, 0.15, 0.05).applyMatrix4(lid.matrixWorld); scrLight.position.copy(c); scrLight.target.position.set(0, 1.2, PZ); scrLight.intensity = Lp.light ?? 3.0; }
+
+
+// scene 9: a magnifying glass hovering over the photo (Pion holds it just out of frame); the camera dives through its lens. F.mag = { p, rx }
+const MAG = new THREE.Group(); scene.add(MAG); MAG.visible = false;
+add(new THREE.TorusGeometry(0.09, 0.013, 12, 40), mat({ color: 0xd9b040, metalness: .85, roughness: .3 }), 0, 0, 0, { rx: -Math.PI / 2, parent: MAG });
+add(new THREE.CylinderGeometry(0.088, 0.088, 0.004, 40), new THREE.MeshPhysicalMaterial({ color: 0xdff0ff, roughness: 0.05, transmission: 0.7, transparent: true, opacity: 0.22 }), 0, 0, 0, { parent: MAG, cast: false });
+add(new THREE.CylinderGeometry(0.016, 0.02, 0.2, 10), mat({ color: 0x4a2412 }), 0.19, 0, 0.0, { rz: Math.PI / 2, parent: MAG });
+function placeMag(M) { MAG.visible = !!M; magR.visible = !M; if (M) { MAG.position.set(...M.p); MAG.rotation.set(M.rx || 0, M.ry || 0, M.rz || 0); } }
 // ---------------------------------------------------------------- moods: the light tells the story (PANDUAN_SINEMATIK §3)
 // normal  : warm pool + blue night (setup / investigation)
 // tension : lamp dims and stutters, the blue takes over, heavier vignette, denser haze (doubt, "found nothing")
@@ -447,10 +499,10 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   camera.position.set(...F.cam.pos); camera.fov = F.cam.fov; camera.updateProjectionMatrix(); camera.lookAt(...F.cam.tgt); camera.updateMatrixWorld();
   if (F.cam.roll) camera.rotateZ(F.cam.roll);
   bokeh.uniforms.focus.value = F.cam.focus; placeDust(F.t); grade.uniforms.time.value = F.t;
-  applyMood(F.mood || "normal", F.mood2 || F.mood || "normal", F.moodK || 0, F.t);
+  applyMood(F.mood || "normal", F.mood2 || F.mood || "normal", F.moodK || 0, F.t); if (F.strike) moon.intensity += 140;
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
   bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
-  placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.clock) setClock(...F.clock); else setClock(11, 41);
+  placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag);
   await placePion(F.pion);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); if (pionCard.visible) renderer.render(pionScene, camera); renderer.setRenderTarget(null);
@@ -458,4 +510,6 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   const pr = (x, y, z) => { const q = V(x, y, z).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };
   return { img: renderer.domElement.toDataURL("image/jpeg", 0.93), pts: { head: F.pion ? pr(F.pion.anchor[0], F.pion.anchor[1] + F.pion.height * 0.8, F.pion.anchor[2]) : null } };
 };
+
+{ const orig = gtao.render.bind(gtao); gtao.render = (...a) => { const H = [cone, dust, spill].filter(Boolean), v = H.map(o => o.visible); H.forEach(o => o.visible = false); orig(...a); H.forEach((o, i) => o.visible = v[i]); }; }   // volumes/particles stay out of the AO + ink depth
 window.SHOTS = SHOTS; window.__ready = true;

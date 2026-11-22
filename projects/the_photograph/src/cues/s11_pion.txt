@@ -1,0 +1,19 @@
+# Scenes 11-13 office (54.30-73.40): "It was me." -> metadata -> email -> black
+0 style2d
+0 detective 99
+54.30 cemas
+54.30 look 0 -2 0
+54.56 syok
+54.56 look 0 -6 0
+55.74 curiga
+55.74 look 32 10 0
+57.26 penasaran
+59.84 kaget
+61.66 cemas
+61.66 look 8 4 0
+64.62 curiga
+64.62 look 32 10 0
+68.74 syok
+70.58 cemas
+70.58 look 0 -4 0
+72.40 datar

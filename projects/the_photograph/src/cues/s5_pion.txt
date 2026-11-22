@@ -1,0 +1,12 @@
+# Scene 5 (21.00-27.95): Pion on the sidewalk in front of No. 77 at dusk
+0 style2d
+0 detective 99
+21.00 penasaran
+21.00 look -20 -6 0
+23.20 look -8 -22 0
+23.20 curiga
+24.60 look 30 4 0
+24.60 kaget
+25.40 gest point 1.2 kanan
+26.40 sinis
+26.40 look 26 2 0

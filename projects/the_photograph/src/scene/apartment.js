@@ -156,10 +156,10 @@ const hallM = new THREE.MeshBasicMaterial({ color: 0x0a0a12 }); add(new THREE.Pl
 const doorTex = canvasTex(512, 1024, (g, w, h) => { g.fillStyle = "#5e6b5a"; g.fillRect(0, 0, w, h); g.strokeStyle = "#2a3028"; g.lineWidth = 10;
   g.strokeRect(60, 70, w - 120, 380); g.strokeRect(60, 520, w - 120, 430); g.strokeStyle = "rgba(20,24,20,.4)"; g.lineWidth = 3; for (let i = 0; i < 30; i++) { const x = rnd() * w, y = rnd() * h; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rnd() - .5) * 40, y + rnd() * 30); g.stroke(); }   // chipped paint
   g.fillStyle = "#c9a24a"; g.font = "900 120px Georgia, serif"; g.textAlign = "center"; g.fillText("7B", w / 2, 300); g.strokeStyle = "#5a4012"; g.lineWidth = 4; g.strokeText("7B", w / 2, 300); });
-const hinge = group(DOOR.x - 0.04, 0, DOOR.z + DOOR.w / 2, -0.55);   // opened inward ~30 degrees
-add(box(0.05, DOOR.h - 0.02, DOOR.w, 0.01), [mat({ map: doorTex }), mat({ map: doorTex }), mat({ color: 0x4a5548 }), mat({ color: 0x4a5548 }), mat({ color: 0x4a5548 }), mat({ color: 0x4a5548 })], 0, DOOR.h / 2, -DOOR.w / 2, { parent: hinge });
-add(new THREE.SphereGeometry(0.035, 14, 10), mat({ color: 0xc9a24a, metalness: 0.8, roughness: 0.35 }), -0.05, 0.72, -DOOR.w + 0.1, { parent: hinge });
-add(box(0.03, 0.03, 0.18, 0.01), mat({ color: 0x9a9aa0, metalness: 0.8 }), -0.04, 1.05, -DOOR.w + 0.1, { parent: hinge });   // broken chain latch hanging
+const hinge = group(DOOR.x - 0.04, 0, DOOR.z - DOOR.w / 2, -1.25);   // hinged on the back side, swung wide open into the room: the doorway stays clear from the front
+add(box(0.05, DOOR.h - 0.02, DOOR.w, 0.01), [mat({ map: doorTex }), mat({ map: doorTex }), mat({ color: 0x4a5548 }), mat({ color: 0x4a5548 }), mat({ color: 0x4a5548 }), mat({ color: 0x4a5548 })], 0, DOOR.h / 2, DOOR.w / 2, { parent: hinge });
+add(new THREE.SphereGeometry(0.035, 14, 10), mat({ color: 0xc9a24a, metalness: 0.8, roughness: 0.35 }), -0.05, 0.72, DOOR.w - 0.1, { parent: hinge });
+add(box(0.03, 0.03, 0.18, 0.01), mat({ color: 0x9a9aa0, metalness: 0.8 }), -0.04, 1.05, DOOR.w - 0.1, { parent: hinge });   // broken chain latch hanging
 for (const [w, h, y, z] of [[0.08, DOOR.h + 0.08, DOOR.h / 2 + 0.04, DOOR.z - DOOR.w / 2 - 0.04], [0.08, DOOR.h + 0.08, DOOR.h / 2 + 0.04, DOOR.z + DOOR.w / 2 + 0.04], [DOOR.w + 0.16, 0.08, DOOR.h + 0.04, DOOR.z]]) add(box(0.06, h, w, 0.01), trimM, XR - 0.03, y, z);
 
 // ---------------------------------------------------------------- furniture (Pion scale) and storytelling clutter
@@ -238,6 +238,7 @@ add(new THREE.TorusGeometry(0.05, 0.008, 6, 16, Math.PI), brassM, 0, 0.22, -0.02
 const clockFace = add(new THREE.CircleGeometry(0.15, 40), mat({ map: faceTex, emissive: 0xffe2a8, emissiveMap: faceTex, emissiveIntensity: 0 }), 0, 0, 0.056, { parent: CLK, cast: false });
 const crack = add(new THREE.CircleGeometry(0.15, 40), new THREE.MeshBasicMaterial({ map: crackTex, transparent: true, depthWrite: false, opacity: 0.85 }), 0, 0, 0.064, { parent: CLK, cast: false });
 for (let i = 0; i < 5; i++) add(new THREE.TetrahedronGeometry(0.018 + rnd() * 0.015), new THREE.MeshPhysicalMaterial({ color: 0xdfefff, roughness: 0.1, transmission: 0.5, transparent: true, opacity: 0.6 }), CLOCK.p.x - 0.25 + rnd() * 0.5, 0.012, CLOCK.p.z + 0.1 + rnd() * 0.3, { cast: false });   // glass shards
+const reflM = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0, fog: false }); const refl = add(new THREE.PlaneGeometry(0.17, 0.24), reflM, 0.02, 0.0, 0.066, { parent: CLK, cast: false }); refl.visible = false;   // the reflection in the glass (scenes 9-10)
 const clockGlow = new THREE.PointLight(0xffd59a, 0, 1.4, 2); clockGlow.position.set(CLOCK.p.x, 0.35, CLOCK.p.z + 0.25); scene.add(clockGlow);
 const clockStuff = [CLK]; scene.children.slice(-6, -1).forEach(o => { if (o.geometry && o.geometry.type === "TetrahedronGeometry") clockStuff.push(o); });
 
@@ -282,10 +283,10 @@ const VERS = {
 };
 function applyVer(ver, t, o = {}) {
   const S = VERS[ver] || VERS.A, flick = ver === "A" ? 1 - 0.08 * Math.sin(t * 17) * Math.sin(t * 5.3) : 1;
-  hemi.intensity = S.hemi; hemi.color.set(S.hemiCol); bulbL.intensity = S.bulb * flick * (o.bulbK ?? 1); bulbM.color.setRGB(1, 0.85, 0.6).multiplyScalar(S.bulb > 0 ? 9 * flick * (o.bulbK ?? 1) : 0.15);
-  sun.intensity = S.sun; moonL.intensity = S.moon; fillL.intensity = S.fill; beamM.uniforms.k.value = S.beam * (o.beamK ?? 1); beamM.uniforms.col.value.setRGB(...S.beamCol); dustM.opacity = S.dust;
+  hemi.intensity = S.hemi * (o.hemiK ?? 1); hemi.color.set(S.hemiCol).lerp(new THREE.Color(0x2a46c8), o.blueK || 0); bulbL.intensity = S.bulb * flick * (o.bulbK ?? 1); bulbM.color.setRGB(1, 0.85, 0.6).multiplyScalar(S.bulb > 0 ? 9 * flick * (o.bulbK ?? 1) : 0.15);
+  sun.intensity = S.sun * (o.sunK ?? 1); moonL.intensity = S.moon; fillL.intensity = S.fill; beamM.uniforms.k.value = S.beam * (o.beamK ?? 1); beamM.uniforms.col.value.setRGB(...S.beamCol); dustM.opacity = S.dust;
   scene.fog.color.set(S.fogCol); scene.fog.density = S.fog; scene.background.set(S.bg); skyM.map = skyTex[S.sky]; skyM.needsUpdate = true;
-  grade.uniforms.vig.value = S.vig; grade.uniforms.sepia.value = o.sepia ?? S.sepia; grade.uniforms.grain.value = S.grain; grade.uniforms.tint.value.set(...S.tint);
+  grade.uniforms.vig.value = S.vig; grade.uniforms.sepia.value = o.sepia ?? S.sepia; grade.uniforms.grain.value = S.grain; grade.uniforms.tint.value.set(...(o.tint || S.tint)); if (o.vig != null) grade.uniforms.vig.value = o.vig;
   const ph = Math.floor(t * 4) % 2, st = S.strobe; strobeR.intensity = st * (ph ? 7 : 0.3); strobeB.intensity = st * (ph ? 0.3 : 7); hallStrobe.intensity = st * (ph ? 0.4 : 3.5);
   const bolt = st > 0.5 && ((t % 3.3) < 0.07 || ((t % 3.3) > 0.15 && (t % 3.3) < 0.2)); moonL.intensity += bolt ? 120 : 0;
   hallM.color.set(st ? (ph ? 0x1a1030 : 0x401018) : 0x0a0a12);
@@ -337,6 +338,7 @@ window.renderFrame = async (F) => {   // F: { t, ver, cam:{pos,tgt,fov,focus,rol
   bokeh.uniforms.focus.value = F.cam.focus; bokeh.uniforms.aperture.value = F.cam.aperture ?? 0.0016; placeDust(F.t); grade.uniforms.time.value = F.t;
   applyVer(F.ver || "A", F.t, F); grade.uniforms.flash.value = F.flash || 0;
   const ph = Math.floor(F.t * 4) % 2; tapeM.color.copy(F.ver === "C" ? tapeMul.setRGB(ph ? 0.8 : 0.55, 0.55, ph ? 0.6 : 0.85) : tapeMul.setRGB(0.75, 0.75, 0.75));
+  if (F.refl) { reflM.map = await loadTex(F.refl.url); reflM.opacity = F.refl.k; reflM.needsUpdate = true; refl.visible = true; } else refl.visible = false;
   const list = (F.pions || (F.pion ? [F.pion] : [])); await placeCards(list);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(cardScene, camera); renderer.setRenderTarget(null);
@@ -347,4 +349,6 @@ window.renderFrame = async (F) => {   // F: { t, ver, cam:{pos,tgt,fov,focus,rol
   list.forEach((P, i) => { if (P && P.anchor) pts["pion" + i] = pr([P.anchor[0], P.anchor[1] + P.height * 0.75, P.anchor[2]]); });
   return { img: renderer.domElement.toDataURL("image/jpeg", 0.93), pts };
 };
+
+{ const orig = gtao.render.bind(gtao); gtao.render = (...a) => { const H = [...beams, dust, ...scene.children.filter(o => o.material === webM)].filter(Boolean), v = H.map(o => o.visible); H.forEach(o => o.visible = false); orig(...a); H.forEach((o, i) => o.visible = v[i]); }; }   // volumes/particles stay out of the AO + ink depth
 window.__ready = true;

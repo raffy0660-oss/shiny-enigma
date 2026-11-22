@@ -1,0 +1,15 @@
+# Scene 6 (27.90-34.05): Pion searches apartment B with the magnifying glass (hops room to room)
+0 style2d
+0 detective 99
+27.90 penasaran
+27.90 look -25 4 0
+28.20 gest magnify 5.9 kanan
+29.40 curiga
+29.40 look -10 20 0
+30.20 kecewa
+30.95 look -20 26 0
+31.70 curiga
+31.70 look -15 24 0
+32.50 penasaran
+32.50 look 25 6 0
+33.30 ragu
