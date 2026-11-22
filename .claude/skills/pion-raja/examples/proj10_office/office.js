@@ -295,6 +295,39 @@ for (let s = 0; s < 4; s++) { add(box(0.84, 0.03, 0.3, 0.005), mat({ color: 0x4a
 const licTex = canvasTex(512, 380, (g, w, h) => { g.fillStyle = "#f1e8cf"; g.fillRect(0, 0, w, h); g.strokeStyle = "#b08a3a"; g.lineWidth = 14; g.strokeRect(20, 20, w - 40, h - 40); g.fillStyle = "#2a2a2a"; g.font = "700 40px Georgia, serif"; g.textAlign = "center"; g.fillText("PRIVATE", w / 2, 130); g.fillText("INVESTIGATOR", w / 2, 180); g.font = "italic 30px Georgia, serif"; g.fillText("licence no. 7", w / 2, 250); });
 add(box(0.5, 0.38, 0.03, 0.01), mat({ color: 0x2b1a10 }), -1.35, 2.15, BACK + 0.03); add(new THREE.PlaneGeometry(0.44, 0.32), mat({ map: licTex }), -1.35, 2.15, BACK + 0.047, { cast: false });
 
+
+// ---------------------------------------------------------------- moods: the light tells the story (PANDUAN_SINEMATIK §3)
+// normal  : warm pool + blue night (setup / investigation)
+// tension : lamp dims and stutters, the blue takes over, heavier vignette, denser haze (doubt, "found nothing")
+// conflict: lamp nearly dead, deep blue, red/blue police strobe through the blinds, lightning flashes ("Then Friday arrived")
+// reveal  : the room goes black, a cold sickly under-light from the desk hits the face, red edge tint ("It was me")
+const MOODS = {
+  normal:   { key: 7.5, keyCol: 0xffd59a, hemi: 0.62, hemiCol: 0x3e5cc0, moon: 24, fill: 1.1, board: 3.2, cone: 0.24, fog: 0.035, vig: 0.42, tint: [0, 0, 0], under: 0, strobe: 0, flicker: 0.015 },
+  tension:  { key: 4.2, keyCol: 0xffc98a, hemi: 0.5, hemiCol: 0x3550c8, moon: 34, fill: 1.5, board: 1.6, cone: 0.2, fog: 0.05, vig: 0.55, tint: [-0.02, 0.0, 0.05], under: 0, strobe: 0, flicker: 0.12 },
+  conflict: { key: 0.9, keyCol: 0xffb070, hemi: 0.42, hemiCol: 0x2a46c8, moon: 40, fill: 1.9, board: 0.4, cone: 0.06, fog: 0.06, vig: 0.62, tint: [-0.03, 0.0, 0.08], under: 0, strobe: 1, flicker: 0.3 },
+  reveal:   { key: 0.0, keyCol: 0xffb070, hemi: 0.12, hemiCol: 0x203070, moon: 6, fill: 0.2, board: 0.0, cone: 0.0, fog: 0.07, vig: 0.72, tint: [0.05, -0.01, 0.0], under: 1, strobe: 0, flicker: 0 },
+};
+const hemiL = scene.children.find(o => o.isHemisphereLight);
+const strobeR = new THREE.PointLight(0xff2a3a, 0, 6, 1.4), strobeB = new THREE.PointLight(0x2a5aff, 0, 6, 1.4);
+strobeR.position.set(-RW / 2 + 0.3, WIN.y, WIN.z - 0.3); strobeB.position.set(-RW / 2 + 0.3, WIN.y, WIN.z + 0.3); scene.add(strobeR, strobeB);
+const under = new THREE.SpotLight(0x8affc8, 0, 3, 0.9, 0.7, 1.2); under.position.set(0, DESK.h + 0.05, DESK.z + 0.35); under.target.position.set(0, 1.6, DESK.z - 0.6); scene.add(under, under.target);
+grade.material.fragmentShader = grade.material.fragmentShader.replace("uniform float time;", "uniform float time; uniform float vig; uniform vec3 tint;")
+  .replace("c += vec3(-0.01, 0.0, 0.025) * (1.0 - l);", "c += vec3(-0.01, 0.0, 0.025) * (1.0 - l) + tint;").replace("c *= 1.0 - 0.42 * smoothstep", "c *= 1.0 - vig * smoothstep");
+grade.uniforms.vig = { value: 0.42 }; grade.uniforms.tint = { value: new THREE.Vector3() }; grade.material.uniforms = grade.uniforms; grade.material.needsUpdate = true;
+const lerpN = (a, b, k) => a + (b - a) * k, cA = new THREE.Color(), cB = new THREE.Color();
+function applyMood(a, b, k, t) {   // blend mood a -> b by k (0..1); t drives flicker / strobe / lightning
+  const A = MOODS[a] || MOODS.normal, B = MOODS[b] || A, m = {}; for (const q in A) m[q] = Array.isArray(A[q]) ? A[q].map((v, i) => lerpN(v, B[q][i], k)) : typeof A[q] === "number" && A[q] > 1000 ? null : lerpN(A[q], B[q], k);
+  const fl = m.flicker, stutter = 1 - fl * (0.5 + 0.5 * Math.sin(t * 13) * Math.sin(t * 3.7)) - (fl > 0.1 && (Math.sin(t * 7.3) > 0.93) ? 0.7 : 0);
+  key.intensity = m.key * Math.max(0, stutter); key.color.copy(cA.set(A.keyCol).lerp(cB.set(B.keyCol), k));
+  bulb.material.color.setRGB(1, 0.86, 0.58).multiplyScalar(9 * Math.max(0.03, m.key / 7.5 * stutter)); inner.material.emissiveIntensity = 0.8 * Math.max(0.03, m.key / 7.5 * stutter);
+  hemiL.intensity = m.hemi; hemiL.color.copy(cA.set(A.hemiCol).lerp(cB.set(B.hemiCol), k)); moon.intensity = m.moon; nightFill.intensity = m.fill; boardLight.intensity = m.board;
+  coneM.uniforms.k.value = m.cone * Math.max(0, stutter); scene.fog.density = m.fog; grade.uniforms.vig.value = m.vig; grade.uniforms.tint.value.set(...m.tint);
+  const st = m.strobe, ph = Math.floor(t * 4) % 2; strobeR.intensity = st * (ph ? 6 : 0.3); strobeB.intensity = st * (ph ? 0.3 : 6);
+  const bolt = st > 0.5 && ((t % 3.1) < 0.08 || ((t % 3.1) > 0.16 && (t % 3.1) < 0.21)); moon.intensity += bolt ? 140 : 0;
+  under.intensity = m.under * 5; deskBounce.intensity = 0.5 * Math.max(0, m.key / 7.5);
+}
+window.MOODS = MOODS;
+
 // ---------------------------------------------------------------- camera shots + render
 const SHOTS = {
   wide: { pos: V(0.18, 1.28, 1.55), tgt: V(0, 1.47, -1.6), fov: 46, focus: 2.5 },
@@ -307,7 +340,7 @@ window.renderShot = (name, t = 0, over) => {
   const S = Object.assign({}, SHOTS[name] || SHOTS.wide, over || {});
   camera.position.copy(S.pos); camera.fov = S.fov; camera.updateProjectionMatrix(); camera.lookAt(S.tgt);
   bokeh.uniforms.focus.value = S.focus; placeDust(t); grade.uniforms.time.value = t;
-  key.intensity = 7.5 * (1 + 0.015 * Math.sin(t * 13) * Math.sin(t * 3.7));   // the bulb hums a little
+  applyMood(S.mood || 'normal', S.mood2 || S.mood || 'normal', S.moodK || 0, t);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   composer.render();
   return renderer.domElement.toDataURL("image/jpeg", 0.93);
