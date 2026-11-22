@@ -79,7 +79,7 @@ const add = (geo, m, x, y, z, o = {}) => { const me = new THREE.Mesh(geo, m); me
   me.castShadow = o.cast !== false; me.receiveShadow = true; (o.parent || scene).add(me); return me; };
 const box = (w, h, d, r = 0.01) => new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2.1, h / 2.1, d / 2.1));
 const rr = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
-const hand = (g, txt, x, y, size, col = "#1d2a5a", rot = 0, font = "Comic Sans MS, 'Comic Neue', cursive") => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.font = `700 ${size}px ${font}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 0, 0); g.restore(); };
+const hand = (g, txt, x, y, size, col = "#1d2a5a", rot = 0, font = "Caveat, 'Comic Neue', cursive") => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.font = `700 ${size}px ${font}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 0, 0); g.restore(); };
 
 // ---------------------------------------------------------------- room
 const RW = 4.6, RD = 4.4, RH = 2.45, WH = 0.72, BACK = -2.6, FRONT = BACK + RD;   // sized for Pion (1.03 m to the hat top): ceiling, wainscot, door and furniture are his scale
@@ -156,9 +156,9 @@ const paperTex = (kind, i) => canvasTex(512, 680, (g, w, h) => {
 const papers = [];
 function paper(kind, i, x, z, ry, s = 0.21, lift = 0) { const t = paperTex(kind, i); const m = mat({ map: t, roughness: 0.9 });
   const p = add(box(s, 0.003, s * 1.33, 0.001), m, x, DESK.h + 0.009 + lift, z, { ry }); p.castShadow = true; papers.push(p); return p; }
-paper("typed", 0, -0.32, DESK.z + 0.08, 0.25); paper("typed", 1, -0.18, DESK.z + 0.16, -0.18, 0.21, 0.004); paper("photo", 0, 0.05, DESK.z + 0.05, 0.12, 0.17, 0.008);
+paper("typed", 0, -0.32, DESK.z + 0.08, 0.25); paper("typed", 1, -0.18, DESK.z + 0.16, -0.18, 0.21, 0.004); paper("photo", 0, 0.34, DESK.z - 0.12, 0.32, 0.17, 0.008);
 paper("note", 0, 0.28, DESK.z + 0.14, -0.35, 0.16, 0.002); paper("typed", 2, 0.45, DESK.z - 0.12, 0.5); paper("photo", 1, -0.55, DESK.z - 0.18, -0.4, 0.15);
-paper("note", 1, 0.62, DESK.z + 0.2, 0.2, 0.15); paper("photo", 2, -0.05, DESK.z - 0.22, 0.9, 0.15, 0.003); paper("note", 2, -0.68, DESK.z + 0.22, -0.15, 0.14);
+paper("note", 1, 0.62, DESK.z + 0.2, 0.2, 0.15); paper("photo", 2, -0.12, DESK.z - 0.3, 0.9, 0.15, 0.003); paper("note", 2, -0.68, DESK.z + 0.22, -0.15, 0.14);
 // manila folders (open + stacked)
 const manilaM = mat({ color: 0xd2a35a, roughness: 0.85 }), manilaD = mat({ color: 0xb98a43 });
 for (let k = 0; k < 4; k++) add(box(0.32, 0.012, 0.24, 0.004), k % 2 ? manilaD : manilaM, -0.62 + (rnd() - .5) * 0.03, DESK.h + 0.008 + k * 0.014, DESK.z - 0.05 + (rnd() - .5) * 0.04, { ry: 0.1 + (rnd() - .5) * 0.2 });
@@ -180,23 +180,8 @@ for (let k = 0; k < 6; k++) { const p = add(box(0.3, 0.003, 0.4, 0.001), mat({ m
 
 
 // ---------------------------------------------------------------- the case data on the desk (scene 1: the camera visits these instead of the wall)
-const anonTex = canvasTex(800, 960, (g, w, h) => {   // the anonymous photograph: Daniel lying in the dark apartment, broken clock at 11:42
-  g.fillStyle = "#fbf8f0"; g.fillRect(0, 0, w, h); g.strokeStyle = "#2b2018"; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8);
-  const X = 50, Y = 50, S = w - 100; const gr = g.createLinearGradient(0, Y, 0, Y + S); gr.addColorStop(0, "#1b2340"); gr.addColorStop(1, "#2c2a3a"); g.fillStyle = gr; g.fillRect(X, Y, S, S);
-  g.fillStyle = "#3a2c26"; g.fillRect(X, Y + S * .62, S, S * .38); g.strokeStyle = "#241a15"; g.lineWidth = 4; for (let k = 0; k < 5; k++) { g.beginPath(); g.moveTo(X, Y + S * .62 + k * 34); g.lineTo(X + S, Y + S * .62 + k * 34); g.stroke(); }
-  g.fillStyle = "rgba(255,230,160,.18)"; g.beginPath(); g.moveTo(X + S * .55, Y); g.lineTo(X + S * .85, Y); g.lineTo(X + S * .95, Y + S); g.lineTo(X + S * .25, Y + S); g.closePath(); g.fill();   // light from a window
-  g.save(); g.translate(X + S * .42, Y + S * .78); g.rotate(-0.08);   // the body: an ivory pawn in a mustard vest, lying on its side (eyes closed, no blood)
-  g.lineWidth = 7; g.strokeStyle = "#1b1410"; g.fillStyle = "#efe8d8"; g.beginPath(); g.moveTo(-60, -40); g.lineTo(150, -70); g.lineTo(150, 70); g.lineTo(-60, 40); g.closePath(); g.fill(); g.stroke();
-  g.fillStyle = "#e3a536"; g.beginPath(); g.moveTo(-30, -36); g.lineTo(100, -55); g.lineTo(100, 55); g.lineTo(-30, 36); g.closePath(); g.fill(); g.stroke();
-  g.fillStyle = "#a8161c"; g.fillRect(-30, -6, 110, 12); g.fillStyle = "#efe8d8"; g.beginPath(); g.ellipse(-70, 0, 22, 52, 0, 0, 7); g.fill(); g.stroke();
-  g.beginPath(); g.arc(-150, 0, 70, 0, 7); g.fill(); g.stroke(); g.lineWidth = 6; g.beginPath(); g.moveTo(-175, -20); g.lineTo(-158, -16); g.moveTo(-175, 22); g.lineTo(-158, 18); g.stroke();
-  g.fillStyle = "#efe8d8"; g.fillRect(150, -85, 40, 170); g.strokeRect(150, -85, 40, 170); g.restore();
-  g.save(); g.translate(X + S * .78, Y + S * .5); g.fillStyle = "#efe6cf"; g.strokeStyle = "#1b1410"; g.lineWidth = 9; g.beginPath(); g.arc(0, 0, 70, 0, 7); g.fill(); g.stroke();   // the broken clock: 11:42
-  g.lineWidth = 8; g.beginPath(); g.moveTo(0, 0); g.lineTo(-8, -44); g.moveTo(0, 0); g.lineTo(52, 22); g.stroke();
-  g.strokeStyle = "#6a6a72"; g.lineWidth = 3; g.beginPath(); g.moveTo(-50, -50); g.lineTo(-6, -8); g.lineTo(-30, 46); g.moveTo(-6, -8); g.lineTo(40, -42); g.moveTo(-6, -8); g.lineTo(55, 20); g.stroke(); g.restore();
-  hand(g, "11:42", w / 2, h - 75, 70, "#a01d22");
-});
-const anon = add(box(0.22, 0.004, 0.264, 0.002), mat({ map: anonTex, roughness: 0.6 }), 0.0, DESK.h + 0.016, DESK.z + 0.25, { ry: -0.06 });
+const anonTex = await new THREE.TextureLoader().loadAsync("./tex/photo_front.jpg"); anonTex.colorSpace = THREE.SRGBColorSpace; anonTex.anisotropy = 8;   // the anonymous photograph = a still of apartment A (tools/make_photo.py)
+const anon = add(box(0.22, 0.004, 0.275, 0.002), mat({ map: anonTex, roughness: 0.6 }), 0.0, DESK.h + 0.032, DESK.z + 0.22);
 const calTex = canvasTex(512, 600, (g, w, h) => { g.fillStyle = "#f6f1e4"; g.fillRect(0, 0, w, h); g.fillStyle = "#b3262a"; g.fillRect(0, 0, w, 150); g.strokeStyle = "#2b2018"; g.lineWidth = 10; g.strokeRect(5, 5, w - 10, h - 10);
   g.fillStyle = "#fff"; g.font = "900 92px Arial Black, sans-serif"; g.textAlign = "center"; g.fillText("FRIDAY", w / 2, 112); g.fillStyle = "#222"; g.font = "900 260px Georgia, serif"; g.fillText("14", w / 2, 420);
   g.strokeStyle = "#a01d22"; g.lineWidth = 16; g.beginPath(); g.ellipse(w / 2, 335, 190, 140, -0.06, 0, 7); g.stroke(); hand(g, "3 days", w / 2, 545, 64, "#a01d22"); });

@@ -1,0 +1,21 @@
+# Scenes 1-2 (0.00-8.60 s, absolute VO time): hook at the desk, envelope under the door, the photo on the desk
+0.00 style2d
+0.00 detective 99
+0.00 licik
+0.00 look 0 -4 0
+0.45 gest point 0.9 kanan
+1.55 penasaran
+1.55 look 20 12 0
+2.55 sinis
+2.55 look 0 18 0
+3.10 gest magnify 1.5 kanan
+4.45 datar
+4.45 look -6 -4 0
+4.80 penasaran
+4.80 look 38 6 0
+5.50 kaget
+6.40 curiga
+6.40 look 0 22 0
+6.80 gest point 1.1 kanan
+7.70 penasaran
+7.70 look 0 26 0

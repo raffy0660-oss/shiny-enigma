@@ -68,7 +68,7 @@ const grade = new ShaderPass({
       c += vec3(-0.01, 0.0, 0.025) * (1.0 - l) + tint;
       // old photograph: highlights sepia, shadows faded blue, lifted blacks, softer contrast, scratches + dust
       vec3 sep = l * vec3(1.10, 0.95, 0.74); vec3 blu = vec3(0.13, 0.17, 0.27) + l * vec3(0.55, 0.6, 0.72);
-      vec3 ph = mix(blu, sep, smoothstep(0.08, 0.55, l)); ph = mix(vec3(0.42, 0.39, 0.34), ph, 0.82) + 0.04;
+      vec3 ph = mix(blu, sep * 1.12, smoothstep(0.05, 0.5, l)); ph = (ph - 0.45) * 1.18 + 0.47; ph = mix(vec3(0.4, 0.37, 0.32), ph, 0.92);
       float scr = step(0.9975, h(vec2(floor(vUv.x * 900.0), floor(time * 24.0)))) * 0.12 * step(h(vec2(floor(time * 24.0), 3.0)), 0.6);
       float spk = step(0.99985, h(floor(vUv * vec2(540.0, 960.0)) + floor(time * 24.0))) * 0.35;
       c = mix(c, ph + scr + spk, sepia);
@@ -88,7 +88,7 @@ const mat = (o) => new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.8
 const add = (geo, m, x, y, z, o = {}) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); if (o.rx) me.rotation.x = o.rx; if (o.ry) me.rotation.y = o.ry; if (o.rz) me.rotation.z = o.rz;
   me.castShadow = o.cast !== false; me.receiveShadow = true; (o.parent || scene).add(me); return me; };
 const box = (w, h, d, r = 0.01) => new RoundedBoxGeometry(w, h, d, 2, Math.min(r, w / 2.1, h / 2.1, d / 2.1));
-const hand = (g, txt, x, y, size, col = "#1d2a5a", rot = 0, font = "Comic Sans MS, 'Comic Neue', cursive") => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.font = `700 ${size}px ${font}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 0, 0); g.restore(); };
+const hand = (g, txt, x, y, size, col = "#1d2a5a", rot = 0, font = "Caveat, 'Comic Neue', cursive") => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.font = `700 ${size}px ${font}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 0, 0); g.restore(); };
 const group = (x, y, z, ry = 0) => { const G = new THREE.Group(); G.position.set(x, y, z); G.rotation.y = ry; scene.add(G); return G; };
 
 // ---------------------------------------------------------------- room (Pion scale: ceiling 2.45, door 1.62)
@@ -101,7 +101,7 @@ const wallTex = canvasTex(1024, 1024, (g, w, h) => {   // faded mustard floral w
     g.fillStyle = "rgba(150,60,40,.45)"; g.beginPath(); g.arc(cx, cy, 5, 0, 7); g.fill(); g.strokeStyle = "rgba(70,90,40,.45)"; g.beginPath(); g.moveTo(cx, cy + 14); g.quadraticCurveTo(cx + 14, cy + 34, cx + 4, cy + 48); g.stroke(); }
   for (let i = 0; i < 7; i++) { const x = rnd() * w, y = rnd() * h * 0.5, r = 60 + rnd() * 120; const gr = g.createRadialGradient(x, y, 0, x, y + r * 0.6, r * 1.3); gr.addColorStop(0, "rgba(90,60,20,.35)"); gr.addColorStop(1, "rgba(90,60,20,0)"); g.fillStyle = gr; g.fillRect(x - r * 1.5, y - r, r * 3, r * 3.5);
     g.strokeStyle = "rgba(80,50,15,.4)"; g.lineWidth = 2; g.beginPath(); g.ellipse(x, y + r * 0.4, r * 0.8, r * 0.9, 0, 0, 7); g.stroke(); }   // water stains with a drawn tide line
-  for (let i = 0; i < 5; i++) { const x = rnd() * w, y = rnd() * h, pw = 60 + rnd() * 110, phh = 40 + rnd() * 120; g.fillStyle = "#d9cfb8"; g.beginPath(); g.moveTo(x, y);
+  for (let i = 0; i < 3; i++) { const x = rnd() * w, y = rnd() * h, pw = 30 + rnd() * 40, phh = 24 + rnd() * 40; g.fillStyle = "#a89a7a"; g.beginPath(); g.moveTo(x, y);
     for (let k = 0; k < 9; k++) { const a = k / 9 * Math.PI * 2; g.lineTo(x + Math.cos(a) * pw * (0.6 + rnd() * 0.5), y + Math.sin(a) * phh * (0.6 + rnd() * 0.5)); } g.closePath(); g.fill(); g.strokeStyle = "#5a3e1a"; g.lineWidth = 4; g.stroke(); }   // torn patches
   for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(40,25,10,${rnd() * .08})`; g.fillRect(rnd() * w, rnd() * h, 3, 3); }
 }, [2.5, 1.4]);
@@ -133,7 +133,7 @@ for (const sx of [-1, 1]) { add(box(0.04, 0.1, RD, 0.01), trimM, sx * (RW / 2 - 
 
 // ---------------------------------------------------------------- boarded window (left wall): planks with gaps, sky behind changes per version
 const WIN = { z: -0.95, y: 1.35, w: 1.05, h: 1.0 };
-const skyM = new THREE.MeshBasicMaterial({ color: 0xffffff }); const sky = add(new THREE.PlaneGeometry(WIN.w, WIN.h), skyM, XL - 0.05, WIN.y, WIN.z, { ry: Math.PI / 2, cast: false });
+const skyM = new THREE.MeshBasicMaterial({ color: 0xffffff }); const sky = add(new THREE.PlaneGeometry(WIN.w, WIN.h), skyM, XL - 0.05, WIN.y, WIN.z, { ry: Math.PI / 2, cast: false }); sky.receiveShadow = false;
 const skyTex = { A: null, B: null, C: null };
 skyTex.A = canvasTex(256, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#0d1530"); gr.addColorStop(1, "#2a3a70"); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = "#e8ecff"; g.beginPath(); g.arc(170, 70, 26, 0, 7); g.fill(); });
 skyTex.B = canvasTex(256, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#fff4d8"); gr.addColorStop(1, "#ffd9a0"); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
@@ -227,13 +227,16 @@ const faceTex = canvasTex(512, 512, (g, w, h) => { g.fillStyle = "#efe6cf"; g.be
 const crackTex = canvasTex(512, 512, (g, w, h) => { g.clearRect(0, 0, w, h); g.strokeStyle = "rgba(255,255,255,.9)"; g.lineWidth = 4; const c = [210, 200];
   for (let k = 0; k < 9; k++) { let [x, y] = c, a = k / 9 * Math.PI * 2 + rnd() * 0.4; g.beginPath(); g.moveTo(x, y); for (let s = 0; s < 6; s++) { a += (rnd() - .5) * 0.6; x += Math.cos(a) * 45; y += Math.sin(a) * 45; g.lineTo(x, y); } g.stroke(); }
   g.lineWidth = 2; for (let r = 40; r < 160; r += 55) { g.beginPath(); for (let k = 0; k <= 9; k++) { const a = k / 9 * Math.PI * 2, rr = r * (0.8 + rnd() * 0.4); k ? g.lineTo(c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr) : g.moveTo(c[0] + Math.cos(a) * rr, c[1] + Math.sin(a) * rr); } g.stroke(); } });
-const CLK = new THREE.Group(); CLK.position.copy(CLOCK.p); CLK.rotation.set(-1.05, -0.35, 0.12); scene.add(CLK);   // fallen on its back, face tipped up toward the room
-const clkWood = mat({ color: 0x6a3a1c, roughness: 0.5 });
-add(box(0.42, 0.36, 0.16, 0.04), clkWood, 0, 0.18, 0, { parent: CLK }); add(new THREE.CylinderGeometry(0.21, 0.21, 0.16, 32, 1, false, 0, Math.PI), clkWood, 0, 0.36, 0, { rx: Math.PI / 2, rz: Math.PI / 2, parent: CLK });
-add(box(0.48, 0.05, 0.2, 0.02), clkWood, 0, 0.0, 0, { parent: CLK });
-add(new THREE.TorusGeometry(0.15, 0.018, 10, 36), mat({ color: 0xd2a650, metalness: 0.85, roughness: 0.3 }), 0, 0.27, 0.082, { parent: CLK });
-const clockFace = add(new THREE.CircleGeometry(0.145, 40), mat({ map: faceTex, emissive: 0xffe2a8, emissiveMap: faceTex, emissiveIntensity: 0 }), 0, 0.27, 0.081, { parent: CLK, cast: false });
-const crack = add(new THREE.CircleGeometry(0.145, 40), new THREE.MeshBasicMaterial({ map: crackTex, transparent: true, depthWrite: false, opacity: 0.8 }), 0, 0.27, 0.088, { parent: CLK, cast: false });
+const CLK = new THREE.Group(); CLK.position.copy(CLOCK.p); CLK.position.y = 0.1; CLK.rotation.set(-0.95, -0.4, 0.18); scene.add(CLK);   // round twin-bell alarm clock, fallen on its back, face tipped up toward the room
+const clkBody = mat({ color: 0x8a2a22, roughness: 0.45, metalness: 0.2 }), brassM = mat({ color: 0xd2a650, metalness: 0.85, roughness: 0.3 });
+add(new THREE.CylinderGeometry(0.17, 0.17, 0.11, 40), clkBody, 0, 0, 0, { rx: Math.PI / 2, parent: CLK });
+add(new THREE.TorusGeometry(0.165, 0.02, 10, 40), brassM, 0, 0, 0.056, { parent: CLK });
+for (const sx of [-1, 1]) { add(new THREE.SphereGeometry(0.075, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), brassM, sx * 0.1, 0.17, 0, { rz: -sx * 0.5, parent: CLK });   // bells
+  add(new THREE.CylinderGeometry(0.012, 0.016, 0.07, 8), brassM, sx * 0.11, -0.17, 0.0, { rz: sx * 0.4, parent: CLK }); }                                       // feet
+add(new THREE.CylinderGeometry(0.008, 0.008, 0.12, 6), brassM, 0, 0.2, 0, { rz: Math.PI / 2, parent: CLK });                                                   // hammer bar
+add(new THREE.TorusGeometry(0.05, 0.008, 6, 16, Math.PI), brassM, 0, 0.22, -0.02, { parent: CLK });                                                         // handle
+const clockFace = add(new THREE.CircleGeometry(0.15, 40), mat({ map: faceTex, emissive: 0xffe2a8, emissiveMap: faceTex, emissiveIntensity: 0 }), 0, 0, 0.056, { parent: CLK, cast: false });
+const crack = add(new THREE.CircleGeometry(0.15, 40), new THREE.MeshBasicMaterial({ map: crackTex, transparent: true, depthWrite: false, opacity: 0.85 }), 0, 0, 0.064, { parent: CLK, cast: false });
 for (let i = 0; i < 5; i++) add(new THREE.TetrahedronGeometry(0.018 + rnd() * 0.015), new THREE.MeshPhysicalMaterial({ color: 0xdfefff, roughness: 0.1, transmission: 0.5, transparent: true, opacity: 0.6 }), CLOCK.p.x - 0.25 + rnd() * 0.5, 0.012, CLOCK.p.z + 0.1 + rnd() * 0.3, { cast: false });   // glass shards
 const clockGlow = new THREE.PointLight(0xffd59a, 0, 1.4, 2); clockGlow.position.set(CLOCK.p.x, 0.35, CLOCK.p.z + 0.25); scene.add(clockGlow);
 const clockStuff = [CLK]; scene.children.slice(-6, -1).forEach(o => { if (o.geometry && o.geometry.type === "TetrahedronGeometry") clockStuff.push(o); });
@@ -273,8 +276,8 @@ function placeDust(t) { const O = V(XL + 0.05, WIN.y, WIN.z); for (let i = 0; i 
 
 // ---------------------------------------------------------------- versions (light + dressing)
 const VERS = {
-  A: { hemi: 0.42, hemiCol: 0x6a6f9a, bulb: 2.4, sun: 0, moon: 9, fill: 0.35, beam: 0.05, beamCol: [0.7, 0.8, 1.0], dust: 0.25, fog: 0.06, fogCol: 0x2a2a34, sky: "A", vig: 0.55, sepia: 0.9, grain: 0.05, tint: [0, 0, 0], strobe: 0, body: true, bg: 0x101420 },
-  B: { hemi: 0.55, hemiCol: 0x7a88b8, bulb: 0, sun: 55, moon: 0, fill: 0.5, beam: 0.42, beamCol: [1.0, 0.86, 0.6], dust: 0.85, fog: 0.045, fogCol: 0x3a3a48, sky: "B", vig: 0.48, sepia: 0, grain: 0.025, tint: [-0.01, 0, 0.03], strobe: 0, body: false, bg: 0x1a1a24 },
+  A: { hemi: 0.5, hemiCol: 0x6a6f9a, bulb: 3.2, sun: 0, moon: 9, fill: 0.35, beam: 0.05, beamCol: [0.7, 0.8, 1.0], dust: 0.25, fog: 0.06, fogCol: 0x2a2a34, sky: "A", vig: 0.55, sepia: 0.9, grain: 0.05, tint: [0, 0, 0], strobe: 0, body: true, bg: 0x101420 },
+  B: { hemi: 1.0, hemiCol: 0x8a98c8, bulb: 0, sun: 70, moon: 0, fill: 1.3, beam: 0.42, beamCol: [1.0, 0.86, 0.6], dust: 0.85, fog: 0.045, fogCol: 0x3a3a48, sky: "B", vig: 0.48, sepia: 0, grain: 0.025, tint: [-0.01, 0, 0.03], strobe: 0, body: false, bg: 0x1a1a24 },
   C: { hemi: 0.3, hemiCol: 0x2a46c8, bulb: 0, sun: 0, moon: 16, fill: 0.9, beam: 0.08, beamCol: [0.5, 0.6, 1.0], dust: 0.2, fog: 0.065, fogCol: 0x101a3a, sky: "C", vig: 0.62, sepia: 0, grain: 0.03, tint: [-0.03, 0, 0.08], strobe: 1, body: true, bg: 0x060a1c },
 };
 function applyVer(ver, t, o = {}) {
@@ -287,7 +290,7 @@ function applyVer(ver, t, o = {}) {
   const bolt = st > 0.5 && ((t % 3.3) < 0.07 || ((t % 3.3) > 0.15 && (t % 3.3) < 0.2)); moonL.intensity += bolt ? 120 : 0;
   hallM.color.set(st ? (ph ? 0x1a1030 : 0x401018) : 0x0a0a12);
   const showBody = o.body ?? S.body; for (const c of clockStuff) c.visible = showBody; tapeG.visible = ver === "C" && o.tape !== false;
-  clockGlow.intensity = (o.clockGlow || 0) * 2.5; clockFace.material.emissiveIntensity = (o.clockGlow || 0) * 0.6;
+  clockGlow.intensity = (o.clockGlow || 0) * 0.9; clockFace.material.emissiveIntensity = (o.clockGlow || 0) * 0.22;
   torch.intensity = o.torch ? 22 : 0; if (o.torch) { torch.position.set(...o.torch[0]); torch.target.position.set(...o.torch[1]); }
 }
 
@@ -339,7 +342,7 @@ window.renderFrame = async (F) => {   // F: { t, ver, cam:{pos,tgt,fov,focus,rol
   renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(cardScene, camera); renderer.setRenderTarget(null);
   composer.render();
   const pr = (p) => { const q = V(...p).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };
-  CLK.updateMatrixWorld(); const cf = V(0, 0.27, 0.09).applyMatrix4(CLK.matrixWorld).toArray(); PTS.clockFace = cf;
+  CLK.updateMatrixWorld(); const cf = V(0, 0, 0.07).applyMatrix4(CLK.matrixWorld).toArray(); PTS.clockFace = cf;
   const pts = {}; for (const [k, p] of Object.entries(Object.assign({}, PTS, F.pts || {}))) pts[k] = pr(p);
   list.forEach((P, i) => { if (P && P.anchor) pts["pion" + i] = pr([P.anchor[0], P.anchor[1] + P.height * 0.75, P.anchor[2]]); });
   return { img: renderer.domElement.toDataURL("image/jpeg", 0.93), pts };
