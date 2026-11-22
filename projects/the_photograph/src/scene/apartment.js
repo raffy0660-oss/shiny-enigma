@@ -237,7 +237,7 @@ add(new THREE.CylinderGeometry(0.008, 0.008, 0.12, 6), brassM, 0, 0.2, 0, { rz: 
 add(new THREE.TorusGeometry(0.05, 0.008, 6, 16, Math.PI), brassM, 0, 0.22, -0.02, { parent: CLK });                                                         // handle
 const clockFace = add(new THREE.CircleGeometry(0.15, 40), mat({ map: faceTex, emissive: 0xffe2a8, emissiveMap: faceTex, emissiveIntensity: 0 }), 0, 0, 0.056, { parent: CLK, cast: false });
 const crack = add(new THREE.CircleGeometry(0.15, 40), new THREE.MeshBasicMaterial({ map: crackTex, transparent: true, depthWrite: false, opacity: 0.85 }), 0, 0, 0.064, { parent: CLK, cast: false });
-for (let i = 0; i < 5; i++) add(new THREE.TetrahedronGeometry(0.018 + rnd() * 0.015), new THREE.MeshPhysicalMaterial({ color: 0xdfefff, roughness: 0.1, transmission: 0.5, transparent: true, opacity: 0.6 }), CLOCK.p.x - 0.25 + rnd() * 0.5, 0.012, CLOCK.p.z + 0.1 + rnd() * 0.3, { cast: false });   // glass shards
+for (let i = 0; i < 5; i++) add(new THREE.TetrahedronGeometry(0.018 + rnd() * 0.015), new THREE.MeshStandardMaterial({ color: 0xdfefff, roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.6 }), CLOCK.p.x - 0.25 + rnd() * 0.5, 0.012, CLOCK.p.z + 0.1 + rnd() * 0.3, { cast: false });   // glass shards
 const reflM = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0, fog: false }); const refl = add(new THREE.PlaneGeometry(0.17, 0.24), reflM, 0.02, 0.0, 0.066, { parent: CLK, cast: false }); refl.visible = false;   // the reflection in the glass (scenes 9-10)
 const clockGlow = new THREE.PointLight(0xffd59a, 0, 1.4, 2); clockGlow.position.set(CLOCK.p.x, 0.35, CLOCK.p.z + 0.25); scene.add(clockGlow);
 const clockStuff = [CLK]; scene.children.slice(-6, -1).forEach(o => { if (o.geometry && o.geometry.type === "TetrahedronGeometry") clockStuff.push(o); });
@@ -281,6 +281,7 @@ const VERS = {
   B: { hemi: 1.7, hemiCol: 0x9aa8d8, bulb: 0, sun: 120, moon: 0, fill: 2.2, beam: 0.42, beamCol: [1.0, 0.86, 0.6], dust: 0.85, fog: 0.035, fogCol: 0x6a6a80, sky: "B", vig: 0.48, sepia: 0, grain: 0.025, tint: [-0.01, 0, 0.03], strobe: 0, body: false, bg: 0x1a1a24 },
   C: { hemi: 0.3, hemiCol: 0x2a46c8, bulb: 0, sun: 0, moon: 16, fill: 0.9, beam: 0.08, beamCol: [0.5, 0.6, 1.0], dust: 0.2, fog: 0.065, fogCol: 0x101a3a, sky: "C", vig: 0.62, sepia: 0, grain: 0.03, tint: [-0.03, 0, 0.08], strobe: 1, body: true, bg: 0x060a1c },
 };
+function lightsOff() { for (const L of [bulbL, sun, moonL, fillL, strobeR, strobeB, hallStrobe, clockGlow, torch]) L.visible = L.intensity > 0 || L === moonL || L === sun; }   // zero lights cost per pixel too (sun/moon keep their baked shadow maps)
 function applyVer(ver, t, o = {}) {
   const S = VERS[ver] || VERS.A, flick = ver === "A" ? 1 - 0.08 * Math.sin(t * 17) * Math.sin(t * 5.3) : 1;
   hemi.intensity = S.hemi * (o.hemiK ?? 1); hemi.color.set(S.hemiCol).lerp(new THREE.Color(0x2a46c8), o.blueK || 0); bulbL.intensity = S.bulb * flick * (o.bulbK ?? 1); bulbM.color.setRGB(1, 0.85, 0.6).multiplyScalar(S.bulb > 0 ? 9 * flick * (o.bulbK ?? 1) : 0.15);
@@ -292,6 +293,7 @@ function applyVer(ver, t, o = {}) {
   hallM.color.set(st ? (ph ? 0x1a1030 : 0x401018) : 0x0a0a12);
   const showBody = o.body ?? S.body; for (const c of clockStuff) c.visible = showBody; tapeG.visible = ver === "C" && o.tape !== false;
   clockGlow.intensity = (o.clockGlow || 0) * 0.9; clockFace.material.emissiveIntensity = (o.clockGlow || 0) * 0.22;
+  for (const L of [bulbL, sun, moonL, strobeR, strobeB, hallStrobe, clockGlow, torch]) L.visible = true;
   torch.intensity = o.torch ? 22 : 0; if (o.torch) { torch.position.set(...o.torch[0]); torch.target.position.set(...o.torch[1]); }
 }
 
@@ -337,7 +339,7 @@ window.AP = { CLOCK: CLOCK.p.toArray(), BULB: BULB.toArray(), DOOR: [XR, 0, DOOR
 window.renderFrame = async (F) => {   // F: { t, ver, cam:{pos,tgt,fov,focus,roll}, pions:[{url,base,ppu,w,h,anchor,height,tint,roll,face,shadow}], sepia, flash, clockGlow, body, torch, bulbK, beamK, pts:{name:[x,y,z]} }
   camera.position.set(...F.cam.pos); camera.fov = F.cam.fov; camera.updateProjectionMatrix(); camera.lookAt(...F.cam.tgt); if (F.cam.roll) camera.rotateZ(F.cam.roll); camera.updateMatrixWorld();
   bokeh.uniforms.focus.value = F.cam.focus; bokeh.uniforms.aperture.value = F.cam.aperture ?? 0.0016; placeDust(F.t); grade.uniforms.time.value = F.t;
-  applyVer(F.ver || "A", F.t, F); grade.uniforms.flash.value = F.flash || 0; if (lastVer !== F.ver) { renderer.shadowMap.needsUpdate = true; lastVer = F.ver; }
+  applyVer(F.ver || "A", F.t, F); lightsOff(); grade.uniforms.flash.value = F.flash || 0; if (lastVer !== F.ver) { renderer.shadowMap.needsUpdate = true; lastVer = F.ver; }
   const ph = Math.floor(F.t * 4) % 2; tapeM.color.copy(F.ver === "C" ? tapeMul.setRGB(ph ? 0.8 : 0.55, 0.55, ph ? 0.6 : 0.85) : tapeMul.setRGB(0.75, 0.75, 0.75));
   if (F.refl) { reflM.map = await loadTex(F.refl.url); reflM.opacity = F.refl.k; reflM.needsUpdate = true; refl.visible = true; } else refl.visible = false;
   const list = (F.pions || (F.pion ? [F.pion] : [])); await placeCards(list);

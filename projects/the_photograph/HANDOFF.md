@@ -61,27 +61,21 @@ bisa melanjutkan tanpa kehilangan konteks. Bacaan wajib, berurutan:
   - **Masukan user di tes hook:** jangan pergi jauh ke dinding. **Data kasus ditaruh di meja, kamera zoom ke meja, dan karakter tetap
     terlihat di frame.** Terapkan prinsip ini ke adegan-adegan lain: karakter jangan hilang terlalu lama.
 
-## 3. Status
+## 3. Status (sesi 2)
 | Bagian | Status | Lokasi |
 |---|---|---|
-| VO 73,4 dtk + timing per kata | selesai | `vo.mp3`, `vo_stt.json` |
-| Rencana 13 adegan | selesai | `PLAN.md` |
-| Model 2D v4 + baju Daniel/polisi | selesai | skill `engine/`, `assets/karakter_2d/`, `assets/cast_sheet_2d_v4.png` |
-| Set kantor + mood cahaya | selesai | `src/scene/office.js` (salinan di skill `examples/proj10_office/`) |
-| **Tes hook 5 dtk v2** (data di meja) | selesai, dikirim ke user | `tests/t5_test_v2.mp4`, plan `src/plans/hook.js`, cue `src/cues/t5b_pion.txt` |
-| Adegan 2–13 | **belum** | lihat `PLAN.md` |
-| Set apartemen terbengkalai (A dunia foto / B digeledah / C TKP Jumat) | belum | buat `src/scene/apartment.js` (pola sama dengan `office.js`) |
-| Eksterior gedung + jalan senja | belum | |
+| Kantor skala Pion (kursi wingback, props x1,5, plafon 2,45, pintu SUCCIFY + cahaya celah, amplop, kalender THURSDAY/FRIDAY, laptop berlayar hidup, kaca pembesar melayang) | selesai | `src/scene/office.js` |
+| Apartemen A/B/C (dunia foto sepia-biru / digeledah god ray / TKP Jumat strobo + garis polisi), jam beker retak 11:42, pantulan siluet bermahkota di kaca jam | selesai | `src/scene/apartment.js` |
+| Eksterior senja (gedung No. 77, neon APARTMENTS, jendela 7B berpapan, poster MISSING DANIEL CROSS, hujan, kabel + burung) | selesai | `src/scene/exterior.js` |
+| Foto anonim = still apartemen A (depan) + tulisan tangan "Find him before Friday." (belakang) | selesai | `src/tools/make_photo.py`, `src/scene/tex/` |
+| Plan + cue adegan 1–13 | selesai | `src/plans/*.js`, `src/cues/*.txt` |
+| Render adegan 1–2 (`s12`) | selesai | `~/pion/proj10/out/s12` (tidak di-commit) |
+| Render adegan 3–13 | berjalan lewat antrean | `src/tools/run_eng.sh`, `run_scenes_a.sh`, `run_scenes_b.sh` |
+| SFX ElevenLabs (25 suara) | selesai | `assets/sfx/*.mp3`, `src/sfx_gen.py` |
+| Rakit film / overlay / mix | skrip siap | `src/build_film.py`, `src/overlay_film.py`, `src/mix_film.py` |
 
-**Jawaban user (sesi 2, 22 Nov 2026):**
-1. **Tanpa caption** satu kata. Teks overlay hanya untuk data penting (11:42, FRIDAY, kartu DANIEL CROSS, metadata, email).
-2. Hook v2 **oke dengan revisi**:
-   - **Furnitur dan environment dibuat seukuran badan Pion.** Pion tidak dikecilkan; dunia di sekitarnya yang dibangun untuk Pion
-     (kursi pas badannya, meja setinggi dadanya, props seukuran sarung tangannya, pintu/rak/gantungan untuk tinggi Pion).
-     Berlaku untuk semua set (kantor, apartemen, eksterior).
-   - **Stempel CASE SOLVED dihapus.**
-3. **Nama di dalam video = "SUCCIFY"**, bukan "Pion Raja" (kaca pintu kantor, email pengirim di adegan 13, teks lain). Nama karakter di kode/cue tetap pion.
-4. Gambar Pion yang tersapu besar di depan lensa saat kamera lewat sudah dikurangi di v2. Pastikan tetap rapi.
+Peta adegan → plan (frame absolut, 60 fps): s12_office 0–510 · s23_apt 492–936 · s4_office 924–1266 · s5_ext 1260–1677 · s6_aptB 1674–2043 ·
+s7_office 2040–2172 · s78_aptC 2166–2724 · s9_office 2724–3030 · s10_aptA 3018–3264 · s1113_office 3258–4404. Transisi diatur di `build_film.py`.
 
 ## 4. Cara kerja teknis
 ```bash
@@ -101,6 +95,14 @@ cd ~/pion/proj10/scene && ENG=<name> node render_seq.js ../plans/<scene>.js ../o
 - **Remotion:** komposisi `SceneOverlay` (item `stamp` baru: stempel merah), `GreenFX` (green screen), dan `CastSheet`.
 - **Google Drive:** konektor hanya bisa download file < 10 MB. File besar perlu user set "siapa saja yang punya link", lalu `curl` dari
   `drive.usercontent.google.com` (host ini kadang diblokir. Kalau gagal, minta user memecah file).
+
+### Tambahan sesi 2
+- File kerja di `~/pion/proj10` **di-symlink ke repo** (scene/*.js, plans, cues, *.py, scene/tex). Runner node (`render_seq.js`, `render_office.js`) disalin.
+- `render_seq.js`: satu plan bisa memakai set berbeda per frame (`set: office|apartment|exterior`), `--skip` melewati frame yang sudah ada.
+- Kartu karakter selalu tergambar di atas dunia 3D (tanpa depth test): jangan taruh objek 3D di antara kamera dan karakter (contoh: laptop di ujung meja, pintu apartemen berengsel di sisi belakang).
+- Kecepatan: kantor ~3 dtk/frame (3 job), apartemen/eksterior lebih berat. Bayangan apartemen/eksterior di-bake (`shadowMap.autoUpdate = false`), tanpa transmission, lampu intensitas 0 dimatikan.
+- Font tulisan tangan: Caveat (`assets/fonts`, dipasang oleh setup.sh).
+- Rakit: `python3 build_film.py --check` → `python3 build_film.py` → `python3 overlay_film.py` → `python3 mix_film.py` → mux (lihat akhir HANDOFF).
 
 ## 5. Riwayat singkat yang relevan
 - proj9 (patung tanah liat, Thailand) v2 sudah dikirim. Kodenya ada di skill `examples/proj9_clay/`.

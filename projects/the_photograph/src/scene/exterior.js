@@ -128,7 +128,7 @@ function building(x0, w, floors, base, mortar, o = {}) {
       add(new THREE.PlaneGeometry(0.75, 0.95), m, wx, f * SH + 1.15, 0.005, { parent: G, cast: false });
       add(box(0.92, 0.08, 0.16, 0.02), mat({ color: 0xd8d0dc }), wx, f * SH + 0.62, 0.05, { parent: G });   // sill
       add(box(0.9, 0.1, 0.1, 0.02), mat({ color: 0xb8aac0 }), wx, f * SH + 1.68, 0.03, { parent: G });
-      if (key === "lit") { const L = new THREE.PointLight(0xffb070, 0.35, 2.5, 2); L.position.set(x0 + wx, f * SH + 1.1, FZ + 0.3); scene.add(L); } } }
+       } }
   return G; }
 const MAIN = building(0, 6.0, 4, 0x8a4a3a, "#5a4a52", { door: -0.6, boarded: [2, 2] });   // 7B: third floor, third window (boarded)
 building(-6.4, 6.2, 3, 0x6a6a8a, "#4a4a5a"); building(6.6, 6.6, 5, 0x9a7a5a, "#5a4a42"); building(-12.8, 6.0, 4, 0x7a5a7a, "#4a3a4a"); building(13.2, 6.0, 3, 0x5a7a7a, "#3a4a4a");
