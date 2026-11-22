@@ -16,7 +16,7 @@ const W = 1080, H = 1920;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1); renderer.setSize(W, H);
 renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.localClippingEnabled = true;
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1024);
 scene.fog = new THREE.FogExp2(0x101a3a, 0.035);
@@ -46,6 +46,15 @@ composer.addPass(inkPass);
 const bokeh = new BokehPass(scene, camera, { focus: 3.0, aperture: 0.0016, maxblur: 0.006 }); composer.addPass(bokeh);
 composer.addPass(new UnrealBloomPass(new THREE.Vector2(W, H), 0.5, 0.45, 2.2));
 composer.addPass(new OutputPass());
+const pionRT = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType });
+const pionComp = new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, tPion: { value: null } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `uniform sampler2D tDiffuse, tPion; varying vec2 vUv;
+    vec3 toSRGB(vec3 c){ return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
+    void main(){ vec4 b = texture2D(tDiffuse, vUv), p = texture2D(tPion, vUv); vec3 pc = p.a > 1e-4 ? toSRGB(clamp(p.rgb / p.a, 0.0, 1.0)) : vec3(0.0); gl_FragColor = vec4(mix(b.rgb, pc, p.a), 1.0); }`,
+});
+pionComp.uniforms.tPion.value = pionRT.texture; composer.addPass(pionComp);
 const grade = new ShaderPass({
   uniforms: { tDiffuse: { value: null }, time: { value: 0 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
@@ -342,7 +351,37 @@ window.renderShot = (name, t = 0, over) => {
   bokeh.uniforms.focus.value = S.focus; placeDust(t); grade.uniforms.time.value = t;
   applyMood(S.mood || 'normal', S.mood2 || S.mood || 'normal', S.moodK || 0, t);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
+  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.setRenderTarget(null);
   composer.render();
   return renderer.domElement.toDataURL("image/jpeg", 0.93);
+};
+
+// ---------------------------------------------------------------- Pion: the engine render (2D style, transparent PNG per frame) on a camera-facing card behind the desk
+const pionMat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.04, depthWrite: false, depthTest: false, toneMapped: false, fog: false });
+const pionScene = new THREE.Scene(), pionCard = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), pionMat); pionScene.add(pionCard);
+const deskClip = new THREE.Plane(), TL = new THREE.TextureLoader(); let pionTex = null;
+async function placePion(P) {   // P: { url, base:[px,py], ppu, w, h, anchor:[x,y,z], height, tint:[r,g,b] }
+  if (!P || !P.url) { pionCard.visible = false; return; }
+  const t = await TL.loadAsync(P.url); t.colorSpace = THREE.SRGBColorSpace; if (pionTex) pionTex.dispose(); pionTex = t; pionMat.map = t;
+  const k = P.height / (4.65 * P.ppu), pw = P.w * k, ph = P.h * k, A = V(...P.anchor);
+  const off = V((P.w / 2 - P.base[0]) * k, (P.base[1] - P.h / 2) * k, 0), d = V().subVectors(camera.position, A);
+  pionCard.rotation.set(0, Math.atan2(d.x, d.z), 0); pionCard.scale.set(pw, ph, 1); off.applyQuaternion(pionCard.quaternion); pionCard.position.copy(A).add(off);
+  pionMat.color.setRGB(...(P.tint || [1, 1, 1]));
+  const P0 = V(DESK.x, DESK.h + 0.01, DESK.z - DESK.d / 2), v = camera.position.clone().sub(P0), n = V(0, v.z, -v.y).normalize();   // the desk's back edge hides his lower half
+  deskClip.setFromNormalAndCoplanarPoint(n, P0); pionMat.clippingPlanes = [deskClip]; pionMat.needsUpdate = true; pionCard.visible = true;
+}
+window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, mood2, moodK, lampK, pion }
+  camera.position.set(...F.cam.pos); camera.fov = F.cam.fov; camera.updateProjectionMatrix(); camera.lookAt(...F.cam.tgt); camera.updateMatrixWorld();
+  if (F.cam.roll) camera.rotateZ(F.cam.roll);
+  bokeh.uniforms.focus.value = F.cam.focus; placeDust(F.t); grade.uniforms.time.value = F.t;
+  applyMood(F.mood || "normal", F.mood2 || F.mood || "normal", F.moodK || 0, F.t);
+  const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
+  bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L);
+  await placePion(F.pion);
+  inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
+  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); if (pionCard.visible) renderer.render(pionScene, camera); renderer.setRenderTarget(null);
+  composer.render();
+  const pr = (x, y, z) => { const q = V(x, y, z).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };
+  return { img: renderer.domElement.toDataURL("image/jpeg", 0.93), pts: { head: F.pion ? pr(F.pion.anchor[0], F.pion.anchor[1] + F.pion.height * 0.8, F.pion.anchor[2]) : null } };
 };
 window.SHOTS = SHOTS; window.__ready = true;

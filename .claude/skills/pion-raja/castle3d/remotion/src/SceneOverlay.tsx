@@ -17,6 +17,7 @@ type Item =
   | { type: "pop"; t0: number; t1: number; at: string; text: string; size?: number; dx?: number; dy?: number }
   | { type: "caption"; t0: number; t1: number; text: string; label?: string; pos?: "top" | "bottom" }
   | { type: "tag"; t0: number; t1: number; at: string; text: string; dx: number; dy: number; color?: string }
+  | { type: "stamp"; t0: number; t1: number; text: string; sub?: string; x: number; y: number; rot?: number; color?: string; size?: number }
   | { type: "rage"; t0: number; t1: number; at: string; text: string; dx: number; dy: number; rot?: number; size?: number };
 export type SceneOverlayProps = {
   frames: number; fps: number; width: number; height: number;
@@ -169,6 +170,25 @@ const Rage: React.FC<{ it: Extract<Item, { type: "rage" }>; pts: SceneOverlayPro
   );
 };
 
+
+/* stamp: a red rubber stamp slammed onto the frame (CASE SOLVED, NO BODY...): overshoot scale, ink texture, fades out */
+const Stamp: React.FC<{ it: Extract<Item, { type: "stamp" }> }> = ({ it }) => {
+  const f = useCurrentFrame(), { fps, width: W } = useVideoConfig(), e = (f - it.t0 * fps) / fps;
+  if (e < 0 || f > it.t1 * fps) return null;
+  const sc = e < 0.09 ? interpolate(e, [0, 0.09], [2.4, 0.92], C) : interpolate(e, [0.09, 0.2], [0.92, 1], { ...C, easing: Easing.out(Easing.back(2)) });
+  const op = interpolate(f, [it.t0 * fps, it.t0 * fps + 3, it.t1 * fps - 0.18 * fps, it.t1 * fps], [0, 0.94, 0.94, 0], C);
+  const col = it.color || "#c8202a", fs = W * (it.size ?? 0.105), id = `ink${Math.round(it.t0 * 100)}`;
+  return (
+    <div style={{ position: "absolute", left: it.x * W, top: it.y * W * 16 / 9, translate: "-50% -50%", rotate: `${it.rot ?? -10}deg`, scale: String(sc), opacity: op }}>
+      <svg width={0} height={0} style={{ position: "absolute" }}><filter id={id}><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={2} seed={7} /><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.35" /><feComposite in="SourceGraphic" operator="in" /></filter></svg>
+      <div style={{ filter: `url(#${id})`, border: `${fs * 0.09}px solid ${col}`, outline: `${fs * 0.04}px solid ${col}`, outlineOffset: `${fs * 0.07}px`, borderRadius: fs * 0.12, padding: `${fs * 0.12}px ${fs * 0.35}px`, textAlign: "center" }}>
+        <div style={{ fontFamily: "'Inter Display', Inter, sans-serif", fontWeight: 900, fontSize: fs, lineHeight: 1, color: col, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>{it.text}</div>
+        {it.sub && <div style={{ fontFamily: "'Inter Display', Inter, sans-serif", fontWeight: 800, fontSize: fs * 0.32, color: col, letterSpacing: "0.3em", marginTop: fs * 0.08 }}>{it.sub}</div>}
+      </div>
+    </div>
+  );
+};
+
 export const SceneOverlay: React.FC<SceneOverlayProps> = (P) => {
   const f = useCurrentFrame(), { fps } = useVideoConfig(), t = f / fps;
   const useIntro = P.intro && t < P.intro.until;
@@ -182,7 +202,7 @@ export const SceneOverlay: React.FC<SceneOverlayProps> = (P) => {
           : <Img src={staticFile(`${P.seq}/${idx}.jpg`)} style={{ width: "100%", height: "100%" }} />}
       </AbsoluteFill>
       {P.items.map((it, i) => it.type === "dim" ? <Dim key={i} it={it} pts={P.pts} /> : it.type === "counter" ? <Counter key={i} it={it} pts={P.pts} />
-        : it.type === "pop" ? <Pop key={i} it={it} pts={P.pts} /> : it.type === "tag" ? <Tag key={i} it={it} pts={P.pts} /> : it.type === "rage" ? <Rage key={i} it={it} pts={P.pts} /> : <Caption key={i} it={it} />)}
+        : it.type === "pop" ? <Pop key={i} it={it} pts={P.pts} /> : it.type === "tag" ? <Tag key={i} it={it} pts={P.pts} /> : it.type === "rage" ? <Rage key={i} it={it} pts={P.pts} /> : it.type === "stamp" ? <Stamp key={i} it={it} /> : <Caption key={i} it={it} />)}
     </AbsoluteFill>
   );
 };
