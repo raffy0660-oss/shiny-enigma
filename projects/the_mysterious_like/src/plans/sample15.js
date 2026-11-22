@@ -8,17 +8,25 @@ const look = (t, pos, tgt, fov, ease, extra) => Object.assign({ t, pos, tgt, fov
 const PH = [[30, -0.35], [33, 0.5], [36, 0.2], [39, -0.8]].map(([x, ry]) => { const lx = -0.0338, lz = 0.0577; return { c: [x, 0.013, 0], pfp: [x + lx * Math.cos(ry) + lz * Math.sin(ry), 0.014, -lx * Math.sin(ry) + lz * Math.cos(ry)], ry }; });
 const P = (i, dx, dy, dz) => [PH[i].pfp[0] + dx, PH[i].pfp[1] + dy, PH[i].pfp[2] + dz];
 const SH = [   // shots: [t0, loc, camera keys]
-  [0.0, "apt", [look(0.0, [-1.7, 1.55, 1.05], [1.15, 0.22, 0.2], 46), look(3.3, [-1.2, 1.38, 0.9], [1.15, 0.25, 0.2], 46, "lin"),   // behind her head, looking down her body to Pion at the wall
-                look(4.8, [-0.45, 1.05, 1.45], [1.15, 0.3, 0.05], 46, "io")]],                                                    // he pushes off: side angle as he hops in
+  [0.0, "apt", [look(0.0, [-1.7, 1.55, 1.05], [1.15, 0.22, 0.2], 46),                                  // wide: the room, her body, Pion at the wall
+                look(0.62, [-0.5, 1.0, 0.55], [0.72, 0.18, -0.1], 42, "io"),                           // "beautiful": punch in on her face
+                look(1.5, [-0.42, 0.97, 0.52], [0.72, 0.18, -0.1], 42, "lin"),
+                look(2.36, [-1.55, 1.5, 1.2], [1.1, 0.3, 0.15], 46, "io"),                                 // "millions of followers": pull back out
+                look(3.0, [-1.45, 1.46, 1.15], [1.1, 0.32, 0.15], 46, "lin"),
+                look(3.4, [0.55, 0.92, 1.15], [1.7, 0.62, 0.1], 38, "io"),                                 // "found dead": push to Pion as he pushes off the wall
+                look(4.8, [0.3, 0.92, 0.95], [1.3, 0.42, -0.22], 40, "io")]],                              // follow his hops to her head
   [4.8, "phones", [look(4.8, [PH[0].c[0] - 0.04, 0.36, 0.2], PH[0].c, 40), look(6.0, [PH[0].c[0] - 0.035, 0.31, 0.17], PH[0].c, 40, "lin"),
                    look(7.74, P(0, -0.01, 0.13, 0.05), P(0, 0, 0, 0), 40, "io")]],
   [7.74, "phones", [look(7.74, P(1, 0.07, 0.15, 0.08), P(1, 0, 0, 0), 40, "io", { roll: 0.28 }), look(8.64, P(1, 0.05, 0.12, 0.06), P(1, 0, 0, 0), 40, "lin", { roll: 0.24 })]],
   [8.64, "phones", [look(8.64, P(2, 0, 0.24, 0.001), P(2, 0, 0, 0), 40, "io", { roll: 0.5 }), look(8.85, P(2, 0, 0.17, 0.001), P(2, 0, 0, 0), 40, "out", { roll: 0.0 }),
                     look(9.5, P(2, 0, 0.15, 0.001), P(2, 0, 0, 0), 40, "lin", { roll: -0.04 })]],
   [9.5, "phones", [look(9.5, P(3, -0.06, 0.1, 0.07), P(3, 0, 0, 0), 40, "io", { roll: -0.2 }), look(10.32, P(3, -0.03, 0.06, 0.035), P(3, 0, 0, 0), 40, "in", { roll: -0.24 })]],
-  [10.32, "house", [look(10.32, [60.12, 0.75, 1.95], [59.92, 0.62, -0.7], 44), look(12.0, [60.1, 0.75, 1.7], [59.9, 0.63, -0.7], 44, "lin")]],   // Pion left of the door: the slam reads beside him
-  [12.0, "house", [look(12.0, [59.78, 0.72, 0.95], [59.72, 0.62, -0.35], 36), look(13.17, [59.77, 0.71, 0.8], [59.72, 0.62, -0.35], 36, "lin")]],   // close-up on the face (sweat, the slow look back)
-  [13.17, "house", [look(13.17, [60.0, 0.75, 1.65], [60.0, 0.62, -1.45], 42), look(16.6, [60.0, 0.73, 1.2], [60.0, 0.64, -1.45], 42, "lin")]],
+  [10.32, "house", [look(10.32, [60.35, 0.8, 2.05], [59.9, 0.62, -0.7], 44), look(11.45, [60.15, 0.76, 1.75], [59.9, 0.62, -0.7], 44, "lin"),
+                    look(12.0, [60.1, 0.74, 1.62], [59.88, 0.63, -0.7], 44, "out")]],   // slow arc in, the slam behind him   // Pion left of the door: the slam reads beside him
+  [12.0, "house", [look(12.0, [59.86, 0.74, 1.02], [59.72, 0.62, -0.35], 36), look(13.17, [59.74, 0.7, 0.78], [59.72, 0.62, -0.35], 36, "lin")]],   // creeping push on his face   // close-up on the face (sweat, the slow look back)
+  [13.17, "house", [look(13.17, [60.0, 0.75, 1.7], [60.0, 0.62, -1.45], 42), look(14.0, [60.0, 0.75, 1.62], [60.0, 0.62, -1.45], 42, "lin"),   // still, waiting
+                     look(14.5, [60.0, 0.74, 1.28], [60.0, 0.64, -1.45], 42, "io"),                    // lightning: a small push toward the silhouette (not too close)
+                     look(16.6, [60.0, 0.74, 1.18], [60.0, 0.64, -1.45], 42, "lin")]],
 ];
 // impacts: [time, strength] -> decaying camera shake
 const SHAKE = [[4.8, 0.5], [7.74, 1.0], [8.64, 1.0], [9.5, 1.2], [9.6, 1.4], [11.5, 1.6], [14.01, 0.5]];
