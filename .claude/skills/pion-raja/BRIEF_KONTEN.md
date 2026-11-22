@@ -9,6 +9,8 @@ Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `project
 - **Format:** 1080x1920, **60 fps**.
 - **Cek sebelum kirim:** lihat contact sheet / frame kunci sendiri sebelum mengirim apa pun. Kirim lewat **SendUserFile dari scratchpad**.
 - **Git:** jangan buat PR. Commit dan push ke branch kerja **sesering mungkin** (container bisa hilang). Jangan commit frame mentah.
+- **Arsip percakapan:** di akhir sesi (dan setiap kali user minta), ekspor percakapan lengkap ke `projects/<proyek>/PERCAKAPAN_SESIn.md`
+  dengan `projects/the_photograph/src/tools/export_chat.py`, dan perbarui rangkuman arahan (`PROMPT_USER_SESIn.md`).
 - **Alur per adegan:** plan + cue → commit → render engine (lip-sync VO) → render scene (pecah rentang frame) → contact sheet → perbaiki → commit.
 - **Proses latar:** maksimal 2 jam per proses. Pakai `nohup` + file penanda selesai. Perintah tunggu yang panjang sering dihentikan aplikasi:
   cek cepat, atau jadwalkan check-in.

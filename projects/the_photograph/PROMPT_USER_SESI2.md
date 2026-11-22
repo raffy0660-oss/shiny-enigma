@@ -1,6 +1,6 @@
 # Arahan user, sesi 2 (22 Nov 2026), urut waktu
 
-Arsip arahan user, dipakai sebagai acuan konten berikutnya. Rangkuman aturannya ada di `.claude/skills/pion-raja/BRIEF_KONTEN.md`.
+Arsip arahan user, dipakai sebagai acuan konten berikutnya. Percakapan lengkap sesi ini: `PERCAKAPAN_SESI2.md` (gambar di `percakapan_img/`). Rangkuman aturannya ada di `.claude/skills/pion-raja/BRIEF_KONTEN.md`.
 
 1. **Mulai sesi.** Lanjutkan produksi "The Photograph" adegan demi adegan (plan + cue → commit → render engine + scene → contact sheet → commit).
    Akhirnya: overlay Remotion, SFX ElevenLabs + `sfx_only.wav`, rakit 73,4 dtk 1080x1920 60 fps, kirim.
@@ -29,3 +29,5 @@ Arsip arahan user, dipakai sebagai acuan konten berikutnya. Rangkuman aturannya 
 11. "Masih ada error sih, tapi gpp, gausah direvisi, masukin ke repo aja." → v3 masuk repo (`final/`), tidak direvisi.
 12. "Di video itu, seharusnya cuma pakai sudut pandang narator, jadi gausah ada nama." → Semua VO di The Photograph adalah narasi (orang pertama),
     jadi caption semuanya polos. Label nama hanya untuk dialog di dalam adegan (`DIALOG` di `overlay_film.py`, aturan di `BRIEF_KONTEN.md` §5).
+13. "Belum kamu masukkin ke repo ya percakapan kita ini? Tentang animasi detektif." → Transkrip lengkap diekspor ke `PERCAKAPAN_SESI2.md`
+    (alat: `src/tools/export_chat.py`). Di akhir setiap sesi, ekspor percakapan ke repo.
