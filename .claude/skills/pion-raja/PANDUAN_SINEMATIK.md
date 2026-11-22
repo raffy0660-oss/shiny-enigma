@@ -122,3 +122,81 @@ Aturan pemakaian:
   - Payoff: flash putih lalu golden.
 - Engine Pion (billboard) mengikuti preset `light` pada cue yang sama, supaya warna Pion cocok dengan set.
 - **Ini panduan gaya, bukan aset.** Jangan menyalin karakter, set, atau desain dari video referensi. Pakai polanya saja.
+
+---
+
+## 7. Bagaimana cahaya jatuh ke model (karakter) dan kondisi model saat disinari
+
+Papan: `REFERENSI_MODEL.jpg`. Isinya 12 close-up kepala dalam berbagai kondisi cahaya, swatch warna muka
+yang diukur (sisi terang vs sisi gelap), dan 6 close-up badan. Angka di bawah berasal dari:
+- 10 kepala close-up yang diukur per piksel
+- deteksi kepala otomatis (18 kepala valid)
+
+### 7a. Muka: hampir tidak pernah gelap
+
+- **Muka adalah benda paling terang di frame**: luma muka rata-rata **1,7x luma frame**.
+  Inilah yang membuat karakter seperti "disorot" walaupun set-nya gelap.
+- Dalam cahaya normal, hook, maupun adegan positif, **muka hampir rata (flat)**. Beda terang antara sisi
+  terang dan sisi gelap muka cuma **0,00–0,04 luma**. Shading di muka bukan penggelapan, melainkan
+  **pergeseran hue tipis**: tengah krem lalu ke tepi persik/kuning (hook `#fef2e7` → `#feecce`,
+  kantor `#fcf3e4` → `#fee8ca`).
+- **Muka ikut warna cahaya, bukan ikut gelapnya.** Korelasi kehangatan muka dengan kehangatan adegan = **0,84**.
+  Contoh warna muka:
+  - di bawah glow tiket emas: `#fee5ad`
+  - saat tint emosi sial: `#f2ea98`
+  - cahaya ungu dari atas: `#f8e0da`
+  - malam: `#e4caf8` (lavender)
+- **Shading kuat hanya untuk momen dramatis**:
+  - villain dengan cahaya dari bawah: kontras 0,41, sisi gelap `#33335d` navy
+  - malam dengan berkas cahaya jendela: kontras 0,38, gelap `#746da2` lavender
+  - matahari keras atau god ray: kontras 0,70, sisi gelap `#414c6b`
+  
+  **Sisi gelap selalu biru, ungu, atau navy, tidak pernah hitam atau abu netral.**
+- **Bayangan jatuh ke muka** dari properti di adegan cahaya keras (lidah topi polisi membayangi dahi [model #4]).
+  Di adegan malam, berkas cahaya jendela menyapu diagonal di muka [model #6].
+- **Tanpa kilau specular** di muka. Muka matte. Kalau ada titik putih, itu sparkle efek, bukan pantulan.
+- Mata dan alis tetap gambar 2D hitam yang tidak terpengaruh cahaya. Pipi kadang blush pink.
+
+### 7b. Badan dan baju: shading 3D lembut
+
+- Badan kapsul punya **gradasi halus 2 nada**: sisi terang lebih terang dan jenuh, sisi jauh lebih gelap
+  dengan hue bergeser ke ambient (kuning ke oranye kecokelatan, ungu ke ungu tua kebiruan).
+  **Tidak ada pita cel yang keras.** Rata-rata hanya 1–2 puncak nada per permukaan.
+- Ada sedikit **penggelapan di tepi silhuet** (seperti AO/fresnel gelap) yang memberi volume.
+- Lengan dan kaki berupa garis hitam tipis, tanpa shading.
+- Badan **menerima bayangan** benda lain dan **menjatuhkan bayangan kontak lembut** ke lantai.
+  Di matahari keras, bayangan karakter tegas di lantai.
+
+### 7c. Outline
+
+- Garis tinta gelap tebal, kira-kira **0,5% lebar frame**, tebal konstan. **Tidak ikut terang**:
+  tetap gelap (luma ~0,25 setelah blur), hanya sedikit ikut warna adegan.
+
+### 7d. Kondisi model per jenis cahaya (resep)
+
+| Cahaya | Muka | Badan | Catatan |
+|---|---|---|---|
+| Normal / hook | Hampir putih, tint hangat krem, rata | Gradasi lembut, sisi jauh ke hue ambient | Muka paling terang di frame |
+| Objek bercahaya di bawah (tiket, layar) | Seluruh muka tint warna objek (emas), sedikit lebih terang di dagu | Bagian bawah kena warna objek | Ditambah sparkle di objek |
+| Tint emosi | Seluruh karakter (muka + baju) diwarnai satu warna (hijau = jijik/sial) | Sama | 0,3–0,5 dtk, lalu kembali |
+| Siang luar | Putih bersih, nyaris tanpa shading | Gradasi tipis, bayangan tegas di tanah | Rim tipis dari langit |
+| God ray / matahari keras | Sisi terang putih penuh, sisi gelap navy. Bayangan topi di dahi | Kontras tinggi | Satu-satunya kondisi muka kontras tinggi di siang hari |
+| Malam + 1 lampu / jendela | Lavender terang di sisi lampu, ungu-navy di sisi lain. Berkas cahaya diagonal | Hampir tenggelam, gelap ungu | Hanya muka yang terbaca |
+| Villain | Disinari dari bawah, abu-ungu, mata menyala emisif | Hampir hitam-biru | Senyum lebar terbaca karena kontras |
+
+### 7e. Penerapan ke Pion dan bidak (engine)
+
+Engine sekarang: ramp toon bertingkat, kilau putih di kepala, mahkota emas specular. Untuk seri bergaya
+referensi ini (`light`/preset baru):
+1. **Mode "matte referensi"**: ramp halus 2 nada (bukan pita tajam), **kilau kepala dimatikan** atau sangat tipis.
+   Specular hanya untuk logam (mahkota, lencana).
+2. **Area wajah tetap terang**: fill lembut dari arah kamera supaya muka Pion selalu paling terang di frame.
+   Shading kepala cukup berupa pergeseran hue ke tepi.
+3. **Tint warna cahaya** ke seluruh karakter mengikuti key adegan: emas di dekat objek bercahaya,
+   lavender di malam hari, satu warna saat tint emosi.
+4. **Sisi gelap bergeser ke warna ambient** (biru/ungu), bukan merah tua kehitaman.
+5. **Mode dramatis** lewat cue:
+   - cahaya bawah untuk tersangka atau momen curiga
+   - berkas jendela diagonal untuk malam
+   - kontras tinggi + bayangan topi deerstalker di dahi untuk matahari keras
+6. Outline tetap gelap konstan. Bayangan kontak lembut selalu ada. Bayangan tegas hanya di matahari keras.
