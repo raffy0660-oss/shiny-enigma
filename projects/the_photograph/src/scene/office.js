@@ -209,7 +209,7 @@ add(new THREE.CylinderGeometry(0.004, 0.004, RH - LAMP.y - 0.17, 6), mat({ color
 add(new THREE.CylinderGeometry(0.05, 0.05, 0.03, 16), mat({ color: 0x1b1b1b, metalness: .5 }), LAMP.x, RH - 0.015, LAMP.z);
 const key = new THREE.SpotLight(0xffd59a, 7.5, 6, 0.6, 0.6, 1.5);
 key.position.copy(LAMP).add(V(0, 0.05, 0)); key.target.position.set(0, DESK.h, DESK.z + 0.05); key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004; key.shadow.radius = 4; key.shadow.camera.near = 0.1; key.shadow.camera.far = 6; scene.add(key, key.target);
+key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004; key.shadow.radius = 2.5;   // crisper character / prop shadows key.shadow.camera.near = 0.1; key.shadow.camera.far = 6; scene.add(key, key.target);
 const lampFill = new THREE.PointLight(0xffc27a, 0.6, 3.2, 2); lampFill.position.copy(LAMP).add(V(0, 0.12, 0)); scene.add(lampFill);
 const deskBounce = new THREE.PointLight(0xff9a5a, 0.5, 2.6, 2); deskBounce.position.set(0, DESK.h + 0.25, DESK.z + 0.75); scene.add(deskBounce);   // warm bounce off the papers lifts the desk front + floor a little   // bounce up onto the shade / ceiling
 // volumetric cone + dust motes inside it
@@ -446,9 +446,9 @@ function placeMag(M) { MAG.visible = !!M; magR.visible = !M; if (M) { MAG.positi
 // conflict: lamp nearly dead, deep blue, red/blue police strobe through the blinds, lightning flashes ("Then Friday arrived")
 // reveal  : the room goes black, a cold sickly under-light from the desk hits the face, red edge tint ("It was me")
 const MOODS = {
-  normal:   { key: 7.5, keyCol: 0xffd59a, hemi: 0.62, hemiCol: 0x3e5cc0, moon: 24, fill: 1.1, board: 3.2, cone: 0.24, fog: 0.035, vig: 0.32, tint: [0, 0, 0], under: 0, strobe: 0, flicker: 0.015 },
-  tension:  { key: 4.2, keyCol: 0xffc98a, hemi: 0.5, hemiCol: 0x3550c8, moon: 34, fill: 1.5, board: 1.6, cone: 0.2, fog: 0.05, vig: 0.45, tint: [-0.02, 0.0, 0.05], under: 0, strobe: 0, flicker: 0.12 },
-  conflict: { key: 0.9, keyCol: 0xffb070, hemi: 0.42, hemiCol: 0x2a46c8, moon: 40, fill: 1.9, board: 0.4, cone: 0.06, fog: 0.06, vig: 0.54, tint: [-0.03, 0.0, 0.08], under: 0, strobe: 1, flicker: 0.3 },
+  normal:   { key: 10.5, keyCol: 0xffd59a, hemi: 0.36, hemiCol: 0x3e5cc0, moon: 26, fill: 0.65, board: 3.6, cone: 0.36, fog: 0.035, vig: 0.32, tint: [0, 0, 0], under: 0, strobe: 0, flicker: 0.015 },
+  tension:  { key: 6.0, keyCol: 0xffc98a, hemi: 0.3, hemiCol: 0x3550c8, moon: 40, fill: 0.95, board: 1.8, cone: 0.3, fog: 0.05, vig: 0.45, tint: [-0.02, 0.0, 0.05], under: 0, strobe: 0, flicker: 0.12 },
+  conflict: { key: 1.2, keyCol: 0xffb070, hemi: 0.28, hemiCol: 0x2a46c8, moon: 48, fill: 1.3, board: 0.4, cone: 0.06, fog: 0.06, vig: 0.54, tint: [-0.03, 0.0, 0.08], under: 0, strobe: 1, flicker: 0.3 },
   reveal:   { key: 0.0, keyCol: 0xffb070, hemi: 0.12, hemiCol: 0x203070, moon: 6, fill: 0.2, board: 0.0, cone: 0.0, fog: 0.07, vig: 0.66, tint: [0.05, -0.01, 0.0], under: 1, strobe: 0, flicker: 0 },
 };
 const hemiL = scene.children.find(o => o.isHemisphereLight);
@@ -493,7 +493,7 @@ window.renderShot = async (name, t = 0, over) => {
 };
 
 // ---------------------------------------------------------------- Pion INSIDE the world (charlayer.js): depth occlusion, set lights + shadows on him, his shadow from the pendant lamp
-const CHR = createChars(scene, camera, renderer, { n: 1, E: 0.62, D: 0.1, light: key, hide: [cone, dust, spill], rim: 0.5, glow: 0.2 });
+const CHR = createChars(scene, camera, renderer, { n: 1, E: 0.62, D: 0.1, light: key, hide: [cone, dust, spill], rim: 1.0, glow: 0.35, shade: 0.75 });
 const RIMP = { normal: "interior_warm_lamp", tension: "interior_night", conflict: "interior_night", reveal: "crime_scene" };   // character rim matches the mood light
 composer.insertPass(CHR.pass(pionRT), composer.passes.indexOf(pionComp)); CHR.guard(gtao); CHR.guard(bokeh);
 moon.shadow.autoUpdate = false; key.shadow.autoUpdate = false;
@@ -508,7 +508,7 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
   placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag); clockSpot.intensity = F.clockLight || 0;
   { const LP = LIGHT_PRESETS[RIMP[F.mood2 && F.moodK > 0.5 ? F.mood2 : (F.mood || "normal")]] || LIGHT_PRESETS.interior_warm_lamp;
-    await CHR.place(F.pion ? [Object.assign(F.pion.preset ? { cast: true } : { shadow: [1.0, 0.55], cast: true }, F.pion)] : [], { light: key, puffs: F.puffs, rimCol: LP.rimCol, rimK: LP.rimK }); }
+    await CHR.place(F.pion ? [Object.assign(F.pion.preset ? { cast: true } : { shadow: [1.0, 0.55], cast: true }, F.pion)] : [], { light: key, puffs: F.puffs, ...LP }); }
   { const sig = JSON.stringify([F.env, F.anon, F.calTear, F.mag, !!F.laptop, F.anonVis]); if (sig !== lastSig) { CHR.bake([moon]); lastSig = sig; } }
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   composer.render();
