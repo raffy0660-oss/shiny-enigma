@@ -136,7 +136,7 @@ function parseCues(txt) {
     else if (cmd === 'toon' || cmd === 'kartun') C.fx.push({ type: 'toon', t0: -1, t1: 1e9 }); // cartoon clothing: flat colour blocks, big checks, thick ink + piping, big buttons (all outfits)
     else if (cmd === 'style2d' || cmd === 'gaya2d') C.fx.push({ type: 'style2d', t0: -1, t1: 1e9 }); // flat 2D reference look (PANDUAN_SINEMATIK §7)
     else if (cmd === 'piece' || cmd === 'bidak') C.fx.push({ type: 'piece', t0: -1, t1: 1e9, kind: (w[2] || 'pawn').toLowerCase() }); // another chess piece instead of Pion: knight rook bishop queen pawn
-    else if (cmd === 'detective' || cmd === 'detektif') C.fx.push({ type: 'detective', t0: t, t1: t + +(w[2] || 99) });
+    else if (cmd === 'detective' || cmd === 'detektif') C.fx.push({ type: 'detective', t0: t, t1: t + +(w[2] || 99), kind: (w[3] || '').toLowerCase() || null }); // detective <dur> [light|light2]: blazer under the cape
     else if (cmd === 'poof') C.fx.push({ type: 'poof', t0: t, t1: t + +(w[2] || .5) });
     else if (cmd === 'aha') C.fx.push({ type: 'aha', t0: t, t1: t + +(w[2] || 1) });
     else if (cmd === 'glasses' || cmd === 'kacamata') C.fx.push({ type: 'glasses', t0: t, t1: t + +(w[2] || 99) });
