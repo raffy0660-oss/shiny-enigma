@@ -137,7 +137,7 @@ function rStep(f) {
 
 /* portrait camera: long lens aimed at the pion, slightly above eye level */
 function reactCam(fr) {
-  const fov = 28 * Math.PI / 180, dist = fr.vh / 2 / Math.tan(fov / 2), tl = fr.tiltDeg * Math.PI / 180;
+  const fov = (window.STYLE2D ? 18 : 28) * Math.PI / 180, dist = fr.vh / 2 / Math.tan(fov / 2), tl = (window.STYLE2D && !RX.view ? Math.min(fr.tiltDeg, 1.5) : fr.tiltDeg) * Math.PI / 180;   // 2D style: long lens, eye level -> flat, no stacked 3D ellipses
   const az = (fr.orbit || 0) * Math.PI / 180;   // orbit: the camera circles Pion (world-space light stays put, so the lit side changes with the view)
   const tgt = [fr.cx, fr.cy, 0], eye = [fr.cx + Math.sin(az) * Math.cos(tl) * dist, fr.cy + Math.sin(tl) * dist, Math.cos(az) * Math.cos(tl) * dist];
   const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], nrm = a => { const l = Math.hypot(...a); return a.map(v => v / l); };
@@ -145,7 +145,8 @@ function reactCam(fr) {
   const fw = nrm(sub(tgt, eye)), r0 = nrm(cross(fw, [0, 1, 0])), u0 = cross(r0, fw), ro = (fr.roll || 0) * Math.PI / 180, cr = Math.cos(ro), sr = Math.sin(ro);
   const r = r0.map((v, i) => v * cr + u0[i] * sr), u = u0.map((v, i) => -r0[i] * sr + v * cr); // dutch angle
   const V = Float32Array.of(r[0], u[0], -fw[0], 0, r[1], u[1], -fw[1], 0, r[2], u[2], -fw[2], 0, -dot(r, eye), -dot(u, eye), dot(fw, eye), 1);
-  const VP = mat.mul(mat.persp(fov, ASPECT, .05, 300), V);
+  const hh = fr.vh / 2, ORTHO = Float32Array.of(1 / (hh * ASPECT), 0, 0, 0, 0, 1 / hh, 0, 0, 0, 0, -2 / 299.95, 0, 0, 0, -300.05 / 299.95, 1);   // 2D style: orthographic -> no perspective at all
+  const VP = mat.mul(window.STYLE2D && !RX.view ? ORTHO : mat.persp(fov, ASPECT, .05, 300), V);
   const toPix = p => { const c = mat.xform(VP, [p[0], p[1], p[2], 1]); return [(c[0] / c[3] * .5 + .5) * W, (1 - (c[1] / c[3] * .5 + .5)) * H]; };
   return { VP, eye, toPix, ppu: H / fr.vh, fw };
 }

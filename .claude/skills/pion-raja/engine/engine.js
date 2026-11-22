@@ -60,7 +60,7 @@ float h3(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
 float vn(vec3 p){ vec3 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z); }
 uniform vec3 uColor; uniform float uUseVC; uniform sampler2D uTex; uniform float uUseTex; uniform sampler2D uRamp;
 uniform vec3 uLDir; uniform vec3 uKey; uniform vec3 uAmb; uniform vec3 uSky; uniform vec3 uGnd; uniform float uDouble; uniform float uExp;
-uniform vec3 uRim; uniform float uFlash; uniform float uCut; uniform float uSoft; uniform float uFlat; uniform float uR2; uniform float uFace; // uSoft: 1 = smooth sun shading (3D worlds); uFlat: 1 = flat 2D cartoon (two tones, no gloss)
+uniform vec3 uRim; uniform float uFlash; uniform float uCut; uniform float uSoft; uniform float uFlat; uniform float uR2; uniform float uFace; uniform vec4 uEdge; // uSoft: 1 = smooth sun shading (3D worlds); uFlat: 1 = flat 2D cartoon (two tones, no gloss)
 uniform vec4 uLPos; uniform float uLAtt; // optional point key light fixed in the room (xyz, w=on): shading changes as he moves
 uniform vec4 uAO; uniform float uAOs; // soft contact occlusion bands in object space (under the collar, under the crown)
 void main(){
@@ -73,7 +73,6 @@ void main(){
   float r=.549+.137*smoothstep(.2-aw,.2+aw,x)+.157*smoothstep(.4-aw,.4+aw,x)+.118*smoothstep(.6-aw,.6+aw,x)+.039*smoothstep(.8-aw,.8+aw,x);
   if(uSoft>0.){ float lam=smoothstep(-.35,1.,d); r=mix(r,.1+.9*lam,uSoft); }   // real terminator: the side away from the sun goes dark
   if(uFlat>0.){ r=mix(r, mix(.62,1.,smoothstep(.5-aw*2.,.5+aw*2.,x)), uFlat); }   // flat 2D: one hard shadow edge
-  if(uR2>0.){ float lo=mix(.80,.94,uFace); r=mix(r, mix(lo,1.,smoothstep(.2,.6,x)), uR2); }   // 2D reference look: soft two-tone, faces almost flat
   float hemi=mix(mix(n.y*.5+.5, .5, uFlat), .5, uR2);
   vec3 light=uAmb+mix(uGnd,uSky,hemi)+uKey*r*att;
   if(uAOs>0.){ vec2 q=clamp(vec2((vO.y-uAO.x)/(uAO.y-uAO.x),(vO.y-uAO.z)/(uAO.w-uAO.z)),0.,1.); q=q*q*(3.-2.*q); float occ=q.x+q.y; /* edges may be reversed (GLSL smoothstep may not) */ light*=1.-uAOs*(1.-.85*uR2)*clamp(occ,0.,1.)*(.55+.45*(1.-max(n.y,0.))); }
@@ -85,6 +84,16 @@ void main(){
   vec3 col=base*light*uExp*mix(vec3(1.),vec3(.88,.86,1.06),shadeAmt*.6)+(uRim*rim*.6*(1.-uSoft*.7)+uRim*rimCel*1.4*(1.-uSoft*.5))*(1.-max(uFlat,uR2));
   if(uSoft>0.){ vec2 nl=normalize(n.xy+1e-4), ll=normalize(Ld.xy+1e-4); col+=uKey*uSoft*.85*pow(fres,2.4)*max(dot(nl,ll),0.); }   // sun glint on the lit edge
   if(uSpec>0. && uFlat<.5 && uR2<.5){ vec3 V=normalize(uEye-vW); vec3 R=reflect(-Ld,n); float sp=pow(max(dot(R,V),0.),18.); col+=uSpec*(smoothstep(.45,.55,sp)*vec3(1.,.97,.86)+.35*smoothstep(.08,.3,sp)*vec3(1.,.85,.5)); float fr=pow(1.-max(dot(n,V),0.),2.5); col+=uSpec*.25*fr*vec3(1.,.8,.4); }
+  if(uR2>0.){   // 2D reference look: painted airbrush gradient (bright centre leaning to the key light, soft darker hue-shifted edge), no terminator
+    vec3 V=normalize(uEye-vW); float fac=clamp(dot(n,V),0.,1.); vec3 Ls=normalize(Ld*.9+V*.5);
+    float g=smoothstep(-.4,.8,dot(n,Ls)); g=mix(g,1.,.35*uFace); float sil=smoothstep(.32,.0,fac)*(1.-.6*uFace);   // one-sided soft core shade + slight silhouette darkening
+    float k=clamp(g*(1.-.45*sil),0.,1.);
+    vec3 cool=vec3(.86,.84,1.08), warm=vec3(1.,.9,.8);
+    vec3 cE=uEdge.w>.5?uEdge.rgb:base*mix(vec3(.72)*cool,vec3(.9)*warm,uFace);
+    vec3 gr=mix(cE,base,k)+base*.05*smoothstep(.8,1.,k)*(1.-uFace);
+    vec3 lt=(uAmb+mix(uGnd,uSky,.5)+uKey*.9)*uExp; float ll=dot(lt,vec3(.333)); lt=lt/max(ll,.05)*min(ll,1.15);
+    col=mix(col,gr*lt,uR2);
+  }
   col=mix(col,vec3(1.,.97,.9),uFlash);
   o=vec4(clamp(col,0.,1.),1.);
 }`);
@@ -724,7 +733,7 @@ function drawToon(Msh, model, VP, L, o) {
   gl.uniform3fv(P.u.uColor, o.color || [1, 1, 1]); gl.uniform1f(P.u.uUseVC, o.vc ? 1 : 0); gl.uniform1f(P.u.uUseTex, o.tex ? 1 : 0); gl.uniform1f(P.u.uDouble, o.dbl ? 1 : 0);
   if (L.pos) { const dx = L.pos[0], dy = L.pos[1] - 3.0, dz = L.pos[2]; gl.uniform4f(P.u.uLPos, L.pos[0], L.pos[1], L.pos[2], 1.5); gl.uniform1f(P.u.uLAtt, dx * dx + dy * dy + dz * dz); }
   else gl.uniform4f(P.u.uLPos, 0, 0, 0, 0);
-  gl.uniform3fv(P.u.uLDir, L.dir); gl.uniform3fv(P.u.uKey, L.key); gl.uniform3fv(P.u.uAmb, L.amb); gl.uniform3fv(P.u.uSky, L.sky); gl.uniform3fv(P.u.uGnd, L.gnd); gl.uniform1f(P.u.uExp, L.exp); gl.uniform3fv(P.u.uRim, L.rim); if (P.u.uSoft) gl.uniform1f(P.u.uSoft, L.soft || 0); if (P.u.uFlat) gl.uniform1f(P.u.uFlat, L.flat || 0); if (P.u.uR2) { gl.uniform1f(P.u.uR2, window.STYLE2D ? 1 : 0); gl.uniform1f(P.u.uFace, o.face ? 1 : 0); } window.OUTK = L.flat ? 1.12 : L.soft ? 1 - .45 * L.soft : 1; gl.uniform1f(P.u.uFlash, FLASH); gl.uniform1f(P.u.uSpec, o.spec || 0); gl.uniform1f(P.u.uCut, o.cut ? 1 : 0); gl.uniform1f(P.u.uSoot, o.noSoot ? 0 : SOOT); gl.uniform1f(P.u.uSootK, o.sootK || 1); gl.uniform3fv(P.u.uEye, window.EYE || [0, 10, 20]);
+  gl.uniform3fv(P.u.uLDir, L.dir); gl.uniform3fv(P.u.uKey, L.key); gl.uniform3fv(P.u.uAmb, L.amb); gl.uniform3fv(P.u.uSky, L.sky); gl.uniform3fv(P.u.uGnd, L.gnd); gl.uniform1f(P.u.uExp, L.exp); gl.uniform3fv(P.u.uRim, L.rim); if (P.u.uSoft) gl.uniform1f(P.u.uSoft, L.soft || 0); if (P.u.uFlat) gl.uniform1f(P.u.uFlat, L.flat || 0); if (P.u.uR2) { gl.uniform1f(P.u.uR2, window.STYLE2D ? 1 : 0); gl.uniform1f(P.u.uFace, o.face ? 1 : 0); gl.uniform4fv(P.u.uEdge, o.edge ? [...o.edge, 1] : [0, 0, 0, 0]); } window.OUTK = L.flat ? 1.12 : L.soft ? 1 - .45 * L.soft : 1; gl.uniform1f(P.u.uFlash, FLASH); gl.uniform1f(P.u.uSpec, o.spec || 0); gl.uniform1f(P.u.uCut, o.cut ? 1 : 0); gl.uniform1f(P.u.uSoot, o.noSoot ? 0 : SOOT); gl.uniform1f(P.u.uSootK, o.sootK || 1); gl.uniform3fv(P.u.uEye, window.EYE || [0, 10, 20]);
   const ao = o.ao || [9, 10, 9, 10, 0]; gl.uniform4fv(P.u.uAO, ao.slice(0, 4)); gl.uniform1f(P.u.uAOs, ao[4]);
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, o.tex || RAMP); gl.uniform1i(P.u.uTex, 0);
   gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, RAMP); gl.uniform1i(P.u.uRamp, 1);
