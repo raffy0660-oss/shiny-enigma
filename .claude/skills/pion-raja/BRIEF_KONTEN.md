@@ -39,6 +39,12 @@ Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `project
   - garis tinta pakaian lebih tebal;
   - polisi dan Daniel: warna datar, kancing besar, rompi tanpa tekstur rajut.
   Papan: `REFERENSI_PAKAIAN_CARTOON.jpg`. Model tetap Pion (kepala, badan, sarung tangan putih, monokel, topi detektif).
+- **KOSTUM STANDAR PION DETEKTIF (pilihan user, varian B):** `toon` + **`detective 999 light2`**, yaitu:
+  - pakaian ala Light (Death Note): blazer krem, kemeja putih, dasi merah;
+  - di balik jubah Inverness kotak-kotak + topi deerstalker cartoon;
+  - alas abu gelap seperti celana, jadi merah hanya di kepala.
+  Papan: `REFERENSI_KOSTUM_STANDAR.jpg` (baris B). Cue baku:
+  `0 style2d` / `0 toon` / `0 detective 999 light2`.
   **Kostum anime (blazer ala Light / Akechi) sudah dicoba lalu DIBATALKAN user: jangan dipakai.**
 - Pion Raja: kepala merah bergradasi oranye, badan merah, sarung tangan putih. Kostum detektif di seri ini. Bidak lain tidak pernah merah.
 - **Nama di dalam video: "SUCCIFY"**, jangan "Pion Raja" (papan pintu, email, teks lain).

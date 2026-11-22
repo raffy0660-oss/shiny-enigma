@@ -36,3 +36,5 @@ Arsip arahan user, dipakai sebagai acuan konten berikutnya. Percakapan lengkap s
     pakaian detektif kayak jejepangan (Light / Goro Akechi), tetap pakai topi detektif tapi 2D". Kostum anime sempat dibuat,
     lalu user: "gajadi deh, ikutin perintah diatasnya aja" = **kostum anime batal**, kerjakan MASTER TASK saja
     (cue `toon`, `charlayer` v2, `charpresets.js`, `test_integ.js`; lihat `PANDUAN_INTEGRASI3D.md` bagian v2).
+16. "Daripada badannya keliatan merah, pakai pakaian si Light dari Death Note tapi tetap pakai jubah." → cue `detective <dur> light|light2`.
+    User pilih **B** (`light2`, alas abu gelap): kostum standar Pion detektif mulai video berikutnya.
