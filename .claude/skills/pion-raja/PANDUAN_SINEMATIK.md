@@ -92,6 +92,7 @@ Aturan pemakaian:
   - whip pan dengan motion blur
   - flash cahaya putih (payoff)
   - zoom-through jendela atau lubang
+  - **cross-dissolve / double exposure** untuk lompatan waktu atau tempat ("Meanwhile,", kerumunan yang berbaur)
 - Motion blur kuat di tengah gerakan cepat. Foreground lewat dekat lensa.
 - Low angle + wide untuk adegan aksi. Close-up besar (muka memenuhi 60–80% lebar) untuk reaksi.
 
