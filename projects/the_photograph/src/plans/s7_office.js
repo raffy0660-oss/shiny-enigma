@@ -11,5 +11,5 @@ const K = [
   { t: 36.2, pos: [0.06, 1.2, 0.2], tgt: [0, 1.16, -1.4], fov: 40, focus: 1.55, ease: "lin" },
 ];
 module.exports = { N: 2173, F0, set: "office", K, frame(f) { const t = f / 60, c = t >= 34.46;
-  return { t, cam: cam(K, t), pts: { cal: [0.61, 1.0, -0.75] }, mood: c ? "conflict" : "tension", strike: Math.abs(t - 34.48) < 0.05 || Math.abs(t - 34.62) < 0.04 || t > 36.02, calTear: key([[34.5, 0], [34.9, 1, "in"]], t),
+  return { t, cam: cam(K, t), pts: { cal: [0.61, 1.0, -0.75] }, mood: c ? "conflict" : "tension", strike: Math.abs(t - 34.48) < 0.05 || Math.abs(t - 34.62) < 0.04 || t > 36.02, calTear: t - 34.5,
     pion: { eng: process.env.ENG || "s7", ef: f - F0, anchor: [0, 0.48, PZ], height: 1.15, tint: c ? [0.62, 0.68, 1.0] : [0.8, 0.84, 1.0] } }; } };

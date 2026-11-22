@@ -14,12 +14,13 @@ import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { BokehPass } from "three/addons/postprocessing/BokehPass.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { createChars } from "./charlayer.js";
 
 const W = 1080, H = 1920;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1); renderer.setSize(W, H);
 renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;   // the set never moves: shadows are baked once per version
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = true;   // per light: static lights baked once per version (charlayer.bake), the sun follows Pion every frame in B
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1024);
 scene.fog = new THREE.FogExp2(0x1a2038, 0.05);
@@ -152,7 +153,9 @@ add(new THREE.CylinderGeometry(0.02, 0.02, 0.72, 8), radM, XL + 0.12, 0.12, WIN.
 
 // ---------------------------------------------------------------- the apartment door (right wall), ajar, brass "7B"
 const DOOR = { x: XR, z: -0.25, w: 0.95, h: 1.62 };
-const hallM = new THREE.MeshBasicMaterial({ color: 0x0a0a12 }); add(new THREE.PlaneGeometry(DOOR.w, DOOR.h), hallM, XR + 0.06, DOOR.h / 2, DOOR.z, { ry: -Math.PI / 2, cast: false });   // dark hallway behind
+const hallM = new THREE.MeshBasicMaterial({ color: 0x0a0a12 }); add(new THREE.PlaneGeometry(2.4, 2.2), hallM, XR + 1.4, 1.1, DOOR.z, { ry: -Math.PI / 2, cast: false });   // the corridor behind the door
+const hallWallM = mat({ color: 0x3a3a48 }); add(new THREE.PlaneGeometry(1.4, 0.02 + 2.2), hallWallM, XR + 0.7, 1.1, DOOR.z - 1.2, { cast: false }); add(new THREE.PlaneGeometry(1.4, 2.2), hallWallM, XR + 0.7, 1.1, DOOR.z + 1.2, { ry: Math.PI, cast: false });
+add(new THREE.PlaneGeometry(1.4, 2.4), mat({ color: 0x4a4038, roughness: 0.6 }), XR + 0.7, 0.001, DOOR.z, { rx: -Math.PI / 2, cast: false });
 const doorTex = canvasTex(512, 1024, (g, w, h) => { g.fillStyle = "#5e6b5a"; g.fillRect(0, 0, w, h); g.strokeStyle = "#2a3028"; g.lineWidth = 10;
   g.strokeRect(60, 70, w - 120, 380); g.strokeRect(60, 520, w - 120, 430); g.strokeStyle = "rgba(20,24,20,.4)"; g.lineWidth = 3; for (let i = 0; i < 30; i++) { const x = rnd() * w, y = rnd() * h; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rnd() - .5) * 40, y + rnd() * 30); g.stroke(); }   // chipped paint
   g.fillStyle = "#c9a24a"; g.font = "900 120px Georgia, serif"; g.textAlign = "center"; g.fillText("7B", w / 2, 300); g.strokeStyle = "#5a4012"; g.lineWidth = 4; g.strokeText("7B", w / 2, 300); });
@@ -253,7 +256,7 @@ moonL.position.copy(V(XL, WIN.y, WIN.z).addScaledVector(V(1.0, -0.45, -0.2).norm
 const fillL = new THREE.PointLight(0x6a80d8, 0.6, 7, 1.5); fillL.position.set(0.5, 1.9, 1.0); scene.add(fillL);
 const strobeR = new THREE.PointLight(0xff2a3a, 0, 6, 1.3), strobeB = new THREE.PointLight(0x2a5aff, 0, 6, 1.3);
 strobeR.position.set(XL + 0.35, WIN.y, WIN.z - 0.3); strobeB.position.set(XL + 0.35, WIN.y, WIN.z + 0.3); scene.add(strobeR, strobeB);
-const hallStrobe = new THREE.PointLight(0xff3a48, 0, 4, 1.4); hallStrobe.position.set(XR - 0.2, 1.2, DOOR.z); scene.add(hallStrobe);
+const hallStrobe = new THREE.PointLight(0xff3a48, 0, 4, 1.4); hallStrobe.position.set(XR + 0.9, 1.4, DOOR.z); scene.add(hallStrobe);
 const torch = new THREE.SpotLight(0xfff0d0, 0, 6, 0.28, 0.5, 1.2); torch.castShadow = true; scene.add(torch, torch.target);   // police torch (C)
 // volumetric beams from the window gaps (B: sunlight, C: faint moon/strobe) + dust inside them
 const beamM = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
@@ -297,32 +300,12 @@ function applyVer(ver, t, o = {}) {
   torch.intensity = o.torch ? 22 : 0; if (o.torch) { torch.position.set(...o.torch[0]); torch.target.position.set(...o.torch[1]); }
 }
 
-// ---------------------------------------------------------------- characters: engine renders on cards (composited over the world like office.js), with contact shadows
-const TL = new THREE.TextureLoader(), cardScene = new THREE.Scene(), cards = [], shadows = [];
-const shTex = canvasTex(128, 128, (g) => { const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, "rgba(10,12,40,.75)"); gr.addColorStop(0.6, "rgba(10,12,40,.35)"); gr.addColorStop(1, "rgba(10,12,40,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); });
-shTex.wrapS = shTex.wrapT = THREE.ClampToEdgeWrapping;
-for (let i = 0; i < 4; i++) { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.04, depthWrite: false, depthTest: false, toneMapped: false, fog: false }));
-  m.visible = false; cardScene.add(m); cards.push(m);
-  const s = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: shTex, transparent: true, depthWrite: false, fog: false })); s.rotation.x = -Math.PI / 2; s.visible = false; s.renderOrder = 4; scene.add(s); shadows.push(s); }
-const texCache = new Map();
-async function loadTex(url) { if (texCache.has(url)) return texCache.get(url); const t = await TL.loadAsync(url); t.colorSpace = THREE.SRGBColorSpace; texCache.set(url, t);
-  if (texCache.size > 12) { const k = texCache.keys().next().value; texCache.get(k).dispose(); texCache.delete(k); } return t; }
-async function placeCards(list) {
-  for (let i = 0; i < cards.length; i++) { const P = list[i], C = cards[i], S = shadows[i];
-    if (!P || !P.url) { C.visible = false; S.visible = false; continue; }
-    const t = await loadTex(P.url); C.material.map = t; C.material.needsUpdate = true; C.material.color.setRGB(...(P.tint || [1, 1, 1])); C.material.opacity = P.alpha ?? 1; C.material.transparent = true;
-    const k = P.height / (4.65 * P.ppu), pw = P.w * k, ph = P.h * k, A = V(...P.anchor);
-    const off = V((P.w / 2 - P.base[0]) * k, (P.base[1] - P.h / 2) * k, 0);
-    if (P.face) C.quaternion.copy(camera.quaternion); else { const d = V().subVectors(camera.position, A); C.rotation.set(0, Math.atan2(d.x, d.z), 0); }
-    if (P.roll) C.rotateZ(P.roll);
-    C.scale.set(pw, ph, 1); off.applyQuaternion(C.quaternion); C.position.copy(A).add(off); C.visible = true;
-    const sw = P.shadow || [0.95, 0.55]; S.visible = P.shadow !== false; S.scale.set(sw[0], sw[1], 1); S.position.set(A.x + (sw[2] || 0), 0.006, A.z + (sw[3] || 0)); S.material.opacity = P.shOp ?? 1; }
-}
+const cardScene = scene;   // (the police tape is real geometry now)
 // police tape (C): drawn over the cards so it reads in front of whoever stands behind it (the doorway)
 const tapeTex = canvasTex(1024, 96, (g, w, h) => { g.fillStyle = "#f5c518"; g.fillRect(0, 0, w, h); g.fillStyle = "#151515"; g.fillRect(0, 0, w, 8); g.fillRect(0, h - 8, w, 8);
   g.font = "900 46px Arial Black, sans-serif"; g.textBaseline = "middle"; for (let x = 10; x < w; x += 512) g.fillText("POLICE LINE  DO NOT CROSS", x, h / 2 + 2); }, [2, 1]);
-const tapeG = new THREE.Group(); cardScene.add(tapeG);
-const tapeM = new THREE.MeshBasicMaterial({ map: tapeTex, side: THREE.DoubleSide, toneMapped: false, fog: false, depthTest: false, color: 0xbfbfbf });
+const tapeG = new THREE.Group(); scene.add(tapeG);
+const tapeM = new THREE.MeshStandardMaterial({ map: tapeTex, side: THREE.DoubleSide, roughness: 0.5, emissive: 0xffffff, emissiveMap: tapeTex, emissiveIntensity: 0.15 });
 function tape(a, b, wd = 0.07, sag = 0.06) { const A = V(...a), B = V(...b), N = 16, pos = [], uv = [], idx = [], L = A.distanceTo(B);
   for (let i = 0; i <= N; i++) { const u = i / N, p = A.clone().lerp(B, u); p.y -= Math.sin(u * Math.PI) * sag; const tw = Math.sin(u * 9) * 0.25;
     pos.push(p.x, p.y + wd / 2 * Math.cos(tw), p.z + wd / 2 * Math.sin(tw), p.x, p.y - wd / 2 * Math.cos(tw), p.z - wd / 2 * Math.sin(tw)); uv.push(u * L * 1.2, 1, u * L * 1.2, 0); if (i < N) { const j = i * 2; idx.push(j, j + 1, j + 2, j + 1, j + 3, j + 2); } }
@@ -334,17 +317,23 @@ const tapeMul = new THREE.Color();   // tape picks up the strobe colour a little
 
 // ---------------------------------------------------------------- render
 const PTS = { clock: [CLOCK.p.x, 0.25, CLOCK.p.z + 0.1], clockFace: [0, 0, 0], body: [-0.35, 0.2, -0.55], door: [XR, 1.0, DOOR.z], window: [XL, WIN.y, WIN.z] };
-let lastVer = null;
+// ---------------------------------------------------------------- characters INSIDE the world (charlayer.js)
+const CHARS = createChars(scene, camera, renderer, { n: 4, E: 0.6, D: 0.18, hide: [...beams, dust, ...scene.children.filter(o => o.material === webM)] });
+composer.insertPass(CHARS.pass(pionRT), composer.passes.indexOf(pionComp)); CHARS.guard(gtao); CHARS.guard(bokeh);
+for (const l of [sun, moonL, torch, bulbL]) if (l.shadow) l.shadow.autoUpdate = false;
+const DYN = { A: null, B: sun, C: null };   // the light that draws the characters' shadows every frame
+let bakedVer = null;
 window.AP = { CLOCK: CLOCK.p.toArray(), BULB: BULB.toArray(), DOOR: [XR, 0, DOOR.z], WIN: [XL, WIN.y, WIN.z], SUNDIR: SUNDIR.toArray() };
 window.renderFrame = async (F) => {   // F: { t, ver, cam:{pos,tgt,fov,focus,roll}, pions:[{url,base,ppu,w,h,anchor,height,tint,roll,face,shadow}], sepia, flash, clockGlow, body, torch, bulbK, beamK, pts:{name:[x,y,z]} }
   camera.position.set(...F.cam.pos); camera.fov = F.cam.fov; camera.updateProjectionMatrix(); camera.lookAt(...F.cam.tgt); if (F.cam.roll) camera.rotateZ(F.cam.roll); camera.updateMatrixWorld();
   bokeh.uniforms.focus.value = F.cam.focus; bokeh.uniforms.aperture.value = F.cam.aperture ?? 0.0016; placeDust(F.t); grade.uniforms.time.value = F.t;
-  applyVer(F.ver || "A", F.t, F); lightsOff(); grade.uniforms.flash.value = F.flash || 0; if (lastVer !== F.ver) { renderer.shadowMap.needsUpdate = true; lastVer = F.ver; }
-  const ph = Math.floor(F.t * 4) % 2; tapeM.color.copy(F.ver === "C" ? tapeMul.setRGB(ph ? 0.8 : 0.55, 0.55, ph ? 0.6 : 0.85) : tapeMul.setRGB(0.75, 0.75, 0.75));
+  applyVer(F.ver || "A", F.t, F); lightsOff(); grade.uniforms.flash.value = F.flash || 0; 
+  const ph = Math.floor(F.t * 4) % 2; 
   if (F.refl) { reflM.map = await loadTex(F.refl.url); reflM.opacity = F.refl.k; reflM.needsUpdate = true; refl.visible = true; } else refl.visible = false;
-  const list = (F.pions || (F.pion ? [F.pion] : [])); await placeCards(list);
+  const list = (F.pions || (F.pion ? [F.pion] : [])).map(P => P && P.face ? Object.assign({ push: 0.7, cast: false }, P) : P);
+  if (bakedVer !== F.ver) { const dyn = DYN[F.ver]; CHARS.bake([sun, moonL, torch, bulbL].filter(l => l !== dyn)); bakedVer = F.ver; }
+  await CHARS.place(list, { light: DYN[F.ver || "A"], puffs: F.puffs });
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
-  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(cardScene, camera); renderer.setRenderTarget(null);
   composer.render();
   const pr = (p) => { const q = V(...p).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };
   CLK.updateMatrixWorld(); const cf = V(0, 0, 0.07).applyMatrix4(CLK.matrixWorld).toArray(); PTS.clockFace = cf;

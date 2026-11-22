@@ -11,12 +11,13 @@ import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 import { GTAOPass } from "three/addons/postprocessing/GTAOPass.js";
 import { BokehPass } from "three/addons/postprocessing/BokehPass.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { createChars } from "./charlayer.js";
 
 const W = 1080, H = 1920;
 const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(1); renderer.setSize(W, H);
 renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.localClippingEnabled = true; renderer.shadowMap.autoUpdate = false;   // re-baked only when a prop moves (renderFrame)
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.localClippingEnabled = true; renderer.shadowMap.autoUpdate = true;   // per light: the moon is baked (re-baked when a prop moves), the pendant key updates every frame (Pion's shadow)
 document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b1024);
 scene.fog = new THREE.FogExp2(0x101a3a, 0.035);
@@ -385,8 +386,16 @@ const thuTex = canvasTex(512, 600, (g, w, h) => { g.fillStyle = "#f6f1e4"; g.fil
   g.fillStyle = "#fff"; g.font = "900 78px Arial Black, sans-serif"; g.textAlign = "center"; g.fillText("THURSDAY", w / 2, 108); g.fillStyle = "#222"; g.font = "900 260px Georgia, serif"; g.fillText("13", w / 2, 420); hand(g, "1 day", w / 2, 545, 64, "#a01d22"); });
 const calPivot = new THREE.Group(); calPivot.position.set(0, 0.165, 0.004); cal.add(calPivot);
 const thuPage = add(box(0.15, 0.17, 0.004, 0.002), mat({ map: thuTex }), 0, -0.085, 0.03, { rx: -0.32, parent: calPivot }); calPivot.visible = false;
-function placeCalPage(k) { if (k === undefined || k >= 1) { calPivot.visible = false; return; } calPivot.visible = true;
-  const u = Math.max(0, k); calPivot.rotation.set(-u * 2.2, 0, u * 0.8); calPivot.position.set(u * 0.25, 0.165 + u * 0.35, 0.004 + u * 0.3); }
+function placeCalPage(T) {   // T: seconds since the tear (negative = still attached, undefined = no THURSDAY page). Ballistic flight with gravity + tumble, lands on the desk, slides to rest
+  if (T === undefined || T === null) { calPivot.visible = false; return; } calPivot.visible = true;
+  const g = 9.8 / 1.5, P0 = [0, 0.165, 0.004];   // calendar group is scaled x1.5: local units
+  if (T < 0) { calPivot.position.set(...P0); calPivot.rotation.set(0, 0, 0); return; }
+  if (T < 0.08) { const u = T / 0.08; calPivot.position.set(...P0); calPivot.rotation.set(-1.1 * u * u, 0, 0); return; }   // ripped up off the rings
+  const t = T - 0.08, v = [0.35, 0.95, 0.6], tl = (v[1] + Math.sqrt(v[1] * v[1] + 2 * g * (P0[1] - 0.012))) / g;   // time to reach the desk top
+  if (t < tl) { calPivot.position.set(P0[0] + v[0] * t, P0[1] + v[1] * t - 0.5 * g * t * t, P0[2] + v[2] * t); calPivot.rotation.set(-1.1 - 7.5 * t, 0.6 * t, 2.4 * t); return; }
+  const s = t - tl, fr = (1 - Math.exp(-6 * s)) / 6;   // sliding with friction on the leather mat
+  calPivot.position.set(P0[0] + v[0] * (tl + fr), 0.012, P0[2] + v[2] * (tl + fr)); calPivot.rotation.set(-(Math.PI / 2 - 0.32), 0.6 * tl + 0.3 * fr, 0.4);
+}
 const photoImg = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = "./tex/photo_front.jpg"; });
 const scrCanvas = document.createElement("canvas"); scrCanvas.width = 1024; scrCanvas.height = 680; const scrTex = new THREE.CanvasTexture(scrCanvas); scrTex.colorSpace = THREE.SRGBColorSpace; scrTex.anisotropy = 8;
 function drawScreen(S, t) { const g = scrCanvas.getContext("2d"), w = 1024, h = 680, k = S.k || 0;
@@ -470,35 +479,24 @@ const SHOTS = {
   low: { pos: V(-0.55, 0.95, 0.75), tgt: V(0.1, 1.5, -1.4), fov: 44, focus: 2.0 },
   establish: { pos: V(1.45, 1.7, 1.6), tgt: V(-0.45, 1.25, -1.5), fov: 58, focus: 3.2 },
 };
-window.renderShot = (name, t = 0, over) => {
+window.renderShot = async (name, t = 0, over) => {
   placeEnv(null); renderer.shadowMap.needsUpdate = true;
   const S = Object.assign({}, SHOTS[name] || SHOTS.wide, over || {});
   camera.position.copy(S.pos); camera.fov = S.fov; camera.updateProjectionMatrix(); camera.lookAt(S.tgt);
   bokeh.uniforms.focus.value = S.focus; placeDust(t); grade.uniforms.time.value = t;
   applyMood(S.mood || 'normal', S.mood2 || S.mood || 'normal', S.moodK || 0, t);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
-  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.setRenderTarget(null);
+  await CHR.place([]); CHR.bake([moon]);
   composer.render();
   return renderer.domElement.toDataURL("image/jpeg", 0.93);
 };
 
-// ---------------------------------------------------------------- Pion: the engine render (2D style, transparent PNG per frame) on a camera-facing card behind the desk
-const pionMat = new THREE.MeshBasicMaterial({ transparent: true, alphaTest: 0.04, depthWrite: false, depthTest: true, toneMapped: false, fog: false });   // depth-tested against the occluder pass
-const pionScene = new THREE.Scene(), pionCard = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), pionMat); pionScene.add(pionCard);
-const deskClip = new THREE.Plane(), TL = new THREE.TextureLoader(); let pionTex = null;
-const occM = new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide });
-for (const o of [cal, LAP, MAG]) o.traverse(m => m.layers.enable(2));   // things that stand between the camera and Pion
-async function placePion(P) {   // P: { url, base:[px,py], ppu, w, h, anchor:[x,y,z], height, tint:[r,g,b] }
-  if (!P || !P.url) { pionCard.visible = false; return; }
-  const t = await TL.loadAsync(P.url); t.colorSpace = THREE.SRGBColorSpace; if (pionTex) pionTex.dispose(); pionTex = t; pionMat.map = t;
-  const k = P.height / (4.65 * P.ppu), pw = P.w * k, ph = P.h * k, A = V(...P.anchor);
-  const off = V((P.w / 2 - P.base[0]) * k, (P.base[1] - P.h / 2) * k, 0), d = V().subVectors(camera.position, A);
-  pionCard.rotation.set(0, Math.atan2(d.x, d.z), 0, "YXZ"); pionCard.rotation.z = P.roll || 0; pionCard.scale.set(pw, ph, 1); off.applyQuaternion(pionCard.quaternion); pionCard.position.copy(A).add(off);
-  pionMat.color.setRGB(...(P.tint || [1, 1, 1]));
-  const P0 = V(DESK.x, DESK.h + 0.01, DESK.z - DESK.d / 2), v = camera.position.clone().sub(P0), n = V(0, v.z, -v.y).normalize();   // the desk's back edge hides his lower half
-  deskClip.setFromNormalAndCoplanarPoint(n, P0); pionMat.clippingPlanes = [deskClip]; pionMat.needsUpdate = true; pionCard.visible = true;
-}
+// ---------------------------------------------------------------- Pion INSIDE the world (charlayer.js): depth occlusion, set lights + shadows on him, his shadow from the pendant lamp
+const CHR = createChars(scene, camera, renderer, { n: 1, E: 0.62, D: 0.1, light: key, hide: [cone, dust, spill] });
+composer.insertPass(CHR.pass(pionRT), composer.passes.indexOf(pionComp)); CHR.guard(gtao); CHR.guard(bokeh);
+moon.shadow.autoUpdate = false; key.shadow.autoUpdate = false;
 let lastSig = null;
+window.__dbg = { scene, renderer, camera };
 window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, mood2, moodK, lampK, pion }
   camera.position.set(...F.cam.pos); camera.fov = F.cam.fov; camera.updateProjectionMatrix(); camera.lookAt(...F.cam.tgt); camera.updateMatrixWorld();
   if (F.cam.roll) camera.rotateZ(F.cam.roll);
@@ -507,15 +505,9 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
   bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
   placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag); clockSpot.intensity = F.clockLight || 0;
-  { const sig = JSON.stringify([F.env, F.anon, F.calTear, F.mag, !!F.laptop, F.anonVis]); if (sig !== lastSig) { renderer.shadowMap.needsUpdate = true; lastSig = sig; } }
-  await placePion(F.pion);
+  await CHR.place(F.pion ? [Object.assign({ shadow: [1.0, 0.55], cast: true }, F.pion)] : [], { light: key, puffs: F.puffs });
+  { const sig = JSON.stringify([F.env, F.anon, F.calTear, F.mag, !!F.laptop, F.anonVis]); if (sig !== lastSig) { CHR.bake([moon]); lastSig = sig; } }
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
-  renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear();
-  if (pionCard.visible) {   // occluder pass: props in front of Pion (layer 2) write depth only, then the card is depth-tested against them
-    const bg = scene.background, ac = renderer.autoClear; scene.background = null; renderer.autoClear = false; scene.overrideMaterial = occM; camera.layers.set(2);
-    renderer.render(scene, camera); scene.overrideMaterial = null; camera.layers.set(0); scene.background = bg;
-    renderer.render(pionScene, camera); renderer.autoClear = ac; }
-  renderer.setRenderTarget(null);
   composer.render();
   const pr = (x, y, z) => { const q = V(x, y, z).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };
   const pts = { head: F.pion ? pr(F.pion.anchor[0], F.pion.anchor[1] + F.pion.height * 0.8, F.pion.anchor[2]) : null }; for (const [k, p] of Object.entries(F.pts || {})) pts[k] = pr(...p);
