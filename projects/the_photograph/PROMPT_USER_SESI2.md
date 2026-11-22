@@ -19,3 +19,6 @@ Arsip arahan user, dipakai sebagai acuan konten berikutnya. Rangkuman aturannya 
 7. **"Oke dah bagus"** (v2 disetujui). Rangkum semua prompting + kode yang disetujui ke repo, supaya video ke-2 bagus:
    karakter masuk ke dunia 3D dengan cahaya dan shadow yang bagus, "bukan seperti video ini, bayangannya hampir gak ada".
 8. **"Tapi aku masih mau keliatan kayak 2D"**, seperti 15 video referensi. Prototipe model 3D dibatalkan; arahnya `charlayer.js`.
+9. "Lihat foto kiri bawah, peletakan kakinya, kayak gak nginjak tanah. Itu karena kamu cuma nempel, gak ngatur posisi. Kalau diambil dari sudut kamera
+   yang gak sejajar, malah kayak dia lurus di depan kamera, tapi tanahnya agak turun." → Karakter digambar dari sudut kamera adegan
+   (`make_view.js` + engine `--view` + kartu `faceCam`, lantai `userData.ground`). Lihat `REFERENSI_SUDUT.jpg`.

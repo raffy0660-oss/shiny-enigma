@@ -11,6 +11,22 @@ Kode: `examples/proj10_photograph/scene/charlayer.js`, sudah terpasang di ketiga
    cahaya set di badannya, dan tertutup benda di depannya. **Jangan diganti model 3D** (user menolak).
 5. Pakaian lebih cartoonish (siluet tebal, blok warna, kotak-kotak besar).
 
+## ATURAN UTAMA: gambar karakter dari SUDUT KAMERA adegan (papan `REFERENSI_SUDUT.jpg`)
+Masukan user: di shot kamera tinggi, Pion "kayak gak nginjak tanah". Engine menggambarnya **tampak depan setinggi mata**,
+sementara lantai di adegan terlihat dari atas dan menurun ke belakang, jadi dia seperti berdiri tegak di depan lensa.
+Bayangan dan oklusi saja tidak cukup: **sudut gambar karakter harus sama dengan sudut kamera**.
+1. Kunci dulu kamera adegan (plan), lalu hitung sudut per frame:
+   `node tools/make_view.js plans/<adegan>.js <F0> <F1> pion view_<adegan>.json [facing°] [maxOrbit°]`
+   - tilt = elevasi kamera dari tengah badan karakter;
+   - orbit = arah kamera mengitari karakter, dibatasi ±55° supaya tetap tampak depan-¾ (gaya 2D).
+2. Render engine dengan sudut itu: `react_render.js ... --start <F0/60> --dur <(F1-F0)/60> --view view_<adegan>.json`
+   (`style2d` + `--view` memakai lensa panjang 18° dengan tilt/orbit).
+3. Di plan, karakter itu diberi `faceCam: true`: kartu menghadap lensa penuh, dan titik alas tepat di titik kontak lantai.
+4. Lantai, karpet, trotoar, dan kursi yang diduduki ditandai `mesh.userData.ground = true`. Permukaan pijakan tidak pernah menutupi karakter
+   (bibir alas yang tergambar dari atas tidak terpotong lurus), sementara objek lain (meja, kusen, tiang, garis polisi) tetap menutupi.
+5. Setiap karakter butuh render engine sendiri dengan `view` dari posisinya. Kamera yang berubah = sudut yang berubah per frame (sudah ditangani `view.json`).
+6. Cek dengan contact sheet: alas harus tampak elips "dari atas" setara kemiringan lantai di sekitarnya, dan bayangan menyambung dari kaki.
+
 ## Kenapa video 1 terlihat "ditempel"
 Pion dirender engine sebagai PNG transparan, lalu digambar sebagai kartu di render target terpisah **tanpa depth test** dan dikomposit di atas dunia:
 - selalu di depan semua objek; meja memakai *clipping plane* → **potongan lurus** yang terlihat melayang dari kamera rendah;

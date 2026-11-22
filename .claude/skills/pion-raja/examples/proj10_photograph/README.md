@@ -16,7 +16,7 @@ Full project (all plans, cues, assets, history): `projects/the_photograph/`. Rul
 | `mix_film.py` | stems: VO (-13 LUFS, compressed, as loud as it goes), music score in parts (-24 LUFS), SFX + ambiences (-25 LUFS), limiter -1.5 dBTP, + `sfx_only` |
 | `sfx_gen.py` | ElevenLabs SFX v3 list (music loops too: free plan has no Music API; watch the credit quota) |
 | `assemble.sh` | check -> build -> overlay -> mix -> mux |
-| `tools/` | `sheet.sh` contact sheets, `make_photo.py` (a still of a set -> aged photo front + handwritten back), `make_reflection.py` (silhouette reflection) |
+| `tools/` | **`make_view.js`** (per-frame engine view [orbit, tilt] from the scene camera, so the character is drawn from the camera's angle and stands ON the floor), `sheet.sh` contact sheets, `make_photo.py` (a still of a set -> aged photo front + handwritten back), `make_reflection.py` (silhouette reflection) |
 
 ## Workflow per scene (what the user wants)
 1. Plan + cue, commit. 2. Engine render (lip-sync VO), then the scene render; split ranges (background jobs max 2 h; use `nohup`, the app kills long waits).

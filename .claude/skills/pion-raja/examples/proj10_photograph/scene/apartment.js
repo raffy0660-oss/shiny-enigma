@@ -118,7 +118,7 @@ const floorTex = canvasTex(1024, 1024, (g, w, h) => {   // grey-brown planks, du
   for (let i = 0; i < 26; i++) { const x = rnd() * w, y = rnd() * h, r = 40 + rnd() * 120; const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, "rgba(190,180,160,.18)"); gr.addColorStop(1, "rgba(190,180,160,0)"); g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r); }   // dust drifts
 }, [3, 3]);
 const wallM = mat({ map: wallTex }), wainM = mat({ map: wainTex }), trimM = mat({ color: 0x3e3020 });
-add(new THREE.PlaneGeometry(RW, RD), mat({ map: floorTex, roughness: 0.75 }), 0, 0, BACK + RD / 2, { rx: -Math.PI / 2, cast: false });
+add(new THREE.PlaneGeometry(RW, RD), mat({ map: floorTex, roughness: 0.75 }), 0, 0, BACK + RD / 2, { rx: -Math.PI / 2, cast: false }).userData.ground = true;   // ground: never occludes a character standing on it
 const ceilTex = canvasTex(512, 512, (g, w, h) => { g.fillStyle = "#8a8070"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(40,30,20,.6)"; g.lineWidth = 3; for (let i = 0; i < 6; i++) { let x = rnd() * w, y = rnd() * h; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 8; k++) { x += (rnd() - .5) * 70; y += (rnd() - .5) * 70; g.lineTo(x, y); } g.stroke(); }
   const gr = g.createRadialGradient(w * .3, h * .4, 0, w * .3, h * .4, 160); gr.addColorStop(0, "rgba(90,70,30,.45)"); gr.addColorStop(1, "rgba(90,70,30,0)"); g.fillStyle = gr; g.fillRect(0, 0, w, h); }, [2, 2]);
 add(new THREE.PlaneGeometry(RW, RD), mat({ map: ceilTex }), 0, RH, BACK + RD / 2, { rx: Math.PI / 2, cast: false });
@@ -155,7 +155,7 @@ add(new THREE.CylinderGeometry(0.02, 0.02, 0.72, 8), radM, XL + 0.12, 0.12, WIN.
 const DOOR = { x: XR, z: -0.25, w: 0.95, h: 1.62 };
 const hallM = new THREE.MeshBasicMaterial({ color: 0x0a0a12 }); add(new THREE.PlaneGeometry(2.4, 2.2), hallM, XR + 1.4, 1.1, DOOR.z, { ry: -Math.PI / 2, cast: false });   // the corridor behind the door
 const hallWallM = mat({ color: 0x3a3a48 }); add(new THREE.PlaneGeometry(1.4, 0.02 + 2.2), hallWallM, XR + 0.7, 1.1, DOOR.z - 1.2, { cast: false }); add(new THREE.PlaneGeometry(1.4, 2.2), hallWallM, XR + 0.7, 1.1, DOOR.z + 1.2, { ry: Math.PI, cast: false });
-add(new THREE.PlaneGeometry(1.4, 2.4), mat({ color: 0x4a4038, roughness: 0.6 }), XR + 0.7, 0.001, DOOR.z, { rx: -Math.PI / 2, cast: false });
+add(new THREE.PlaneGeometry(1.4, 2.4), mat({ color: 0x4a4038, roughness: 0.6 }), XR + 0.7, 0.001, DOOR.z, { rx: -Math.PI / 2, cast: false }).userData.ground = true;
 const doorTex = canvasTex(512, 1024, (g, w, h) => { g.fillStyle = "#5e6b5a"; g.fillRect(0, 0, w, h); g.strokeStyle = "#2a3028"; g.lineWidth = 10;
   g.strokeRect(60, 70, w - 120, 380); g.strokeRect(60, 520, w - 120, 430); g.strokeStyle = "rgba(20,24,20,.4)"; g.lineWidth = 3; for (let i = 0; i < 30; i++) { const x = rnd() * w, y = rnd() * h; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rnd() - .5) * 40, y + rnd() * 30); g.stroke(); }   // chipped paint
   g.fillStyle = "#c9a24a"; g.font = "900 120px Georgia, serif"; g.textAlign = "center"; g.fillText("7B", w / 2, 300); g.strokeStyle = "#5a4012"; g.lineWidth = 4; g.strokeText("7B", w / 2, 300); });
@@ -205,7 +205,7 @@ for (const [x, z] of [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]
 const rugTex = canvasTex(1024, 640, (g, w, h) => { g.fillStyle = "#6e3a32"; g.beginPath(); g.ellipse(w / 2, h / 2, w / 2 - 6, h / 2 - 6, 0, 0, 7); g.fill(); g.strokeStyle = "#c8a060"; g.lineWidth = 14; g.beginPath(); g.ellipse(w / 2, h / 2, w / 2 - 50, h / 2 - 50, 0, 0, 7); g.stroke();
   g.strokeStyle = "#3a1a14"; g.lineWidth = 8; g.beginPath(); g.ellipse(w / 2, h / 2, w / 2 - 8, h / 2 - 8, 0, 0, 7); g.stroke(); g.fillStyle = "rgba(200,190,170,.18)"; for (let i = 0; i < 30; i++) { g.beginPath(); g.arc(rnd() * w, rnd() * h, 20 + rnd() * 60, 0, 7); g.fill(); } });
 const rug = add(new THREE.PlaneGeometry(2.3, 1.45), new THREE.MeshStandardMaterial({ map: rugTex, transparent: true, alphaTest: 0.5, roughness: 0.95 }), -0.1, 0.004, -0.55, { rx: -Math.PI / 2, cast: false });
-rugTex.wrapS = rugTex.wrapT = THREE.ClampToEdgeWrapping; { const c = document.createElement("canvas"); }
+rugTex.wrapS = rugTex.wrapT = THREE.ClampToEdgeWrapping; rug.userData.ground = true; { const c = document.createElement("canvas"); }
 // scattered paper scraps + a broken frame on the floor
 const scrapM = [0xe8e0cc, 0xd8cfb4, 0xf0ead8].map(c => mat({ color: c }));
 for (let i = 0; i < 14; i++) add(box(0.12 + rnd() * 0.12, 0.003, 0.1 + rnd() * 0.12, 0.001), scrapM[i % 3], -1.8 + rnd() * 3.5, 0.008 + rnd() * 0.002, BACK + 0.6 + rnd() * 2.6, { ry: rnd() * 3 });

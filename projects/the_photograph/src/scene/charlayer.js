@@ -54,7 +54,7 @@ export function createChars(scene, camera, renderer, o = {}) {
       const t = await tex(P.url), M = C.material, tint = P.tint || [1, 1, 1], E = P.E ?? o.E ?? 0.6, D = P.D ?? o.D ?? 0.5;
       M.map = t; M.emissiveMap = t; M.emissive.setRGB(tint[0] * E, tint[1] * E, tint[2] * E); M.color.setRGB(D, D, D); M.needsUpdate = true;
       const k = P.height / (4.65 * P.ppu), sq = P.squash || 1, kx = k / Math.sqrt(sq), ky = k * sq, A = new THREE.Vector3(...P.anchor), off = new THREE.Vector3((P.w / 2 - P.base[0]) * kx, (P.base[1] - P.h / 2) * ky, 0);   // squash & stretch keeps the base on the ground
-      if (P.face) C.quaternion.copy(camera.quaternion); else { const d = V().subVectors(camera.position, A); C.rotation.set(0, Math.atan2(d.x, d.z), 0); }
+      if (P.face || P.faceCam) C.quaternion.copy(camera.quaternion); else { const d = V().subVectors(camera.position, A); C.rotation.set(0, Math.atan2(d.x, d.z), 0); }   // faceCam: the engine drew him from this camera's angle (--view), so the card faces the lens fully
       if (P.roll) C.rotateZ(P.roll);
       C.scale.set(P.w * kx, P.h * ky, 1); off.applyQuaternion(C.quaternion); C.position.copy(A).add(off);
       const push = P.push ?? (P.face ? 0 : (o.push ?? 0.2));   // the 2D drawing's base lip sits a little below the contact point: lift it off the floor along the view ray
@@ -81,13 +81,16 @@ export function createChars(scene, camera, renderer, o = {}) {
     if (keyL && keyL.shadow) { keyL.shadow.autoUpdate = false; keyL.shadow.needsUpdate = true; }
   }
   // character pass into pionRT: depth of the whole world first, then the lit cards (layer 3), depth-tested
+  let ground = null;   // meshes tagged userData.ground (floors, rugs, sidewalks, seats): a character standing on them is never hidden by them
   function render(pionRT) {
     renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear();
     if (cards.some(c => c.visible)) {
       const bg = scene.background, ac = renderer.autoClear, hv = hide.map(h => h.visible), pv = proxies.map(p => p.visible), bv = blobs.map(b => b.visible), puv = puffs.visible;
+      if (!ground) { ground = []; scene.traverse(x => { if (x.userData && x.userData.ground) ground.push(x); }); } const gv = ground.map(g => g.visible); ground.forEach(g => g.visible = false);
       scene.background = null; renderer.autoClear = false; hide.forEach(h => h.visible = false); proxies.forEach(p => p.visible = false); blobs.forEach(b => b.visible = false); puffs.visible = false;
       scene.overrideMaterial = occM; camera.layers.set(0); renderer.render(scene, camera); scene.overrideMaterial = null;
       camera.layers.set(L_CARD); renderer.render(scene, camera); camera.layers.set(0);
+      ground.forEach((g, i) => g.visible = gv[i]);
       scene.background = bg; renderer.autoClear = ac; hide.forEach((h, i) => h.visible = hv[i]); proxies.forEach((p, i) => p.visible = pv[i]); blobs.forEach((b, i) => b.visible = bv[i]); puffs.visible = puv;
     }
     renderer.setRenderTarget(null);

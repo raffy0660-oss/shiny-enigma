@@ -102,7 +102,7 @@ const floorTex = canvasTex(1024, 1024, (g, w, h) => {   // dark plank floor with
     g.strokeStyle = "#1b0f08"; g.lineWidth = 4; g.strokeRect(x, y, L, 96); g.strokeStyle = "rgba(20,10,5,.3)"; g.lineWidth = 2; for (let k = 0; k < 3; k++) { const yy = y + 20 + k * 26; g.beginPath(); g.moveTo(x + 10, yy); g.bezierCurveTo(x + L * .3, yy + 6, x + L * .7, yy - 6, x + L - 10, yy); g.stroke(); } x += L; } }
 }, [3, 3]);
 const wallM = mat({ map: wallTex }), panelM = mat({ map: panelTex });
-add(new THREE.PlaneGeometry(RW, RD), mat({ map: floorTex, roughness: 0.6 }), 0, 0, BACK + RD / 2, { rx: -Math.PI / 2, cast: false });
+add(new THREE.PlaneGeometry(RW, RD), mat({ map: floorTex, roughness: 0.6 }), 0, 0, BACK + RD / 2, { rx: -Math.PI / 2, cast: false }).userData.ground = true;   // ground: never occludes a character standing on it
 add(new THREE.PlaneGeometry(RW, RD), mat({ color: 0x1a1f2e }), 0, RH, BACK + RD / 2, { rx: Math.PI / 2, cast: false });
 for (const [w, x, z, ry] of [[RW, 0, BACK, 0], [RD, -RW / 2, BACK + RD / 2, Math.PI / 2], [RD, RW / 2, BACK + RD / 2, -Math.PI / 2]]) {
   const up = new THREE.Mesh(new THREE.PlaneGeometry(w, RH - WH), wallM); up.position.set(x, WH + (RH - WH) / 2, z); up.rotation.y = ry; up.receiveShadow = true; scene.add(up);
@@ -115,7 +115,7 @@ add(box(RW, 0.1, 0.06), trimM, 0, RH - 0.05, BACK + 0.03); add(box(RW, 0.12, 0.0
 // ---------------------------------------------------------------- rug + desk + chair
 const rugTex = canvasTex(1024, 640, (g, w, h) => { g.fillStyle = "#5a1a22"; g.fillRect(0, 0, w, h); g.strokeStyle = "#c79a4a"; g.lineWidth = 10; g.strokeRect(30, 30, w - 60, h - 60); g.strokeStyle = "#2a0c12"; g.lineWidth = 6; g.strokeRect(60, 60, w - 120, h - 120);
   g.fillStyle = "#7a2630"; for (let i = 0; i < 5; i++) { g.save(); g.translate(w / 2, h / 2); g.rotate(i * Math.PI / 5); g.fillRect(-260, -14, 520, 28); g.restore(); } g.fillStyle = "#c79a4a"; g.beginPath(); g.arc(w / 2, h / 2, 60, 0, 7); g.fill(); });
-add(new THREE.PlaneGeometry(2.8, 1.75), mat({ map: rugTex }), 0, 0.004, -0.75, { rx: -Math.PI / 2, cast: false });
+add(new THREE.PlaneGeometry(2.8, 1.75), mat({ map: rugTex }), 0, 0.004, -0.75, { rx: -Math.PI / 2, cast: false }).userData.ground = true;
 const woodTex = canvasTex(1024, 512, (g, w, h) => { g.fillStyle = "#5b3420"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(30,14,6,.45)"; g.lineWidth = 3;
   for (let k = 0; k < 22; k++) { const y = k * 24 + rnd() * 8; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * .3, y + 10 * (rnd() - .5) * 2, w * .6, y - 12, w, y + 6); g.stroke(); } g.strokeStyle = "#24110a"; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6); });
 const deskM = mat({ map: woodTex, roughness: 0.55 }), deskDark = mat({ color: 0x3a1f12, roughness: 0.6 });
@@ -132,7 +132,7 @@ add(new THREE.CapsuleGeometry(0.09, 1.0, 6, 16), chairM, 0, 1.74, -0.44, { rz: M
 for (const sx of [-1, 1]) { add(box(0.17, 0.85, 0.5, 0.07), chairM, sx * 0.6, 1.25, -0.24, { ry: sx * 0.18, parent: CH });   // wings
   add(box(0.2, 0.34, 0.86, 0.08), chairM, sx * 0.64, 0.62, -0.05, { parent: CH });                                        // arms
   add(new THREE.CapsuleGeometry(0.1, 0.7, 6, 14), chairM, sx * 0.64, 0.8, -0.05, { rx: Math.PI / 2, parent: CH }); }
-add(box(1.12, 0.2, 0.86, 0.06), chairM, 0, 0.36, -0.05, { parent: CH }); add(box(1.0, 0.24, 0.8, 0.03), chairD, 0, 0.13, -0.05, { parent: CH });
+add(box(1.12, 0.2, 0.86, 0.06), chairM, 0, 0.36, -0.05, { parent: CH }).userData.ground = true;   // the seat Pion sits on add(box(1.0, 0.24, 0.8, 0.03), chairD, 0, 0.13, -0.05, { parent: CH });
 for (let r = 0; r < 4; r++) for (let c = 0; c < 5 - (r % 2); c++) add(new THREE.SphereGeometry(0.022, 10, 8), chairD, -0.4 + c * 0.2 + (r % 2) * 0.1, 0.72 + r * 0.24, -0.355, { parent: CH, cast: false });   // tufting buttons
 for (let k = 0; k < 15; k++) { const u = k / 14; add(new THREE.SphereGeometry(0.012, 8, 6), nailM, -0.55 + u * 1.1, 0.46, -0.355, { parent: CH, cast: false }); }   // brass nail trim
 for (const sx of [-0.45, 0.45]) for (const sz of [-0.4, 0.3]) add(new THREE.CylinderGeometry(0.035, 0.025, 0.06, 10), deskDark, sx, 0.03, sz, { parent: CH });

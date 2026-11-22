@@ -99,10 +99,10 @@ const asphaltTex = canvasTex(1024, 1024, (g, w, h) => { g.fillStyle = "#3a3448";
   for (let i = 0; i < 8; i++) { const x = rnd() * w, y = rnd() * h; g.fillStyle = "rgba(160,150,210,.25)"; g.beginPath(); g.ellipse(x, y, 40 + rnd() * 90, 14 + rnd() * 30, rnd(), 0, 7); g.fill(); }   // puddles
 }, [4, 1]);
 const SW = 2.4, ST = 5.0, FZ = -ST / 2 - SW;   // sidewalk width, street width, facade z
-add(new THREE.PlaneGeometry(80, ST), mat({ map: asphaltTex, roughness: 0.28, metalness: 0.1 }), 0, 0, 0, { rx: -Math.PI / 2, cast: false });
+add(new THREE.PlaneGeometry(80, ST), mat({ map: asphaltTex, roughness: 0.28, metalness: 0.1 }), 0, 0, 0, { rx: -Math.PI / 2, cast: false }).userData.ground = true;   // ground
 const paveTex = canvasTex(512, 512, (g, w, h) => { g.fillStyle = "#8c8296"; g.fillRect(0, 0, w, h); g.strokeStyle = "#4a4258"; g.lineWidth = 5; for (let x = 0; x <= w; x += 128) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } for (let y = 0; y <= h; y += 128) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
   for (let i = 0; i < 2000; i++) { g.fillStyle = `rgba(40,30,50,${rnd() * .12})`; g.fillRect(rnd() * w, rnd() * h, 3, 3); } }, [40, 1.2]);
-for (const sz of [-1, 1]) { add(box(80, 0.15, SW, 0.02), mat({ map: paveTex, roughness: 0.5 }), 0, 0.075, sz * (ST / 2 + SW / 2));
+for (const sz of [-1, 1]) { add(box(80, 0.15, SW, 0.02), mat({ map: paveTex, roughness: 0.5 }), 0, 0.075, sz * (ST / 2 + SW / 2)).userData.ground = true;
   add(box(80, 0.16, 0.12, 0.03), mat({ color: 0x9a92a6 }), 0, 0.08, sz * (ST / 2 + 0.06)); }
 
 // ---------------------------------------------------------------- buildings

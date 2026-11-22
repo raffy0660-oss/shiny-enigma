@@ -24,7 +24,10 @@ Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `project
   - **Tidak ada potongan kotak / garis lurus** di badan karakter.
   - Interaksi **fisika:** lompat parabola, debu, benda jatuh dengan gravitasi.
 
-  Caranya: `charlayer.js`. Lihat `PANDUAN_INTEGRASI3D.md` dan papan `REFERENSI_INTEGRASI.jpg`.
+  - **Kaki harus menapak tanah dari sudut kamera mana pun**: karakter digambar dari **sudut kamera adegan** (engine `--view` dari `tools/make_view.js`,
+    kartu `faceCam`). Jangan tampak depan lurus saat kamera melihat dari atas, karena itu terlihat "gak nginjak tanah" (masukan user, `REFERENSI_SUDUT.jpg`).
+
+  Caranya: `charlayer.js`. Lihat `PANDUAN_INTEGRASI3D.md` dan papan `REFERENSI_INTEGRASI.jpg` + `REFERENSI_SUDUT.jpg`.
 - **Pakaian lebih cartoonish** (masukan untuk konten berikutnya): siluet tebal dan dibesar-besarkan (topi, kerah, kancing besar), blok warna cerah dan sederhana,
   kotak-kotak besar (bukan tekstur kain detail), jahitan tebal. Ubah di `outfitKit`/`outfitParts` (`engine/render.js`) dan tekstur cape/topi detektif.
 - Pion Raja: kepala merah bergradasi oranye, badan merah, sarung tangan putih. Kostum detektif di seri ini. Bidak lain tidak pernah merah.
@@ -59,7 +62,7 @@ Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `project
 
 ## 7. Jebakan teknis yang sudah ketemu (jangan diulang)
 - Kartu tanpa depth test → karakter menutupi kalender. Clipping plane meja → potongan lurus "kotak". Pakai `charlayer.js`.
-- Bibir alas gambar 2D sedikit di bawah titik kontak → tertanam di lantai saat depth test. `charlayer` menggeser kartu ke arah lensa (`push` 0,2).
+- Bibir alas gambar 2D sedikit di bawah titik kontak → terpotong lantai saat depth test. Tandai permukaan pijakan `userData.ground = true` (dikecualikan dari oklusi karakter); `push` 0,2 sebagai cadangan.
 - Bayangan proxy: pass bayangan three r186 mengambil `map`/`alphaTest` dari **material proxy**, jadi set di situ. Lampu statis di-bake tanpa proxy (`bake()`),
   satu lampu dinamis per set memperbarui bayangan karakter tiap frame.
 - **Pilih lampu bayangan yang memang dominan di posisi karakter** (lampu jalan di sebelahnya, bukan matahari yang terhalang gedung), supaya bayangannya terlihat.
