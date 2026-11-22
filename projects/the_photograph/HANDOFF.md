@@ -73,9 +73,13 @@ bisa melanjutkan tanpa kehilangan konteks. Bacaan wajib, berurutan:
 | Set apartemen terbengkalai (A dunia foto / B digeledah / C TKP Jumat) | belum | buat `src/scene/apartment.js` (pola sama dengan `office.js`) |
 | Eksterior gedung + jalan senja | belum | |
 
-**Belum dijawab user:**
-1. **Caption satu kata** seperti di referensi: dipakai atau tidak? Aturan lama "tanpa subtitle", tapi referensi memakainya.
-2. Tes v2 hook belum dikonfirmasi oke. Tanyakan, atau lanjut kalau user bilang lanjut.
+**Jawaban user (sesi 2, 22 Nov 2026):**
+1. **Tanpa caption** satu kata. Teks overlay hanya untuk data penting (11:42, FRIDAY, kartu DANIEL CROSS, metadata, email).
+2. Hook v2 **oke dengan revisi**:
+   - **Furnitur dan environment dibuat seukuran badan Pion.** Pion tidak dikecilkan; dunia di sekitarnya yang dibangun untuk Pion
+     (kursi pas badannya, meja setinggi dadanya, props seukuran sarung tangannya, pintu/rak/gantungan untuk tinggi Pion).
+     Berlaku untuk semua set (kantor, apartemen, eksterior).
+   - **Stempel CASE SOLVED dihapus.**
 3. Gambar Pion yang tersapu besar di depan lensa saat kamera lewat sudah dikurangi di v2. Pastikan tetap rapi.
 
 ## 4. Cara kerja teknis

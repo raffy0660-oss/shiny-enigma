@@ -82,7 +82,7 @@ const rr = (g, x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x 
 const hand = (g, txt, x, y, size, col = "#1d2a5a", rot = 0, font = "Comic Sans MS, 'Comic Neue', cursive") => { g.save(); g.translate(x, y); g.rotate(rot); g.fillStyle = col; g.font = `700 ${size}px ${font}`; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 0, 0); g.restore(); };
 
 // ---------------------------------------------------------------- room
-const RW = 4.6, RD = 4.4, RH = 3.0, BACK = -2.6, FRONT = BACK + RD;
+const RW = 4.6, RD = 4.4, RH = 2.45, WH = 0.72, BACK = -2.6, FRONT = BACK + RD;   // sized for Pion (1.03 m to the hat top): ceiling, wainscot, door and furniture are his scale
 const wallTex = canvasTex(1024, 1024, (g, w, h) => {   // dark teal wallpaper: soft vertical stripes + drawn damask diamonds
   g.fillStyle = "#1f4a4f"; g.fillRect(0, 0, w, h);
   for (let x = 0; x < w; x += 128) { g.fillStyle = "#24555a"; g.fillRect(x, 0, 64, h); }
@@ -104,12 +104,12 @@ const wallM = mat({ map: wallTex }), panelM = mat({ map: panelTex });
 add(new THREE.PlaneGeometry(RW, RD), mat({ map: floorTex, roughness: 0.6 }), 0, 0, BACK + RD / 2, { rx: -Math.PI / 2, cast: false });
 add(new THREE.PlaneGeometry(RW, RD), mat({ color: 0x1a1f2e }), 0, RH, BACK + RD / 2, { rx: Math.PI / 2, cast: false });
 for (const [w, x, z, ry] of [[RW, 0, BACK, 0], [RD, -RW / 2, BACK + RD / 2, Math.PI / 2], [RD, RW / 2, BACK + RD / 2, -Math.PI / 2]]) {
-  const up = new THREE.Mesh(new THREE.PlaneGeometry(w, RH - 1.0), wallM); up.position.set(x, 1.0 + (RH - 1.0) / 2, z); up.rotation.y = ry; up.receiveShadow = true; scene.add(up);
-  const lo = new THREE.Mesh(new THREE.PlaneGeometry(w, 1.0), panelM); lo.position.set(x, 0.5, z); lo.rotation.y = ry; lo.receiveShadow = true; scene.add(lo);
+  const up = new THREE.Mesh(new THREE.PlaneGeometry(w, RH - WH), wallM); up.position.set(x, WH + (RH - WH) / 2, z); up.rotation.y = ry; up.receiveShadow = true; scene.add(up);
+  const lo = new THREE.Mesh(new THREE.PlaneGeometry(w, WH), panelM); lo.position.set(x, WH / 2, z); lo.rotation.y = ry; lo.receiveShadow = true; scene.add(lo);
 }
 // crown moulding + skirting
 const trimM = mat({ color: 0x3a2216 });
-add(box(RW, 0.1, 0.06), trimM, 0, RH - 0.05, BACK + 0.03); add(box(RW, 0.12, 0.05), trimM, 0, 0.06, BACK + 0.025); add(box(RW, 0.05, 0.05), trimM, 0, 1.0, BACK + 0.03);
+add(box(RW, 0.1, 0.06), trimM, 0, RH - 0.05, BACK + 0.03); add(box(RW, 0.12, 0.05), trimM, 0, 0.06, BACK + 0.025); add(box(RW, 0.05, 0.05), trimM, 0, WH, BACK + 0.03);
 
 // ---------------------------------------------------------------- rug + desk + chair
 const rugTex = canvasTex(1024, 640, (g, w, h) => { g.fillStyle = "#5a1a22"; g.fillRect(0, 0, w, h); g.strokeStyle = "#c79a4a"; g.lineWidth = 10; g.strokeRect(30, 30, w - 60, h - 60); g.strokeStyle = "#2a0c12"; g.lineWidth = 6; g.strokeRect(60, 60, w - 120, h - 120);
@@ -118,20 +118,27 @@ add(new THREE.PlaneGeometry(2.8, 1.75), mat({ map: rugTex }), 0, 0.004, -0.75, {
 const woodTex = canvasTex(1024, 512, (g, w, h) => { g.fillStyle = "#5b3420"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(30,14,6,.45)"; g.lineWidth = 3;
   for (let k = 0; k < 22; k++) { const y = k * 24 + rnd() * 8; g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(w * .3, y + 10 * (rnd() - .5) * 2, w * .6, y - 12, w, y + 6); g.stroke(); } g.strokeStyle = "#24110a"; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6); });
 const deskM = mat({ map: woodTex, roughness: 0.55 }), deskDark = mat({ color: 0x3a1f12, roughness: 0.6 });
-const DESK = { x: 0, z: -0.95, w: 1.8, d: 0.9, h: 0.78 };
+const DESK = { x: 0, z: -0.95, w: 2.1, d: 1.0, h: 0.78 };   // top at Pion's chest: his gloves rest on it
 add(box(DESK.w, 0.06, DESK.d, 0.015), deskM, DESK.x, DESK.h - 0.03, DESK.z);
 for (const sx of [-1, 1]) { add(box(0.5, DESK.h - 0.06, DESK.d - 0.06, 0.01), deskDark, sx * (DESK.w / 2 - 0.28), (DESK.h - 0.06) / 2, DESK.z);
   for (let k = 0; k < 3; k++) { add(box(0.44, 0.19, 0.02, 0.01), deskM, sx * (DESK.w / 2 - 0.28), 0.14 + k * 0.23, DESK.z + DESK.d / 2 - 0.02); add(box(0.1, 0.02, 0.03, 0.008), mat({ color: 0xc9a050, metalness: .8, roughness: .35 }), sx * (DESK.w / 2 - 0.28), 0.16 + k * 0.23, DESK.z + DESK.d / 2 + 0.005); } }
 add(box(DESK.w - 1.1, 0.5, 0.03, 0.01), deskDark, DESK.x, 0.45, DESK.z + DESK.d / 2 - 0.12);   // modesty panel
+// tufted bottle-green wingback chair sized for Pion (his base 0.86 m wide sits on the seat; the back and wings frame his head)
+const PZ = DESK.z - 0.42, chairM = mat({ color: 0x1d4a39, roughness: 0.5 }), chairD = mat({ color: 0x14352a, roughness: 0.55 }), nailM = mat({ color: 0xd2a650, metalness: 0.85, roughness: 0.3 });
+const CH = new THREE.Group(); CH.position.set(0, 0, PZ); scene.add(CH);
+add(box(1.12, 1.3, 0.2, 0.08), chairM, 0, 1.08, -0.46, { parent: CH });                    // back: 0.43 .. 1.73 (above his hat)
+add(new THREE.CapsuleGeometry(0.09, 1.0, 6, 16), chairM, 0, 1.74, -0.44, { rz: Math.PI / 2, parent: CH });   // top roll
+for (const sx of [-1, 1]) { add(box(0.17, 0.85, 0.5, 0.07), chairM, sx * 0.6, 1.25, -0.24, { ry: sx * 0.18, parent: CH });   // wings
+  add(box(0.2, 0.34, 0.86, 0.08), chairM, sx * 0.64, 0.62, -0.05, { parent: CH });                                        // arms
+  add(new THREE.CapsuleGeometry(0.1, 0.7, 6, 14), chairM, sx * 0.64, 0.8, -0.05, { rx: Math.PI / 2, parent: CH }); }
+add(box(1.12, 0.2, 0.86, 0.06), chairM, 0, 0.36, -0.05, { parent: CH }); add(box(1.0, 0.24, 0.8, 0.03), chairD, 0, 0.13, -0.05, { parent: CH });
+for (let r = 0; r < 4; r++) for (let c = 0; c < 5 - (r % 2); c++) add(new THREE.SphereGeometry(0.022, 10, 8), chairD, -0.4 + c * 0.2 + (r % 2) * 0.1, 0.72 + r * 0.24, -0.355, { parent: CH, cast: false });   // tufting buttons
+for (let k = 0; k < 15; k++) { const u = k / 14; add(new THREE.SphereGeometry(0.012, 8, 6), nailM, -0.55 + u * 1.1, 0.46, -0.355, { parent: CH, cast: false }); }   // brass nail trim
+for (const sx of [-0.45, 0.45]) for (const sz of [-0.4, 0.3]) add(new THREE.CylinderGeometry(0.035, 0.025, 0.06, 10), deskDark, sx, 0.03, sz, { parent: CH });
+
+const PROPS0 = scene.children.length;   // everything from here to PROPS1 lies on the desk and is scaled to Pion's hands below
 // desk mat (green leather)
 add(box(0.95, 0.008, 0.55, 0.004), mat({ color: 0x1f4a33, roughness: 0.7 }), 0, DESK.h + 0.004, DESK.z + 0.02, { cast: false });
-// leather chair behind the desk (Pion stands/sits here)
-const leather = mat({ color: 0x5a1f16, roughness: 0.45 });
-add(box(0.6, 0.55, 0.14, 0.06), leather, 0, 0.98, DESK.z - 0.78); add(box(0.62, 0.12, 0.55, 0.04), leather, 0, 0.55, DESK.z - 0.55);
-for (const sx of [-1, 1]) add(box(0.1, 0.32, 0.5, 0.04), leather, sx * 0.36, 0.72, DESK.z - 0.56);
-for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2; add(new THREE.CylinderGeometry(0.02, 0.02, 0.38, 8), mat({ color: 0x222222, metalness: .6 }), Math.sin(a) * 0.25, 0.08, DESK.z - 0.55 + Math.cos(a) * 0.25, { rz: Math.PI / 2, ry: a }); }
-add(new THREE.CylinderGeometry(0.035, 0.035, 0.45, 10), mat({ color: 0x222222, metalness: .6 }), 0, 0.3, DESK.z - 0.55);
-
 // ---------------------------------------------------------------- the stuff on the desk (dense, storytelling)
 const paperTex = (kind, i) => canvasTex(512, 680, (g, w, h) => {
   g.fillStyle = ["#f1e9d6", "#efe4c8", "#f4efe2"][i % 3]; g.fillRect(0, 0, w, h);
@@ -168,9 +175,8 @@ add(new THREE.CylinderGeometry(0.058, 0.058, 0.004, 32), new THREE.MeshPhysicalM
 add(new THREE.CylinderGeometry(0.012, 0.014, 0.13, 10), mat({ color: 0x4a2412 }), 0.415, DESK.h + 0.012, DESK.z + 0.36, { rz: Math.PI / 2, ry: -0.5 });
 add(new THREE.CylinderGeometry(0.006, 0.006, 0.15, 8), mat({ color: 0x1a1a40 }), -0.3, DESK.h + 0.02, DESK.z + 0.12, { rz: Math.PI / 2, ry: 0.7 });
 const envTex = canvasTex(512, 340, (g, w, h) => { g.fillStyle = "#e9dcbc"; g.fillRect(0, 0, w, h); g.strokeStyle = "#3a2e22"; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6); g.beginPath(); g.moveTo(0, 0); g.lineTo(w / 2, h * .55); g.lineTo(w, 0); g.stroke(); g.fillStyle = "#8a1d1d"; g.beginPath(); g.arc(w / 2, h * .55, 26, 0, 7); g.fill(); hand(g, "NO SENDER", w / 2, h * .82, 34, "#2a2a2a"); });
-add(box(0.22, 0.004, 0.145, 0.001), mat({ map: envTex }), -0.3, DESK.h + 0.03, DESK.z + 0.27, { ry: -0.12 });
 // papers that slid onto the floor
-for (let k = 0; k < 6; k++) { const p = add(box(0.21, 0.003, 0.28, 0.001), mat({ map: paperTex(["typed", "note", "photo"][k % 3], k + 3) }), -0.9 + k * 0.36 + (rnd() - .5) * 0.1, 0.006 + k * 0.001, -0.1 + (rnd() - .5) * 0.5, { ry: rnd() * 3 }); }
+for (let k = 0; k < 6; k++) { const p = add(box(0.3, 0.003, 0.4, 0.001), mat({ map: paperTex(["typed", "note", "photo"][k % 3], k + 3) }), -0.9 + k * 0.36 + (rnd() - .5) * 0.1, 0.006 + k * 0.001, -0.1 + (rnd() - .5) * 0.5, { ry: rnd() * 3 }); }
 
 
 // ---------------------------------------------------------------- the case data on the desk (scene 1: the camera visits these instead of the wall)
@@ -190,7 +196,7 @@ const anonTex = canvasTex(800, 960, (g, w, h) => {   // the anonymous photograph
   g.strokeStyle = "#6a6a72"; g.lineWidth = 3; g.beginPath(); g.moveTo(-50, -50); g.lineTo(-6, -8); g.lineTo(-30, 46); g.moveTo(-6, -8); g.lineTo(40, -42); g.moveTo(-6, -8); g.lineTo(55, 20); g.stroke(); g.restore();
   hand(g, "11:42", w / 2, h - 75, 70, "#a01d22");
 });
-const anon = add(box(0.22, 0.004, 0.264, 0.002), mat({ map: anonTex, roughness: 0.6 }), 0.0, DESK.h + 0.016, DESK.z + 0.33, { ry: -0.06 });
+const anon = add(box(0.22, 0.004, 0.264, 0.002), mat({ map: anonTex, roughness: 0.6 }), 0.0, DESK.h + 0.016, DESK.z + 0.25, { ry: -0.06 });
 const calTex = canvasTex(512, 600, (g, w, h) => { g.fillStyle = "#f6f1e4"; g.fillRect(0, 0, w, h); g.fillStyle = "#b3262a"; g.fillRect(0, 0, w, 150); g.strokeStyle = "#2b2018"; g.lineWidth = 10; g.strokeRect(5, 5, w - 10, h - 10);
   g.fillStyle = "#fff"; g.font = "900 92px Arial Black, sans-serif"; g.textAlign = "center"; g.fillText("FRIDAY", w / 2, 112); g.fillStyle = "#222"; g.font = "900 260px Georgia, serif"; g.fillText("14", w / 2, 420);
   g.strokeStyle = "#a01d22"; g.lineWidth = 16; g.beginPath(); g.ellipse(w / 2, 335, 190, 140, -0.06, 0, 7); g.stroke(); hand(g, "3 days", w / 2, 545, 64, "#a01d22"); });
@@ -199,8 +205,12 @@ add(box(0.15, 0.17, 0.006, 0.002), mat({ map: calTex }), 0, 0.08, 0.02, { rx: -0
 add(box(0.15, 0.17, 0.006, 0.002), mat({ color: 0x2a2a2a }), 0, 0.08, -0.03, { rx: 0.32, parent: cal });
 for (const x of [-0.05, 0, 0.05]) add(new THREE.TorusGeometry(0.008, 0.002, 6, 12), mat({ color: 0xbfc4c8, metalness: .9 }), x, 0.165, 0.0, { ry: Math.PI / 2, parent: cal });
 
+const PROPS1 = scene.children.length, PIV = V(DESK.x, DESK.h, DESK.z), PS = 1.5, SPREAD = V(1.3, PS, 1.0);
+for (const o of scene.children.slice(PROPS0, PROPS1)) { if (o.position.y < DESK.h - 0.05) continue; o.position.sub(PIV).multiply(SPREAD).add(PIV); o.scale.multiplyScalar(PS); }
+window.PROPS = { anon: anon.position.toArray(), cal: cal.position.toArray(), mag: magR.position.toArray() };
+
 // ---------------------------------------------------------------- the pendant lamp + its light (the hero of the shot)
-const LAMP = V(0, 2.32, DESK.z + 0.02);
+const LAMP = V(0, 2.04, DESK.z + 0.02);
 const shadeM = mat({ color: 0x1f6b45, roughness: 0.35, metalness: 0.2, side: THREE.DoubleSide });
 const shade = new THREE.Mesh(new THREE.LatheGeometry([V(0.03, 0.17, 0), V(0.06, 0.15, 0), V(0.12, 0.09, 0), V(0.22, 0.0, 0), V(0.235, -0.01, 0)].map(p => new THREE.Vector2(p.x, p.y)), 40), shadeM);
 shade.position.copy(LAMP); shade.castShadow = true; scene.add(shade);
@@ -233,7 +243,7 @@ function placeDust(t) { for (let i = 0; i < dustN; i++) { const [r, a, y0, sp] =
 // ---------------------------------------------------------------- night: blue ambient + moonlight through the blinds (left wall window)
 scene.add(new THREE.HemisphereLight(0x3e5cc0, 0x2a1a14, 0.62));
 const nightFill = new THREE.PointLight(0x5a78ff, 1.1, 7, 1.5); nightFill.position.set(-1.6, 1.9, -0.6); scene.add(nightFill);
-const WIN = { z: -1.2, y: 1.75, w: 1.1, h: 1.3 };
+const WIN = { z: -1.2, y: 1.42, w: 1.1, h: 1.05 };
 const blindsTex = canvasTex(512, 512, (g, w, h) => { g.fillStyle = "#000"; g.fillRect(0, 0, w, h); g.fillStyle = "#fff"; for (let y = 0; y < h; y += 40) g.fillRect(0, y + 14, w, 22); });
 const moon = new THREE.SpotLight(0x7d9cff, 24, 9, 0.42, 0.25, 1.2);
 moon.position.set(-RW / 2 - 2.0, WIN.y + 1.0, WIN.z + 0.4); moon.target.position.set(0.6, 0.9, -1.5); moon.map = blindsTex; moon.castShadow = true;
@@ -250,7 +260,7 @@ for (const [w, h, y, z] of [[WIN.w + 0.12, 0.07, WIN.y + WIN.h / 2, WIN.z], [WIN
   add(box(0.06, h, w, 0.01), frameM, -RW / 2 + 0.03, y, z);
 add(box(0.2, 0.04, WIN.w + 0.2, 0.01), frameM, -RW / 2 + 0.1, WIN.y - WIN.h / 2 - 0.05, WIN.z);   // sill
 const slatM = mat({ color: 0xcfc6a8, roughness: 0.6 });
-for (let k = 0; k < 15; k++) add(box(0.06, 0.008, WIN.w - 0.04, 0.003), slatM, -RW / 2 + 0.08, WIN.y + WIN.h / 2 - 0.06 - k * 0.055, WIN.z, { rz: 0.9 });
+for (let k = 0; k < 12; k++) add(box(0.06, 0.008, WIN.w - 0.04, 0.003), slatM, -RW / 2 + 0.08, WIN.y + WIN.h / 2 - 0.06 - k * 0.055, WIN.z, { rz: 0.9 });
 // ---------------------------------------------------------------- the case board on the back wall (the "case journey")
 const boardTex = canvasTex(2048, 1260, (g, w, h) => {
   g.fillStyle = "#b8865a"; g.fillRect(0, 0, w, h); for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${90 + rnd() * 60},${55 + rnd() * 40},${30 + rnd() * 20},${.35 + rnd() * .4})`; g.fillRect(rnd() * w, rnd() * h, 3 + rnd() * 4, 3 + rnd() * 4); }
@@ -293,7 +303,7 @@ const boardTex = canvasTex(2048, 1260, (g, w, h) => {
   for (const [x, y] of pins.concat([[960, 190]])) { g.fillStyle = "rgba(0,0,0,.4)"; g.beginPath(); g.arc(x + 5, y + 8, 18, 0, 7); g.fill(); g.fillStyle = "#d9262d"; g.beginPath(); g.arc(x, y, 17, 0, 7); g.fill(); g.strokeStyle = "#5a0c10"; g.lineWidth = 4; g.stroke(); g.fillStyle = "#ffb3b3"; g.beginPath(); g.arc(x - 5, y - 6, 5, 0, 7); g.fill(); }
   g.strokeStyle = "#3a2214"; g.lineWidth = 10; g.strokeRect(5, 5, w - 10, h - 10);
 });
-const BOARD = { w: 2.3, h: 1.41, y: 1.95 };
+const BOARD = { w: 1.95, h: 1.2, y: 1.52 };
 add(box(BOARD.w + 0.12, BOARD.h + 0.12, 0.05, 0.015), mat({ color: 0x3a2214 }), 0, BOARD.y, BACK + 0.03);
 add(new THREE.PlaneGeometry(BOARD.w, BOARD.h), mat({ map: boardTex, roughness: 0.95 }), 0, BOARD.y, BACK + 0.058, { cast: false });
 // brass picture lamp over the board: a soft warm wash so the case board reads in the dark
@@ -303,6 +313,7 @@ add(new THREE.CylinderGeometry(0.012, 0.012, 0.14, 8), brass, 0, BOARD.y + BOARD
 const boardLight = new THREE.SpotLight(0xffc98a, 3.2, 3.5, 0.75, 0.85, 1.4); boardLight.position.set(0, BOARD.y + BOARD.h / 2 + 0.12, BACK + 0.3);
 boardLight.target.position.set(0, BOARD.y - 0.2, BACK); scene.add(boardLight, boardLight.target);
 // ---------------------------------------------------------------- right side: filing cabinet, coat rack, wall clock, frosted door sign
+const CAB0 = scene.children.length;
 const cabM = mat({ color: 0x55606a, roughness: 0.45, metalness: 0.35 });
 add(box(0.55, 1.3, 0.6, 0.02), cabM, 1.85, 0.65, -1.9);
 for (let k = 0; k < 4; k++) { add(box(0.5, 0.27, 0.02, 0.01), mat({ color: 0x66727c, roughness: .4, metalness: .35 }), 1.85, 0.2 + k * 0.31, -1.59); add(box(0.12, 0.025, 0.03, 0.01), mat({ color: 0xbfc4c8, metalness: .9, roughness: .3 }), 1.85, 0.27 + k * 0.31, -1.575); }
@@ -310,26 +321,75 @@ const drawerOut = add(box(0.5, 0.27, 0.45, 0.01), mat({ color: 0x66727c, roughne
 for (let k = 0; k < 6; k++) add(box(0.4, 0.2, 0.01, 0.003), k % 2 ? manilaM : manilaD, 1.85, 1.25, -1.6 + k * 0.06, { rx: (rnd() - .5) * 0.3 });
 add(box(0.32, 0.36, 0.04, 0.01), mat({ color: 0x2c2c2c }), 1.85, 1.52, -1.95, { rz: 0.05 });   // radio on top
 add(new THREE.CylinderGeometry(0.07, 0.07, 0.01, 24), mat({ color: 0xd9b040, metalness: .8, roughness: .35 }), 1.78, 1.55, -1.925, { rx: Math.PI / 2 });
-// coat rack with the trench coat + hat
-const rackM = mat({ color: 0x2c1a10 });
-add(new THREE.CylinderGeometry(0.025, 0.03, 1.8, 10), rackM, 1.9, 0.9, -0.2); add(new THREE.CylinderGeometry(0.22, 0.25, 0.04, 16), rackM, 1.9, 0.02, -0.2);
-const coat = add(new THREE.CylinderGeometry(0.16, 0.3, 1.0, 16, 1, true), mat({ color: 0x9a7448, side: THREE.DoubleSide }), 1.9, 1.15, -0.2); add(new THREE.SphereGeometry(0.16, 16, 10), mat({ color: 0x9a7448 }), 1.9, 1.66, -0.2);
-add(new THREE.CylinderGeometry(0.17, 0.2, 0.12, 20), mat({ color: 0x3a2a20 }), 1.9, 1.86, -0.2); add(new THREE.CylinderGeometry(0.3, 0.3, 0.015, 24), mat({ color: 0x3a2a20 }), 1.9, 1.8, -0.2);
+{ const P0 = V(1.85, 0, -1.9); for (const o of scene.children.slice(CAB0)) { o.position.sub(P0).multiplyScalar(0.78).add(P0); o.scale.multiplyScalar(0.78); } }
+// coat rack by the door, Pion height: his spare plaid cape and deerstalker hang on it
+const plaidTex = canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#8a5a32"; g.fillRect(0, 0, w, h); g.fillStyle = "rgba(60,34,18,.55)"; for (let x = 0; x < w; x += 64) g.fillRect(x, 0, 22, h); for (let y = 0; y < h; y += 64) g.fillRect(0, y, w, 22);
+  g.strokeStyle = "rgba(230,190,120,.55)"; g.lineWidth = 3; for (let x = 40; x < w; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); g.beginPath(); g.moveTo(0, x); g.lineTo(w, x); g.stroke(); } }, [3, 2]);
+const rackM = mat({ color: 0x2c1a10 }), RX = 2.0, RZ = -0.12;
+add(new THREE.CylinderGeometry(0.022, 0.026, 1.5, 10), rackM, RX, 0.75, RZ); add(new THREE.CylinderGeometry(0.2, 0.23, 0.04, 16), rackM, RX, 0.02, RZ);
+for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.4; add(new THREE.CylinderGeometry(0.012, 0.012, 0.16, 6), rackM, RX + Math.sin(a) * 0.06, 1.42, RZ + Math.cos(a) * 0.06, { rx: Math.cos(a) * 0.8, rz: -Math.sin(a) * 0.8 }); }
+const capeM = mat({ map: plaidTex, side: THREE.DoubleSide, roughness: 0.9 });
+add(new THREE.CylinderGeometry(0.13, 0.36, 0.78, 18, 1, true), capeM, RX, 1.0, RZ + 0.02); add(new THREE.TorusGeometry(0.13, 0.05, 10, 20), capeM, RX, 1.38, RZ + 0.02, { rx: Math.PI / 2 });
+add(new THREE.SphereGeometry(0.25, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), capeM, RX - 0.02, 1.5, RZ + 0.05, { rz: 0.25 });   // deerstalker dome
+add(new THREE.CylinderGeometry(0.27, 0.27, 0.02, 24), capeM, RX - 0.02, 1.5, RZ + 0.05, { rz: 0.25 });
+// door on the right wall (front), Pion-size: frosted glass with his name (mirrored: read from inside), warm hallway light leaking under it
+const DOOR = { x: RW / 2, z: 0.62, w: 0.95, h: 1.62, gap: 0.03 };
+const doorWood = canvasTex(512, 1024, (g, w, h) => { g.fillStyle = "#7a4a2a"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(40,18,8,.45)"; g.lineWidth = 3;
+  for (let k = 0; k < 26; k++) { const x = k * 20 + rnd() * 8; g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + 12 * (rnd() - .5), h * .3, x - 10, h * .6, x + 5, h); g.stroke(); } });
+const doorM = mat({ map: doorWood, roughness: 0.6 }), doorD = mat({ color: 0x5a3219, roughness: 0.6 });
+add(box(0.05, DOOR.h - DOOR.gap, DOOR.w, 0.01), doorM, DOOR.x - 0.035, DOOR.gap + (DOOR.h - DOOR.gap) / 2, DOOR.z);
+add(box(0.035, 0.5, DOOR.w - 0.26, 0.012), doorD, DOOR.x - 0.07, 0.36, DOOR.z);                                          // raised lower panel
+for (const [h, y] of [[0.05, 0.64], [0.05, 0.08]]) add(box(0.03, h, DOOR.w - 0.12, 0.01), doorD, DOOR.x - 0.07, y, DOOR.z);   // rails
+for (const [w, h, y] of [[DOOR.w - 0.18, 0.05, 1.46], [DOOR.w - 0.18, 0.05, 0.78], [0.05, 0.73, 1.12]]) if (w > 0.1) add(box(0.03, h, w, 0.01), doorD, DOOR.x - 0.07, y, DOOR.z);
+for (const sz of [-1, 1]) add(box(0.03, 0.73, 0.05, 0.01), doorD, DOOR.x - 0.07, 1.12, DOOR.z + sz * (DOOR.w - 0.23) / 2);   // glass frame sides
+for (const [w, h, y, z] of [[0.08, DOOR.h + 0.08, DOOR.h / 2 + 0.04, DOOR.z - DOOR.w / 2 - 0.04], [0.08, DOOR.h + 0.08, DOOR.h / 2 + 0.04, DOOR.z + DOOR.w / 2 + 0.04], [DOOR.w + 0.16, 0.08, DOOR.h + 0.04, DOOR.z]])
+  add(box(0.06, h, w, 0.01), trimM, DOOR.x - 0.03, y, z);
+const glassTex = canvasTex(512, 420, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, w * 0.7); gr.addColorStop(0, "#f6deaa"); gr.addColorStop(1, "#b98e5a"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * 0.08})`; g.fillRect(rnd() * w, rnd() * h, 2, 2); }
+  g.save(); g.translate(w, 0); g.scale(-1, 1); g.fillStyle = "rgba(40,22,12,.85)"; g.textAlign = "center"; g.font = "900 64px Georgia, serif"; g.fillText("PION RAJA", w / 2, 170); g.font = "700 34px Georgia, serif"; g.fillText("PRIVATE DETECTIVE", w / 2, 230);
+  g.font = "italic 28px Georgia, serif"; g.fillText("knock first", w / 2, 300); g.restore(); g.strokeStyle = "#24140c"; g.lineWidth = 10; g.strokeRect(5, 5, w - 10, h - 10); });
+const glassM = mat({ map: glassTex, emissive: 0xffffff, emissiveMap: glassTex, emissiveIntensity: 0.32, roughness: 0.3 });
+add(new THREE.PlaneGeometry(DOOR.w - 0.25, 0.62), glassM, DOOR.x - 0.062, 1.12, DOOR.z, { ry: -Math.PI / 2, cast: false });
+add(new THREE.SphereGeometry(0.035, 16, 12), nailM, DOOR.x - 0.09, 0.72, DOOR.z - DOOR.w / 2 + 0.1);                       // brass knob
+add(box(0.02, 0.12, 0.05, 0.005), nailM, DOOR.x - 0.065, 0.72, DOOR.z - DOOR.w / 2 + 0.1);
+const spillTex = canvasTex(256, 256, (g, w, h) => { const gr = g.createLinearGradient(w, 0, 0, 0); gr.addColorStop(0, "rgba(255,200,130,1)"); gr.addColorStop(0.25, "rgba(255,180,110,.45)"); gr.addColorStop(1, "rgba(255,170,100,0)"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  const gz = g.createLinearGradient(0, 0, 0, h); gz.addColorStop(0, "rgba(0,0,0,1)"); gz.addColorStop(0.12, "rgba(0,0,0,0)"); gz.addColorStop(0.88, "rgba(0,0,0,0)"); gz.addColorStop(1, "rgba(0,0,0,1)"); g.globalCompositeOperation = "destination-out"; g.fillStyle = gz; g.fillRect(0, 0, w, h); });
+const spill = add(new THREE.PlaneGeometry(0.75, DOOR.w * 1.05), new THREE.MeshBasicMaterial({ map: spillTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.55 }), DOOR.x - 0.375, 0.003, DOOR.z, { rx: -Math.PI / 2, cast: false });
+spill.renderOrder = 5;
+const hallLight = new THREE.PointLight(0xffb06a, 0.35, 1.1, 2); hallLight.position.set(DOOR.x - 0.08, 0.05, DOOR.z);
+const doorFill = new THREE.SpotLight(0xc8b4d8, 1.6, 4, 0.5, 0.8, 1.2); doorFill.position.set(0.6, 1.9, 0.9); doorFill.target.position.set(DOOR.x, 0.8, DOOR.z); scene.add(doorFill, doorFill.target);   // cool night fill so the door reads scene.add(hallLight);
+add(new THREE.PlaneGeometry(DOOR.w - 0.02, DOOR.gap), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.0, 0.75, 0.45).multiplyScalar(2.5) }), DOOR.x - 0.012, DOOR.gap / 2, DOOR.z, { ry: -Math.PI / 2, cast: false });
+// the envelope: a movable prop (slides under the door in scene 2, then lies open on the desk). F.env = { p:[x,y,z], ry, flap 0..1, vis }
+const envTex2 = canvasTex(640, 420, (g, w, h) => { g.fillStyle = "#ead9b2"; g.fillRect(0, 0, w, h); for (let i = 0; i < 1500; i++) { g.fillStyle = `rgba(120,90,50,${rnd() * 0.07})`; g.fillRect(rnd() * w, rnd() * h, 3, 3); }
+  g.strokeStyle = "#3a2e22"; g.lineWidth = 8; g.strokeRect(4, 4, w - 8, h - 8); g.lineWidth = 3; g.strokeStyle = "rgba(58,46,34,.5)"; g.beginPath(); g.moveTo(0, h); g.lineTo(w * 0.42, h * 0.52); g.moveTo(w, h); g.lineTo(w * 0.58, h * 0.52); g.stroke();
+  hand(g, "NO SENDER", w / 2, h * 0.7, 66, "#2a2a2a", -0.03); g.strokeStyle = "#a01d22"; g.lineWidth = 5; g.beginPath(); g.moveTo(w * 0.22, h * 0.83); g.lineTo(w * 0.78, h * 0.81); g.stroke(); });
+const flapTex = canvasTex(640, 300, (g, w, h) => { g.fillStyle = "#e3cfa4"; g.beginPath(); g.moveTo(0, 0); g.lineTo(w, 0); g.lineTo(w / 2, h); g.closePath(); g.fill(); g.strokeStyle = "#3a2e22"; g.lineWidth = 8; g.stroke();
+  g.fillStyle = "#8a1d1d"; g.beginPath(); g.arc(w / 2, h - 46, 34, 0, 7); g.fill(); g.fillStyle = "#b8343a"; g.beginPath(); g.arc(w / 2 - 8, h - 54, 12, 0, 7); g.fill(); });
+const ENV = new THREE.Group(); scene.add(ENV); const EW = 0.36, ED = 0.24;
+const envBody = add(box(EW, 0.008, ED, 0.002), [mat({ color: 0xd9c49a }), mat({ color: 0xd9c49a }), mat({ map: envTex2, roughness: 0.85 }), mat({ color: 0xcdb789 }), mat({ color: 0xd9c49a }), mat({ color: 0xd9c49a })], 0, 0.004, 0, { parent: ENV });
+const flapPivot = new THREE.Group(); flapPivot.position.set(0, 0.009, -ED / 2); ENV.add(flapPivot);
+const flapGeo = new THREE.BufferGeometry(); flapGeo.setAttribute("position", new THREE.Float32BufferAttribute([-EW / 2, 0, 0, EW / 2, 0, 0, 0, 0, ED * 0.55], 3)); flapGeo.setAttribute("uv", new THREE.Float32BufferAttribute([0, 1, 1, 1, 0.5, 0], 2)); flapGeo.computeVertexNormals();
+const flap = new THREE.Mesh(flapGeo, mat({ map: flapTex, side: THREE.DoubleSide, roughness: 0.85 })); flap.castShadow = true; flapPivot.add(flap);
+const ENV_DESK = { p: [-0.5, DESK.h + 0.03, DESK.z + 0.3], ry: 0.18, flap: 1 };   // where it rests, opened, on the desk
+function placeEnv(E) { E = Object.assign({}, ENV_DESK, E || {}); ENV.visible = E.vis !== false; ENV.position.set(...E.p); ENV.rotation.set(E.rx || 0, E.ry || 0, E.rz || 0); flapPivot.rotation.x = -E.flap * 2.6; }
+window.PROPS.door = [DOOR.x, 0, DOOR.z]; window.PROPS.envDesk = ENV_DESK.p;
 // wall clock (frozen soon at 11:42) on the right wall
 const clockTex = canvasTex(512, 512, (g, w, h) => { g.fillStyle = "#efe6cf"; g.beginPath(); g.arc(256, 256, 240, 0, 7); g.fill(); g.strokeStyle = "#2b2018"; g.lineWidth = 16; g.stroke();
   for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; g.lineWidth = i % 3 ? 6 : 12; g.beginPath(); g.moveTo(256 + Math.sin(a) * 200, 256 - Math.cos(a) * 200); g.lineTo(256 + Math.sin(a) * 222, 256 - Math.cos(a) * 222); g.stroke(); } });
-const clock = add(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 40), mat({ map: clockTex }), RW / 2 - 0.03, 2.25, -0.9, { rz: Math.PI / 2 }); clock.rotation.set(0, 0, Math.PI / 2); clock.rotation.y = 0; clock.material.map.rotation = -Math.PI / 2; clock.material.map.center.set(.5, .5);
+const clock = add(new THREE.CylinderGeometry(0.22, 0.22, 0.05, 40), mat({ map: clockTex }), RW / 2 - 0.03, 1.9, -0.9, { rz: Math.PI / 2 }); clock.rotation.set(0, 0, Math.PI / 2); clock.rotation.y = 0; clock.material.map.rotation = -Math.PI / 2; clock.material.map.center.set(.5, .5);
 const handM = mat({ color: 0x1b1210 });
-const hourH = add(box(0.012, 0.11, 0.008, 0.003), handM, RW / 2 - 0.065, 2.25, -0.9), minH = add(box(0.008, 0.17, 0.008, 0.003), handM, RW / 2 - 0.07, 2.25, -0.9);
-function setClock(hh, mm) { for (const [m, len, a] of [[hourH, 0.11, ((hh % 12) + mm / 60) / 12], [minH, 0.17, mm / 60]]) { const ang = a * Math.PI * 2; m.rotation.set(ang, 0, 0); m.position.set(m.position.x, 2.25 + Math.cos(ang) * len / 2, -0.9 + Math.sin(ang) * len / 2); } }
+const hourH = add(box(0.012, 0.11, 0.008, 0.003), handM, RW / 2 - 0.065, 1.9, -0.9), minH = add(box(0.008, 0.17, 0.008, 0.003), handM, RW / 2 - 0.07, 1.9, -0.9);
+function setClock(hh, mm) { for (const [m, len, a] of [[hourH, 0.11, ((hh % 12) + mm / 60) / 12], [minH, 0.17, mm / 60]]) { const ang = a * Math.PI * 2; m.rotation.set(ang, 0, 0); m.position.set(m.position.x, 1.9 + Math.cos(ang) * len / 2, -0.9 + Math.sin(ang) * len / 2); } }
 setClock(11, 41);
 // bookshelf on the left back corner
+const SH0 = scene.children.length;
 add(box(0.9, 1.9, 0.32, 0.02), mat({ color: 0x3a2214 }), -1.75, 0.95, -2.42);
 for (let s = 0; s < 4; s++) { add(box(0.84, 0.03, 0.3, 0.005), mat({ color: 0x4a2c1c }), -1.75, 0.25 + s * 0.45, -2.4); let x = -2.12; while (x < -1.42) { const bw = 0.04 + rnd() * 0.05, bh = 0.25 + rnd() * 0.13; const c = new THREE.Color().setHSL(rnd(), 0.45, 0.25 + rnd() * 0.2);
   add(box(bw, bh, 0.22, 0.004), mat({ color: c }), x + bw / 2, 0.265 + s * 0.45 + bh / 2, -2.4, { rz: rnd() < .12 ? 0.2 : 0 }); x += bw + 0.005; } }
+{ const P0 = V(-1.75, 0, -2.42); for (const o of scene.children.slice(SH0)) { o.position.sub(P0).multiplyScalar(0.84).add(P0); o.scale.multiplyScalar(0.84); } }
 // framed licence on the wall + door (front-right, frosted glass with lettering seen from inside)
 const licTex = canvasTex(512, 380, (g, w, h) => { g.fillStyle = "#f1e8cf"; g.fillRect(0, 0, w, h); g.strokeStyle = "#b08a3a"; g.lineWidth = 14; g.strokeRect(20, 20, w - 40, h - 40); g.fillStyle = "#2a2a2a"; g.font = "700 40px Georgia, serif"; g.textAlign = "center"; g.fillText("PRIVATE", w / 2, 130); g.fillText("INVESTIGATOR", w / 2, 180); g.font = "italic 30px Georgia, serif"; g.fillText("licence no. 7", w / 2, 250); });
-add(box(0.5, 0.38, 0.03, 0.01), mat({ color: 0x2b1a10 }), -1.35, 2.15, BACK + 0.03); add(new THREE.PlaneGeometry(0.44, 0.32), mat({ map: licTex }), -1.35, 2.15, BACK + 0.047, { cast: false });
+add(box(0.5, 0.38, 0.03, 0.01), mat({ color: 0x2b1a10 }), -1.42, 1.62, BACK + 0.03); add(new THREE.PlaneGeometry(0.44, 0.32), mat({ map: licTex }), -1.42, 1.62, BACK + 0.047, { cast: false });
 
 
 // ---------------------------------------------------------------- moods: the light tells the story (PANDUAN_SINEMATIK §3)
@@ -373,6 +433,7 @@ const SHOTS = {
   establish: { pos: V(1.45, 1.7, 1.6), tgt: V(-0.45, 1.25, -1.5), fov: 58, focus: 3.2 },
 };
 window.renderShot = (name, t = 0, over) => {
+  placeEnv(null);
   const S = Object.assign({}, SHOTS[name] || SHOTS.wide, over || {});
   camera.position.copy(S.pos); camera.fov = S.fov; camera.updateProjectionMatrix(); camera.lookAt(S.tgt);
   bokeh.uniforms.focus.value = S.focus; placeDust(t); grade.uniforms.time.value = t;
@@ -392,7 +453,7 @@ async function placePion(P) {   // P: { url, base:[px,py], ppu, w, h, anchor:[x,
   const t = await TL.loadAsync(P.url); t.colorSpace = THREE.SRGBColorSpace; if (pionTex) pionTex.dispose(); pionTex = t; pionMat.map = t;
   const k = P.height / (4.65 * P.ppu), pw = P.w * k, ph = P.h * k, A = V(...P.anchor);
   const off = V((P.w / 2 - P.base[0]) * k, (P.base[1] - P.h / 2) * k, 0), d = V().subVectors(camera.position, A);
-  pionCard.rotation.set(0, Math.atan2(d.x, d.z), 0); pionCard.scale.set(pw, ph, 1); off.applyQuaternion(pionCard.quaternion); pionCard.position.copy(A).add(off);
+  pionCard.rotation.set(0, Math.atan2(d.x, d.z), 0, "YXZ"); pionCard.rotation.z = P.roll || 0; pionCard.scale.set(pw, ph, 1); off.applyQuaternion(pionCard.quaternion); pionCard.position.copy(A).add(off);
   pionMat.color.setRGB(...(P.tint || [1, 1, 1]));
   const P0 = V(DESK.x, DESK.h + 0.01, DESK.z - DESK.d / 2), v = camera.position.clone().sub(P0), n = V(0, v.z, -v.y).normalize();   // the desk's back edge hides his lower half
   deskClip.setFromNormalAndCoplanarPoint(n, P0); pionMat.clippingPlanes = [deskClip]; pionMat.needsUpdate = true; pionCard.visible = true;
@@ -404,6 +465,7 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   applyMood(F.mood || "normal", F.mood2 || F.mood || "normal", F.moodK || 0, F.t);
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
   bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
+  placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.clock) setClock(...F.clock); else setClock(11, 41);
   await placePion(F.pion);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); if (pionCard.visible) renderer.render(pionScene, camera); renderer.setRenderTarget(null);

@@ -11,7 +11,7 @@ srv.listen(0, async () => {
     const b = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
     const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
     p.on("pageerror", e => { console.log("ERR", e.message); process.exit(1); }); p.on("console", m => { if (m.type() === "error") console.log("page:", m.text()); });
-    await p.goto(`http://localhost:${port}/index.html`); await p.waitForFunction(() => window.__ready === true, null, { timeout: 120000 });
+    await p.goto(`http://localhost:${port}/index.html?set=${process.env.SET || "office"}`); await p.waitForFunction(() => window.__ready === true, null, { timeout: 120000 });
     for (const T of chunk) {
       const over = clip > 0 ? await p.evaluate(([s, t]) => { const S = window.SHOTS[s], k = t / 5; return { pos: S.pos.clone().lerp(S.tgt, 0.12 * (k * k * (3 - 2 * k))) }; }, [T.shot, T.t]) : null;   // slow push-in for clips
       const img = await p.evaluate(([s, t, o]) => window.renderShot(s, t, o), [T.shot, T.t, over || (T.mood ? { mood: T.mood } : null)]);
