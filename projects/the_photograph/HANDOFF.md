@@ -80,7 +80,8 @@ bisa melanjutkan tanpa kehilangan konteks. Bacaan wajib, berurutan:
      (kursi pas badannya, meja setinggi dadanya, props seukuran sarung tangannya, pintu/rak/gantungan untuk tinggi Pion).
      Berlaku untuk semua set (kantor, apartemen, eksterior).
    - **Stempel CASE SOLVED dihapus.**
-3. Gambar Pion yang tersapu besar di depan lensa saat kamera lewat sudah dikurangi di v2. Pastikan tetap rapi.
+3. **Nama di dalam video = "SUCCIFY"**, bukan "Pion Raja" (kaca pintu kantor, email pengirim di adegan 13, teks lain). Nama karakter di kode/cue tetap pion.
+4. Gambar Pion yang tersapu besar di depan lensa saat kamera lewat sudah dikurangi di v2. Pastikan tetap rapi.
 
 ## 4. Cara kerja teknis
 ```bash

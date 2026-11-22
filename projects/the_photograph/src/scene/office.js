@@ -346,7 +346,7 @@ for (const [w, h, y, z] of [[0.08, DOOR.h + 0.08, DOOR.h / 2 + 0.04, DOOR.z - DO
   add(box(0.06, h, w, 0.01), trimM, DOOR.x - 0.03, y, z);
 const glassTex = canvasTex(512, 420, (g, w, h) => { const gr = g.createRadialGradient(w / 2, h / 2, 20, w / 2, h / 2, w * 0.7); gr.addColorStop(0, "#f6deaa"); gr.addColorStop(1, "#b98e5a"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
   for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * 0.08})`; g.fillRect(rnd() * w, rnd() * h, 2, 2); }
-  g.save(); g.translate(w, 0); g.scale(-1, 1); g.fillStyle = "rgba(40,22,12,.85)"; g.textAlign = "center"; g.font = "900 64px Georgia, serif"; g.fillText("PION RAJA", w / 2, 170); g.font = "700 34px Georgia, serif"; g.fillText("PRIVATE DETECTIVE", w / 2, 230);
+  g.save(); g.translate(w, 0); g.scale(-1, 1); g.fillStyle = "rgba(40,22,12,.85)"; g.textAlign = "center"; g.font = "900 64px Georgia, serif"; g.fillText("SUCCIFY", w / 2, 170); g.font = "700 34px Georgia, serif"; g.fillText("PRIVATE DETECTIVE", w / 2, 230);
   g.font = "italic 28px Georgia, serif"; g.fillText("knock first", w / 2, 300); g.restore(); g.strokeStyle = "#24140c"; g.lineWidth = 10; g.strokeRect(5, 5, w - 10, h - 10); });
 const glassM = mat({ map: glassTex, emissive: 0xffffff, emissiveMap: glassTex, emissiveIntensity: 0.32, roughness: 0.3 });
 add(new THREE.PlaneGeometry(DOOR.w - 0.25, 0.62), glassM, DOOR.x - 0.062, 1.12, DOOR.z, { ry: -Math.PI / 2, cast: false });
