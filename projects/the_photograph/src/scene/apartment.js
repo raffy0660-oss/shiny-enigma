@@ -244,7 +244,7 @@ const clockStuff = [CLK]; scene.children.slice(-6, -1).forEach(o => { if (o.geom
 
 // ---------------------------------------------------------------- lights (base); applyVer() sets them per version
 const hemi = new THREE.HemisphereLight(0x5a6aa0, 0x2a2018, 0.5); scene.add(hemi);
-const bulbL = new THREE.PointLight(0xffc27a, 0, 5, 1.6); bulbL.position.copy(BULB).add(V(0, -0.05, 0)); bulbL.castShadow = false;   // a point-light shadow = 6 extra renders per frame: off scene.add(bulbL);
+const bulbL = new THREE.PointLight(0xffc27a, 0, 5, 1.6); bulbL.position.copy(BULB).add(V(0, -0.05, 0)); bulbL.castShadow = true; bulbL.shadow.mapSize.set(1024, 1024); bulbL.shadow.bias = -0.002; scene.add(bulbL);
 const gapTex = canvasTex(512, 512, (g, w, h) => { g.fillStyle = "#000"; g.fillRect(0, 0, w, h); g.fillStyle = "#fff"; for (const [y0, y1] of [[60, 92], [190, 222], [330, 352], [438, 470]]) g.fillRect(0, y0, w, y1 - y0); });
 const sun = new THREE.SpotLight(0xffe2b0, 0, 12, 0.32, 0.18, 1.0); sun.map = gapTex; sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0006;
 const SUNDIR = V(1.0, -0.62, 0.32).normalize(); sun.position.copy(V(XL, WIN.y, WIN.z).addScaledVector(SUNDIR, -3.2)); sun.target.position.copy(V(XL, WIN.y, WIN.z).addScaledVector(SUNDIR, 2.0)); scene.add(sun, sun.target);

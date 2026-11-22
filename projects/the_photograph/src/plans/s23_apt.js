@@ -6,8 +6,10 @@ const { cam, key } = require("./lib.js");
 const C0 = require("./photo_still.js").C0, f0 = 2 * Math.atan(Math.tan(C0.fov * Math.PI / 360) / (1920 / 1440)) * 180 / Math.PI;   // photo = centre 3:4 crop
 const D = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
 const K = [
-  { t: 8.2, pos: C0.pos, tgt: C0.tgt, fov: f0, focus: 1.9, aperture: 0.0008 },
-  { t: 9.0, pos: D(C0.pos, C0.tgt, 0.12), tgt: C0.tgt, fov: f0 - 3, focus: 1.7, ease: "lin" },
+  { t: 8.2, pos: C0.pos, tgt: C0.tgt, fov: +(process.env.FA || 62), focus: 1.9, aperture: 0.0008 },          // follows the office dive: the photo fills the frame at 8.3 s
+  { t: 8.3, pos: C0.pos, tgt: C0.tgt, fov: f0, focus: 1.9, aperture: 0.0008, ease: "lin" },
+  { t: 8.55, pos: C0.pos, tgt: C0.tgt, fov: +(process.env.FB || 50.5), focus: 1.9, aperture: 0.0008, ease: "lin" },
+  { t: 9.0, pos: D(C0.pos, C0.tgt, 0.1), tgt: C0.tgt, fov: 49, focus: 1.75, ease: "lin" },
   { t: 9.62, pos: [1.0, 1.72, 1.0], tgt: [-1.3, 1.15, -1.3], fov: 62, focus: 2.6, ease: "io" },                // "abandoned apartment": boarded window, cobweb, sofa
   { t: 10.6, pos: [0.92, 1.7, 0.86], tgt: [-1.3, 1.1, -1.3], fov: 62, focus: 2.5, ease: "lin" },
   { t: 11.2, pos: [1.3, 1.25, 1.05], tgt: [-0.25, 0.15, -0.45], fov: 54, focus: 1.9, ease: "io" },           // "Beside his body" -> Daniel + the clock
