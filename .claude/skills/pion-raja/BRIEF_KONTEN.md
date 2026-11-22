@@ -48,10 +48,14 @@ Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `project
 ## 5. Teks
 - **Caption WAJIB** (keputusan terbaru user, menggantikan "tanpa caption"). Sinkron per kata, 1–2 kata per kemunculan, di tengah sekitar 71% tinggi frame
   (Remotion item `cap`, dibuat otomatis oleh `overlay_film.py` dari `vo_stt.json`):
-  - **Narator / karakter tidak di layar** → caption **polos** seperti video referensi ("How One Cart Stopped an Entire Army"):
-    Montserrat 800 putih, huruf sesuai ucapan, outline hitam tipis + bayangan lembut.
-  - **Karakter yang bicara terlihat di layar** → **label nama** pil putih kecil ("SUCCIFY") di atas, lalu teks besar KAPITAL putih ber-outline di bawahnya
-    (gaya foto referensi "RAKA / TAKE SATU"). Deteksi otomatis dari titik kepala karakter yang di-track per frame (`PION_KEY` per adegan).
+  - **Narasi → caption POLOS**, seperti video referensi ("How One Cart Stopped an Entire Army"): Montserrat 800 putih, huruf sesuai ucapan,
+    outline hitam tipis + bayangan lembut. **Termasuk narasi orang pertama oleh karakter itu sendiri** ("I checked…", "It was me"),
+    walaupun karakternya terlihat di layar dan bibirnya bergerak. Koreksi user setelah v3 The Photograph: "seharusnya cuma pakai sudut pandang
+    narator, jadi gausah ada nama". The Photograph seluruhnya narasi, jadi tidak ada label nama sama sekali.
+  - **Label nama hanya untuk DIALOG di dalam adegan**: karakter berbicara ke karakter lain / ke kamera sebagai bagian cerita, dan baris itu
+    ditandai sebagai dialog di naskah. Hanya di situ: pil putih kecil berisi nama ("SUCCIFY") di atas, lalu teks besar KAPITAL putih ber-outline di bawahnya
+    (gaya foto referensi "RAKA / TAKE SATU"), dan karakternya terlihat di layar (titik kepala di-track, `PION_KEY`).
+    Di `overlay_film.py` isi `DIALOG = [(t0, t1), ...]` dari naskah; kosong = semua polos. **Tanyakan ke user** di awal kalau naskah mencampur narasi dan dialog.
 - **Teks data** (item `word`: "11:42", "FRIDAY", "NO BODY"...) tetap ada, diletakkan **di luar zona caption** (atas, atau dekat objeknya).
 - Teks di dalam dunia 3D (layar laptop, poster, kalender, tulisan tangan di foto) boleh berupa tekstur. Tulisan tangan memakai font Caveat.
 - Pastikan teks yang dipegang/dibaca **masuk frame utuh** (tidak terpotong tepi 9:16).

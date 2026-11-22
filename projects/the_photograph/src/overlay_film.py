@@ -24,6 +24,10 @@ items = [   # big bold data words (type "word" in SceneOverlay.tsx); no captions
 # the caption carries his name pill ("SUCCIFY") above the text (style of the user's photo). Pion's tracked head point decides it, per scene.
 PION_KEY = [((0, 511), "head"), ((924, 1267), "head"), ((2040, 2173), "head"), ((2724, 3031), "head"), ((3258, 4405), "head"),
             ((1260, 1678), "pion0"), ((1674, 2044), "pion0"), ((2166, 2725), "pion2")]   # s23 / s10 (photo world): Pion is not there
+# DIALOG: time ranges (s) where a character speaks IN the scene (dialogue to someone). Everything else is narration -> plain caption,
+# even when the narrator is the on-screen character speaking in first person (user, The Photograph: "seharusnya cuma pakai sudut pandang
+# narator, jadi gausah ada nama"). The Photograph is all narration -> DIALOG = [] (no name pill anywhere).
+DIALOG = []
 def pion_on_screen(f):
     for (a, b), k in PION_KEY:
         if a <= f < b:
@@ -44,7 +48,8 @@ while i < len(words):
 for k, (a, b, txt) in enumerate(chunks):
     t1 = min(chunks[k + 1][0], b + 0.35) if k + 1 < len(chunks) else b + 0.35
     fr_ = range(int(round(a * 60)), max(int(round(a * 60)) + 1, int(round(t1 * 60))))
-    on = sum(pion_on_screen(f) for f in fr_) >= 0.4 * len(fr_)   # speaker visible for >=40% of the chunk (a camera swing landing on him counts)
+    in_dialog = any(d0 <= a < d1 for d0, d1 in DIALOG)
+    on = in_dialog and sum(pion_on_screen(f) for f in fr_) >= 0.4 * len(fr_)   # dialogue line AND speaker visible for >=40% of the chunk
     items.append({"type": "cap", "t0": round(a, 3), "t1": round(t1, 3), "text": txt.upper().rstrip(".,") if on else txt, **({"name": "SUCCIFY"} if on else {})})
 print("captions:", len(chunks), "named:", sum(1 for it in items if it.get("name")))
 fr = [a for a in sys.argv if a.startswith("--frames")]

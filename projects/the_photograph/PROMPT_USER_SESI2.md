@@ -26,3 +26,6 @@ Arsip arahan user, dipakai sebagai acuan konten berikutnya. Rangkuman aturannya 
     yang ngomong, polos kayak referensi (How One Cart Stopped an Entire Army); kalau karakter dalam video yang ngomong, kasih nama, jadi nama
     'succify' terus bawahnya baru teks (seperti foto RAKA / TAKE SATU)." → v3: item `cap` (polos / bernama otomatis), SFX dinormalisasi + whoosh
     otomatis + riser + hit, level VO -13 / musik -22 / SFX -18 LUFS.
+11. "Masih ada error sih, tapi gpp, gausah direvisi, masukin ke repo aja." → v3 masuk repo (`final/`), tidak direvisi.
+12. "Di video itu, seharusnya cuma pakai sudut pandang narator, jadi gausah ada nama." → Semua VO di The Photograph adalah narasi (orang pertama),
+    jadi caption semuanya polos. Label nama hanya untuk dialog di dalam adegan (`DIALOG` di `overlay_film.py`, aturan di `BRIEF_KONTEN.md` §5).

@@ -12,7 +12,7 @@ Full project (all plans, cues, assets, history): `projects/the_photograph/`. Rul
 | `plans/lib.js` | camera keys (`io` = a fly move with sine ease, `lin` = drift), scalar keys |
 | `plans/*.js` | examples: office hook + envelope + dive into a photo (`s12`), physical hops (`s6`), crime scene with 3 characters (`s78`), street (`s5`), the photo camera (`photo_still`) |
 | `build_film.py` | joins the scene renders into one film sequence: crossfades, a photo laid exactly over a scene, colour lift, black end |
-| `overlay_film.py` | Remotion captions (`cap`: plain for the narrator, name pill "SUCCIFY" + big text when the speaker is on screen, auto from the VO word timings) + data words (`word`: "11:42", "FRIDAY", "NO BODY"...) glued to tracked 3D points |
+| `overlay_film.py` | Remotion captions (`cap`, auto from the VO word timings: plain for all narration, first-person narration included; name pill "SUCCIFY" + big text only inside `DIALOG` ranges of in-scene dialogue with the speaker on screen) + data words (`word`: "11:42", "FRIDAY", "NO BODY"...) glued to tracked 3D points |
 | `mix_film.py` | stems: VO -13 LUFS, music score in parts -22, SFX -18 (each file peak-normalised, auto whoosh on every camera move, risers before the turns, hits on data words), limiter -1.5 dBTP, + `sfx_only` |
 | `sfx_gen.py` | ElevenLabs SFX v3 list (music loops too: free plan has no Music API; watch the credit quota) |
 | `assemble.sh` | check -> build -> overlay -> mix -> mux |
