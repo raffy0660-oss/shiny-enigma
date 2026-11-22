@@ -8,7 +8,7 @@ for f in sorted(glob.glob(P + "/out/*/pts.json")):
     for k, v in json.load(open(f)).items(): pts.setdefault(k, {}).update({n: p for n, p in (v or {}).items() if p})
 pub = P + "/pub_film"; os.makedirs(pub, exist_ok=True)
 os.makedirs(pub + "/fonts", exist_ok=True)
-for w in ("800", "900"): subprocess.run(["cp", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "fonts", f"montserrat-latin-{w}-normal.woff"), pub + "/fonts/"], check=True)
+for w in ("800", "900"): subprocess.run(["cp", os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "assets", "fonts", f"montserrat-latin-{w}-normal.woff"), pub + "/fonts/"], check=True)
 if os.path.lexists(pub + "/film"): os.remove(pub + "/film")
 os.symlink(P + "/film", pub + "/film")
 items = [   # big bold data words (type "word" in SceneOverlay.tsx); no captions (user's choice)
@@ -31,7 +31,7 @@ def pion_on_screen(f):
             return bool(p) and 0.08 < p[0] < 0.92 and 0.04 < p[1] < 0.85 and (len(p) < 3 or p[2] < 1)
     return False
 words = []
-for seg in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "vo_stt.json"))):
+for seg in json.load(open(os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "vo_stt.json"))):
     for a, b, w in seg["w"]:
         w = w.strip()
         if words and w.startswith(".") and words[-1][2][-1:].isdigit(): words[-1] = [words[-1][0], b, words[-1][2] + ":" + w[1:]]   # "11" ".42." -> "11:42."
