@@ -331,6 +331,8 @@ const LOCS = {
   house: { dyn: pionKey, rim: winLight[1], LP: LIGHT_PRESETS.crime_scene, bg: 0x03040a, fog: 0.07, vig: 0.55 },
 };
 let bakedLoc = null;
+const LIGHTSET = [[aptSpot, "apt"], [aptMoon, "apt"], [aptNeon, "apt"], [aptVanity, "apt"], [aptFill, "apt"], ...phoneSpots.map(([L]) => [L, "phones"]),
+  ...Object.values(PHONES).map(p => [p.G.children.find(c => c.isPointLight), "phones"]), ...winLight.map(L => [L, "house"]), [houseHemi, "house"], [flashL, "house"], [flashBack, "house"], [pionKey, "house"]];
 const PTS = {};
 window.renderFrame = async (F) => {   // F: { t, loc, cam, pions, flash, door (rad, 0 = shut), figure, spotK, phonePfp (key) }
   const Lc = LOCS[F.loc || "apt"];
@@ -340,6 +342,7 @@ window.renderFrame = async (F) => {   // F: { t, loc, cam, pions, flash, door (r
   const at = F.loc || "apt", sk = F.spotK ?? 1;
   aptSpot.intensity = at === "apt" ? 30 * sk : 0; aptMoon.intensity = at === "apt" ? 9 : 0; aptFill.intensity = at === "apt" ? 0.22 : 0; aptNeon.intensity = at === "apt" ? 2.2 : 0; aptVanity.intensity = at === "apt" ? 0.9 : 0; aptBeam.visible = at === "apt";
   phoneSpots.forEach(([L, i]) => L.intensity = at === "phones" ? i : 0);
+  for (const [L, where] of LIGHTSET) L.visible = where === at;   // lights of the other locations OFF (not just 0): swiftshader shades every visible light (and its shadow map) per pixel
   const fl = F.flash || 0;
   winLight.forEach(L => L.intensity = at === "house" ? 36 + fl * 110 : 0); winBeams.forEach(b => { b.visible = at === "house"; b.material.uniforms.k.value = 1 + fl * 3; });
   winGlass.forEach(g => g.material.color.setRGB(0.35 + fl * 0.65, 0.44 + fl * 0.56, 0.69 + fl * 0.31));
