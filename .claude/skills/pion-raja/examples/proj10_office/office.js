@@ -376,7 +376,7 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   bokeh.uniforms.focus.value = F.cam.focus; placeDust(F.t); grade.uniforms.time.value = F.t;
   applyMood(F.mood || "normal", F.mood2 || F.mood || "normal", F.moodK || 0, F.t);
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
-  bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L);
+  bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
   await placePion(F.pion);
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   renderer.setRenderTarget(pionRT); renderer.setClearColor(0x000000, 0); renderer.clear(); if (pionCard.visible) renderer.render(pionScene, camera); renderer.setRenderTarget(null);

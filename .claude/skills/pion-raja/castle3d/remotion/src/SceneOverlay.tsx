@@ -180,7 +180,7 @@ const Stamp: React.FC<{ it: Extract<Item, { type: "stamp" }> }> = ({ it }) => {
   const col = it.color || "#c8202a", fs = W * (it.size ?? 0.105), id = `ink${Math.round(it.t0 * 100)}`;
   return (
     <div style={{ position: "absolute", left: it.x * W, top: it.y * W * 16 / 9, translate: "-50% -50%", rotate: `${it.rot ?? -10}deg`, scale: String(sc), opacity: op }}>
-      <svg width={0} height={0} style={{ position: "absolute" }}><filter id={id}><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={2} seed={7} /><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.35" /><feComposite in="SourceGraphic" operator="in" /></filter></svg>
+      <svg width={0} height={0} style={{ position: "absolute" }}><filter id={id}><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={2} seed={7} /><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.1 1.55" /><feComposite in="SourceGraphic" operator="in" /></filter></svg>
       <div style={{ filter: `url(#${id})`, border: `${fs * 0.09}px solid ${col}`, outline: `${fs * 0.04}px solid ${col}`, outlineOffset: `${fs * 0.07}px`, borderRadius: fs * 0.12, padding: `${fs * 0.12}px ${fs * 0.35}px`, textAlign: "center" }}>
         <div style={{ fontFamily: "'Inter Display', Inter, sans-serif", fontWeight: 900, fontSize: fs, lineHeight: 1, color: col, letterSpacing: "0.04em", whiteSpace: "nowrap" }}>{it.text}</div>
         {it.sub && <div style={{ fontFamily: "'Inter Display', Inter, sans-serif", fontWeight: 800, fontSize: fs * 0.32, color: col, letterSpacing: "0.3em", marginTop: fs * 0.08 }}>{it.sub}</div>}

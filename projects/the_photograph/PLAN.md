@@ -49,6 +49,6 @@ Shorts detektif Pion Raja, full animasi. 9:16, 1080x1920, 60 fps, **73,4 dtk** (
 - [x] VO + transkrip
 - [x] Kantor + mood cahaya
 - [x] Model 2D + baju Daniel/polisi
-- [ ] Tes 5 dtk (adegan 1) ← sekarang
+- [x] Tes 5 dtk (adegan 1): tests/t5_test.mp4
 - [ ] Apartemen (A/B/C), eksterior
 - [ ] Render semua adegan, overlay Remotion, SFX ElevenLabs, rakit
