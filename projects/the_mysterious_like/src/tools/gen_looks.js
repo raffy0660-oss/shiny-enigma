@@ -26,7 +26,7 @@ const W = [
   ["f_pO2", "pO2", 32.5, 37.7, 0.25, () => SCR, t => (t > 36.4 && t < 36.9 ? { dt: 6, dn: -24, tilt: 4 } : jit(t * 1.6, 5, 2))],        // typing fast; jolts back on "died"
   ["f_pO3", "pO3", 40.85, 44.6, 0.3, () => SCR, t => jit(t, 4, 2)],
   ["f_pH", "pH", 47.0, 50.1, 0.3, () => TABLE, t => jit(t, 4, 3)],                                                                          // the table of phones
-  ["f_pH2", "pH2", 52.85, 54.0, 0.1, t => held(t, 52.85, [59.85, 0.29, -0.13], [59.88, 0.4, 0.06]), () => ({ dt: 0, dn: 0, tilt: 0 })],                       // his own phone coming up beside his face
+  ["f_pH2", "pH2", 52.85, 54.0, 0.1, t => held(t, 52.85, [59.85, 0.29, -0.13], [59.88, 0.4, 0.06]), t => ({ dt: 0, dn: -16, tilt: 3 * Math.sin(t * 3) })],   // high lens here: less nod or the hat hides his face                       // his own phone coming up beside his face
 ];
 const byCue = {};
 for (const [cue, eng, t0, t1, step, tgt, ex] of W) {
