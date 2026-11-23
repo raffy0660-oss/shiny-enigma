@@ -268,7 +268,7 @@ const aptBeam = beam([1.05, A.H - 0.06, 0.4], [0.98, 0, 0.1], 0.06, 1.2, 0xffd8b
 
 // ================================================================ B: the phones of the other victims (four small worlds, far apart)
 const PB = [
-  { x: 30, surf: () => { const m = add(new THREE.PlaneGeometry(2, 2), mat({ map: canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#6e6a84"; g.fillRect(0, 0, w, h); for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .06})`; g.fillRect(rnd() * w, rnd() * h, 2, 2); } }, [4, 4]), roughness: 1 }), 30, 0, 0, { rx: -Math.PI / 2, cast: false }); m.userData.ground = true; },
+  { x: 30, surf: () => { const m = add(new THREE.PlaneGeometry(3.4, 2.6), mat({ map: canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#6e6a84"; g.fillRect(0, 0, w, h); for (let i = 0; i < 4000; i++) { g.fillStyle = `rgba(255,255,255,${rnd() * .06})`; g.fillRect(rnd() * w, rnd() * h, 2, 2); } }, [6, 5]), roughness: 1 }), 30, 0, -0.05, { rx: -Math.PI / 2, cast: false }); m.userData.ground = true; },
     light: [0x7f9cff, 4], ph: ["@quiet.hollow", "study with me (6 hours)", ["#2b3a6a", "#7a8ad8"], "2 days ago", -0.35] },
   { x: 33, surf: () => { add(box(1.6, 0.06, 0.9, 0.01), mat({ map: canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#d8d8dc"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(90,90,100,.35)"; g.lineWidth = 2; for (let i = 0; i < 12; i++) { g.beginPath(); g.moveTo(rnd() * w, 0); g.bezierCurveTo(rnd() * w, h * .3, rnd() * w, h * .6, rnd() * w, h); g.stroke(); } }), roughness: 0.25 }), 33, -0.03, 0); add(new THREE.CylinderGeometry(0.05, 0.045, 0.11, 16), mat({ color: 0x9a2a2a }), 33.28, 0.055, -0.18); },
     light: [0xd8f0ff, 2.6], ph: ["@lantern_k", "what I eat in a day", ["#e8a040", "#f8e0a0"], "5 hours ago", 0.5] },
@@ -279,6 +279,37 @@ const PB = [
       add(new THREE.CircleGeometry(0.35, 32), new THREE.MeshStandardMaterial({ color: 0x050608, roughness: 0.02, metalness: 0.9 }), 39.15, 0.002, 0.1, { rx: -Math.PI / 2, cast: false }); },
     light: [0xff9a40, 9], ph: ["@m0rn1ngdew_", "last stream before I sleep", ["#601820", "#e05050"], "just now", -0.8] },
 ];
+// ---- victim 2's bedroom around phone m0 (x = 30): back + side wall, bed, nightstand with a blue night lamp, window (scene 3A: no void behind Pion)
+const BED = { X: 30, Z: -1.3 };
+{ const wallT = canvasTex(512, 512, (g, w, h) => { g.fillStyle = "#3a4560"; g.fillRect(0, 0, w, h); for (let x = 0; x < w; x += 64) { g.fillStyle = "rgba(255,255,255,.035)"; g.fillRect(x, 0, 30, h); }
+    for (let i = 0; i < 2500; i++) { g.fillStyle = `rgba(0,0,0,${rnd() * .08})`; g.fillRect(rnd() * w, rnd() * h, 3, 3); } }, [3, 2]);
+  const wm = mat({ map: wallT, roughness: 0.95 });
+  add(box(3.6, 2.4, 0.08, 0.01), wm, BED.X, 1.2, BED.Z - 0.04);                                   // back wall
+  add(box(0.08, 2.4, 2.6, 0.01), wm, BED.X + 1.72, 1.2, BED.Z + 1.25);                             // right wall
+  add(box(3.6, 0.1, 0.03, 0.01), mat({ color: 0x1c2234 }), BED.X, 0.05, BED.Z + 0.015, { cast: false });   // skirting
+  // bed (unmade): frame, mattress, crumpled duvet, pillows
+  const wood = mat({ color: 0x3a2a22, roughness: 0.7 }), duvet = mat({ map: canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#c9cbe0"; g.fillRect(0, 0, w, h); for (let i = 0; i < 10; i++) { g.strokeStyle = "rgba(70,74,110,.35)"; g.lineWidth = 5; g.beginPath(); const x = rnd() * w; g.moveTo(x, 0); g.quadraticCurveTo(x + 40, h / 2, x - 20, h); g.stroke(); } }), roughness: 1 });
+  add(box(1.05, 0.22, 1.7, 0.03), wood, 29.15, 0.11, BED.Z + 0.85);
+  add(box(1.1, 0.75, 0.07, 0.03), wood, 29.15, 0.38, BED.Z + 0.04);                                   // headboard
+  add(box(0.98, 0.14, 1.6, 0.05), mat({ color: 0xe8e8f0, roughness: 1 }), 29.15, 0.29, BED.Z + 0.87);
+  const dg = new THREE.PlaneGeometry(1.06, 1.1, 24, 24), dp = dg.attributes.position; for (let i = 0; i < dp.count; i++) dp.setZ(i, 0.04 * Math.sin(dp.getX(i) * 9 + dp.getY(i) * 4) + 0.03 * Math.sin(dp.getY(i) * 13) + (Math.abs(dp.getX(i)) > 0.48 ? -0.08 : 0)); dg.computeVertexNormals();
+  add(dg, duvet, 29.15, 0.39, BED.Z + 1.15, { rx: -Math.PI / 2, cast: true });
+  for (const dx of [-0.24, 0.22]) add(box(0.4, 0.1, 0.26, 0.05), mat({ color: 0xdfe2f2, roughness: 1 }), 29.15 + dx, 0.41, BED.Z + 0.24, { rz: dx * 0.3 });
+  // nightstand + blue night lamp
+  add(box(0.42, 0.46, 0.36, 0.02), wood, 30.55, 0.23, BED.Z + 0.22); add(box(0.3, 0.03, 0.02, 0.01), mat({ color: 0xb08850, metalness: 0.6 }), 30.55, 0.33, BED.Z + 0.41, { cast: false });
+  add(new THREE.CylinderGeometry(0.05, 0.07, 0.16, 16), mat({ color: 0x20253a }), 30.5, 0.54, BED.Z + 0.2);
+  add(new THREE.CylinderGeometry(0.09, 0.14, 0.16, 20, 1, true), new THREE.MeshStandardMaterial({ color: 0x8fa8ff, emissive: 0x6f8cff, emissiveIntensity: 1.6, side: THREE.DoubleSide }), 30.5, 0.7, BED.Z + 0.2, { cast: false });
+  add(box(0.14, 0.04, 0.2, 0.01), mat({ color: 0x5a4a8a }), 30.64, 0.48, BED.Z + 0.26, { ry: 0.3 });   // a book
+  // window with the night outside + frame, posters
+  add(new THREE.PlaneGeometry(0.8, 0.95), new THREE.MeshBasicMaterial({ fog: false, map: canvasTex(256, 256, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#0a1230"); gr.addColorStop(1, "#2a3a70"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.fillStyle = "#070a14"; for (let i = 0; i < 9; i++) { const x = i * 30, th = 40 + rnd() * 90; g.fillRect(x, h - th, 26, th); g.fillStyle = "rgba(255,210,120,.6)"; if (rnd() < .6) g.fillRect(x + 8, h - th + 14, 5, 6); g.fillStyle = "#070a14"; }
+    g.fillStyle = "rgba(225,232,255,.95)"; g.beginPath(); g.arc(w * 0.72, h * 0.25, 13, 0, 7); g.fill(); }) }), 31.0, 1.35, BED.Z + 0.005, { cast: false });
+  const fr = mat({ color: 0xd8dae6 }); add(box(0.9, 0.05, 0.06, 0.01), fr, 31.0, 1.85, BED.Z + 0.03); add(box(0.9, 0.05, 0.12, 0.01), fr, 31.0, 0.86, BED.Z + 0.06); for (const dx of [-0.43, 0, 0.43]) add(box(0.04, 1.0, 0.06, 0.01), fr, 31.0 + dx, 1.35, BED.Z + 0.03, { cast: false });
+  for (const [x, y, c1, c2] of [[29.0, 1.35, "#7a5ad0", "#f0a0c0"], [29.55, 1.5, "#2a8a9a", "#f0e090"]]) add(new THREE.PlaneGeometry(0.34, 0.46), mat({ map: canvasTex(128, 170, (g, w, h) => { const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, c1); gr.addColorStop(1, c2); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = "#f4f4f8"; g.lineWidth = 10; g.strokeRect(0, 0, w, h); }) }), x, y, BED.Z + 0.01, { cast: false });
+  add(box(0.7, 0.012, 0.5, 0.005), mat({ color: 0x5a6a9a, roughness: 1 }), 30.0, 0.006, BED.Z + 0.95, { cast: false });   // small rug
+}
+const bedLamp = new THREE.PointLight(0x7f9cff, 1.8, 2.6, 1.6); bedLamp.position.set(30.5, 0.72, BED.Z + 0.3); scene.add(bedLamp);
+const bedMoon = new THREE.SpotLight(0x6f86d8, 4, 4, 0.5, 0.7, 1.4); bedMoon.position.set(31.0, 1.4, BED.Z - 0.6); bedMoon.target.position.set(30.6, 0, BED.Z + 1.2); scene.add(bedMoon, bedMoon.target);   // moonlight from the window: a pale pool on the floor
 const phoneSpots = [];
 PB.forEach((b, i) => { b.surf(); const [col, int] = b.light, L = new THREE.SpotLight(col, 0, 3.5, 0.45, 0.8, 1.3); L.position.set(b.x - 0.7, 1.6, 0.9);   // higher + farther: a soft pool, no blown hot spot L.target.position.set(b.x, 0, 0); scene.add(L, L.target); phoneSpots.push([L, int]);
   const [u, t, th, ago, ry] = b.ph; PHONES["m" + i] = phone(b.x, 0.0, 0, ry, 0, u, t, th, ago); });
@@ -470,7 +501,7 @@ const LOCS = {
 let bakedLoc = null;
 const LIGHTSET = [[aptSpot, "apt"], [aptMoon, "apt"], [aptNeon, "apt"], [aptVanity, "apt"], [aptFill, "apt"], ...phoneSpots.map(([L]) => [L, "phones"]),
   ...Object.values(PHONES).map(p => [p.G.children.find(c => c.isPointLight), "phones"]), ...winLight.map(L => [L, "house"]), [houseHemi, "house"], [flashL, "house"], [flashBack, "house"], [pionKey, "house"], [tableSpot, "house"], ...tablePhones.map(p => [p.G.children.find(c => c.isPointLight), "house"]),
-  [extMoon, "ext"], [extHemi, "ext"], [extDoorSpot, "ext"], [fallLight, "house"], [PHONES.vic.G.children.find(c => c.isPointLight), "apt"]];
+  [bedLamp, "phones"], [bedMoon, "phones"], [extMoon, "ext"], [extHemi, "ext"], [extDoorSpot, "ext"], [fallLight, "house"], [PHONES.vic.G.children.find(c => c.isPointLight), "apt"]];
 const PTS = {};
 window.renderFrame = async (F) => {   // F: { t, loc, cam, pions, flash, door (rad, 0 = shut), figure, spotK, phonePfp (key) }
   const Lc = LOCS[F.loc || "apt"];

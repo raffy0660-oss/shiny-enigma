@@ -27,7 +27,7 @@ const SH = [   // [t0, set, loc, camera keys]
     look(8.54, along([HC[0] - 0.02, HC[1] - 0.045, HC[2] + 0.01], HN, 0.22), [HC[0] - 0.02, HC[1] - 0.045, HC[2] + 0.01], 40, "io", { aperture: 0.003 })]],   // profile -> latest video -> engagement
   [8.54, "mlike", "apt", [look(8.54, along(HP, HN, 0.2), HP, 40, null, { aperture: 0.004 }), look(10.7, along(HP, HN, 0.1), HP, 40, "lin", { aperture: 0.004 })]],   // macro push on the picture
   [10.7, "office", null, [look(10.7, [2.05, 1.18, -0.8], [0.0, 1.0, -1.2], 42), look(13.0, [1.9, 1.16, -0.88], [0.0, 1.0, -1.2], 42, "lin"),   // side: Pion at the desk, the laptop's back to us
-    look(15.3, [0.98, 1.36, -1.62], [0.05, 0.95, -1.0], 44, "io"),                                                   // arc behind his shoulder (outside the chair wing): the report
+    look(15.3, [1.2, 1.42, -1.42], [0.05, 0.95, -1.0], 44, "io"),                                                   // arc behind his shoulder (outside the chair wing): the report
     look(16.2, [0.5, 1.05, -1.05], SCR, 38, "io"), look(16.95, [0.06, 0.955, -1.14], SCR, 34, "in")]],               // round his shoulder and into the screen
   [16.95, "mlike", "phones", [look(16.95, [29.45, 1.3, 1.3], [30.15, 0.28, -0.15], 46), look(20.0, [29.52, 1.18, 1.15], [30.12, 0.24, -0.12], 46, "lin"),   // second scene: Pion by her phone
     look(21.0, [29.95, 0.38, 0.26], [30.0, 0.012, 0.0], 40, "io", { aperture: 0.004 }), look(22.1, [29.96, 0.34, 0.22], [30.0, 0.012, 0.0], 40, "lin", { aperture: 0.004 })]],   // rack to the screen

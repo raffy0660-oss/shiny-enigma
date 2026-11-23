@@ -54,3 +54,12 @@ Keputusan user:
 ## Sampel 15 detik (untuk approval)
 VO dipotong dan disambung: hook 0–4,80 (shot 1A–1B) · tensi 22,10–27,62 (3C–3F) · payoff 58,00–60,25 + jeda 0,6 + 63,40–66,19 (7C–7G).
 Total ±16,6 dtk. Waktu sampel: hook 0–4,8 · tensi 4,8–10,3 · payoff 10,3–16,6.
+
+## Revisi untuk film penuh (setelah sampel di-approve)
+Permintaan user: "zoomnya pertama dari kepala, terus scanning sampai kaki, baru zoom ke pion … pas pintunya ketutup kasih efek getar dikit … pas ada geledek kasih barang jatuh dari sisi kanan/kiri ke tengah … dari hook udah munculin hpnya".
+- **Hook 0–3,4**: kamera mulai dari kepala korban, men-scan sepanjang badan sampai kaki, lalu (di "found dead") pindah ke Pion yang mendorong badan dari dinding.
+- **HP korban** sudah terlihat di lantai sejak frame pertama, lalu Pion mengambilnya (1C).
+- **Pintu terbanting di "locked" (59,18)**: kamera terguncang, lalu daun pintu masih bergetar sedikit dan meredam.
+- **Petir (64,24)**: lampu berdiri dari rak kanan jatuh ke tengah lantai. Bohlamnya berkedip lalu padam, dengan SFX benda pecah di 64,74.
+- **3A (TKP 2)**: kamar tidur korban kedua (dinding, ranjang berantakan, meja kecil dengan lampu tidur biru, jendela malam). Pion tidak lagi melayang di ruang hitam.
+- **2B**: jalur kamera di belakang bahu Pion digeser keluar dari sayap kursi, jadi tidak ada lagi blok hitam yang menutup layar.
