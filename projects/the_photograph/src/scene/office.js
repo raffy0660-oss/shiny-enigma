@@ -470,7 +470,7 @@ function drawML(S, g, w, h, t) { const k = S.k || 0;
     g.fillStyle = "#e8eefc"; g.beginPath(); g.moveTo(mx, my - 6); g.lineTo(mx - 9, my - 24); g.arc(mx, my - 26, 10, Math.PI, 0); g.closePath(); g.fill(); g.restore();
     const pr = 0.5 + 0.5 * Math.sin(t * 6); g.strokeStyle = `rgba(255,70,80,${pr})`; g.lineWidth = 6; g.beginPath(); g.arc(mx, my, 30 + pr * 30, 0, 7); g.stroke(); g.fillStyle = "#ff4a50"; g.beginPath(); g.arc(mx, my, 14, 0, 7); g.fill();
     if (S.img && k > 0.55) { const im = loadImg(S.img), a = Math.min(1, (k - 0.55) / 0.2); if (im.complete && im.naturalWidth) { g.globalAlpha = a; const ih = h - 56, iw = ih * im.naturalWidth / im.naturalHeight * 1.0;
-      const s2 = 1 + (k - 0.55) * 0.6; g.save(); g.translate(w / 2, 56 + ih / 2); g.scale(s2, s2); g.drawImage(im, 0, im.naturalHeight * 0.2, im.naturalWidth, im.naturalHeight * 0.6 * (w / iw), -w / 2, -ih / 2, w, ih); g.restore(); g.globalAlpha = 1; } }
+      const s2 = 1 + (k - 0.55) * 0.6, sh = im.naturalWidth * ih / w, sy = (im.naturalHeight - sh) * 0.5; g.save(); g.translate(w / 2, 56 + ih / 2); g.scale(s2, s2); g.drawImage(im, 0, sy, im.naturalWidth, sh, -w / 2, -ih / 2, w, ih); g.restore(); g.globalAlpha = 1; } }   // landscape crop from the middle of the portrait still
     g.fillStyle = "rgba(10,14,24,.75)"; g.fillRect(0, h - 64, w, 64); g.fillStyle = "#ff5a5a"; g.font = "800 28px Arial"; g.fillText("LAST LOGIN: 14 Elm Hollow Rd  ·  1 occupant", 24, h - 22);
   } }
 const LAP = new THREE.Group(); LAP.position.set(0.8, DESK.h + 0.006, DESK.z + 0.08); LAP.rotation.y = 0.35; scene.add(LAP); LAP.visible = false;
@@ -554,6 +554,7 @@ moon.shadow.autoUpdate = false; key.shadow.autoUpdate = false;
 let lastSig = null;
 window.__dbg = { scene, renderer, camera };
 window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, mood2, moodK, lampK, pion }
+  if (F.laptop && F.laptop.img) { const im = loadImg(F.laptop.img); if (!im.complete || !im.naturalWidth) await new Promise(r => { im.onload = r; im.onerror = r; if (im.complete && im.naturalWidth) r(); }); }   // the house photo must be loaded before the screen is drawn
   camera.position.set(...F.cam.pos); camera.fov = F.cam.fov; camera.updateProjectionMatrix(); camera.lookAt(...F.cam.tgt); camera.updateMatrixWorld();
   if (F.cam.roll) camera.rotateZ(F.cam.roll);
   bokeh.uniforms.focus.value = F.cam.focus; placeDust(F.t); grade.uniforms.time.value = F.t;
@@ -561,7 +562,6 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
   bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
   mlBoard.visible = !!F.board; if (F.board) drawMLBoard(F.board); if (F.dust === false) dust.visible = false;
-  if (F.laptop && F.laptop.img) { const im = loadImg(F.laptop.img); if (!im.complete) await new Promise(r => { im.onload = r; im.onerror = r; }); }
   placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag); clockSpot.intensity = F.clockLight || 0;
   { const LP = LIGHT_PRESETS[RIMP[F.mood2 && F.moodK > 0.5 ? F.mood2 : (F.mood || "normal")]] || LIGHT_PRESETS.interior_warm_lamp;
     await CHR.place(F.pion ? [Object.assign(F.pion.preset ? { cast: true } : { shadow: [1.0, 0.55], cast: true }, F.pion)] : [], { light: key, puffs: F.puffs, ...LP }); }

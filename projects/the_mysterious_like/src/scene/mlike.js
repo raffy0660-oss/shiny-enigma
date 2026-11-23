@@ -484,7 +484,7 @@ window.renderFrame = async (F) => {   // F: { t, loc, cam, pions, flash, door (r
   const fl = F.flash || 0;
   winLight.forEach(L => L.intensity = at === "house" ? 36 + fl * 110 : 0); winBeams.forEach(b => { b.visible = at === "house"; b.material.uniforms.k.value = 1 + fl * 3; });
   winGlass.forEach(g => g.material.color.setRGB(0.35 + fl * 0.65, 0.44 + fl * 0.56, 0.69 + fl * 0.31));
-  houseHemi.intensity = at === "house" ? 0.03 + fl * 0.45 : 0; flashL.intensity = at === "house" ? fl * 2.0 : 0; flashBack.intensity = at === "house" ? fl * 12 : 0; pionKey.intensity = at === "house" ? (F.pkey ?? 0) * 7 : 0;
+  houseHemi.intensity = at === "house" ? 0.03 + (F.hemiK || 0) * 0.35 + fl * 0.45 : 0; flashL.intensity = at === "house" ? fl * 2.0 : 0; flashBack.intensity = at === "house" ? fl * 12 : 0; pionKey.intensity = at === "house" ? (F.pkey ?? 0) * 7 : 0;
   extMoon.intensity = at === "ext" ? 4.5 : 0; extHemi.intensity = at === "ext" ? 0.7 : 0; extDoorSpot.intensity = at === "ext" ? 26 : 0; tableSpot.intensity = at === "house" ? (F.tableK ?? 0) * 32 : 0;
   PHONES.vic.G.visible = F.vicPhone !== false; if (F.vicMode) setScreen(PHONES.vic, F.vicMode.mode, F.vicMode.o);
   for (const k of ["held", "pion"]) { const P = PHONES[k], hp = F[k + "Phone"]; P.G.visible = !!hp; if (hp) setScreen(P, hp.mode, hp.o); }

@@ -17,19 +17,19 @@ const BY = 1.52, BZ = -2.54, PFPY = BY + (0.5 - 230 / 1260) * 1.2, USERY = BY + 
 const VIC = { anchor: [0.78, 0, 0.36], face: [0.75, 0.2, -0.14], feet: [0.78, 0.2, 0.86] };
 const SH = [   // [t0, set, loc, camera keys]
   [0.0, "mlike", "apt", [look(0.0, [-1.7, 1.55, 1.05], [1.15, 0.22, 0.2], 46),                                    // wide: room, her body, her lit phone, Pion at the wall
-    look(0.62, [-0.42, 0.86, 0.02], VIC.face, 42, "io"),                                                              // "beautiful": punch in on her head
-    look(2.55, [-0.38, 0.82, 1.08], VIC.feet, 42, "io"),                                                              // scan down the body to her feet ("millions of followers")
-    look(3.0, [-0.4, 0.84, 1.12], VIC.feet, 42, "lin"),
-    look(3.42, [0.55, 0.92, 1.15], [1.7, 0.62, 0.1], 38, "io"),                                                       // "found dead": zoom to Pion as he pushes off the wall
-    look(4.86, [-0.25, 0.95, 0.75], [0.75, 0.3, -0.35], 42, "io")]],                                                  // follow his hops round her head to the phone
-  [4.86, "mlike", "apt", [look(4.86, [-0.28, 0.34, 0.62], [0.45, 0.32, -0.3], 44), look(6.38, [-0.15, 0.36, 0.42], [0.45, 0.32, -0.32], 42, "lin")]],   // low: he crouches, picks it up
+    look(0.62, [-0.85, 1.0, 0.12], [0.72, 0.24, 0.02], 42, "io"),                                                     // "beautiful": punch in on her head
+    look(2.55, [-0.8, 0.95, 0.98], [0.78, 0.22, 0.72], 42, "io"),                                                     // scan down the body to her feet ("millions of followers")
+    look(3.0, [-0.82, 0.96, 1.02], [0.78, 0.22, 0.74], 42, "lin"),
+    look(3.42, [0.2, 1.0, 1.4], [1.72, 0.52, 0.12], 42, "io"),                                                        // "found dead": zoom to Pion as he pushes off the wall
+    look(4.86, [-0.85, 1.12, 1.05], [0.7, 0.32, -0.32], 44, "io")]],                                                  // follow his hops round her head to the phone
+  [4.86, "mlike", "apt", [look(4.86, [-0.95, 0.62, 1.15], [0.4, 0.42, -0.32], 48), look(6.38, [-0.8, 0.6, 1.0], [0.4, 0.42, -0.34], 46, "lin")]],   // low: he crouches, picks it up
   [6.38, "mlike", "apt", [look(6.38, along(HC, HN, 0.42), HC, 40, null, { aperture: 0.003 }), look(7.35, along(HC, HN, 0.36), HC, 40, "lin", { aperture: 0.003 }),
     look(8.54, along([HC[0] - 0.02, HC[1] - 0.045, HC[2] + 0.01], HN, 0.22), [HC[0] - 0.02, HC[1] - 0.045, HC[2] + 0.01], 40, "io", { aperture: 0.003 })]],   // profile -> latest video -> engagement
   [8.54, "mlike", "apt", [look(8.54, along(HP, HN, 0.2), HP, 40, null, { aperture: 0.004 }), look(10.7, along(HP, HN, 0.1), HP, 40, "lin", { aperture: 0.004 })]],   // macro push on the picture
-  [10.7, "office", null, [look(10.7, [1.45, 1.0, -1.05], [0.0, 0.86, -1.25], 40), look(13.0, [1.32, 1.0, -1.12], [0.0, 0.86, -1.25], 40, "lin"),   // side: Pion at the desk, the laptop's back to us
-    look(15.3, [0.55, 1.2, -1.8], [0.05, 0.95, -1.05], 44, "io"),                                                    // arc behind his shoulder: the report
-    look(16.95, [0.05, 0.955, -1.2], SCR, 34, "in")]],                                                               // push into the screen
-  [16.95, "mlike", "phones", [look(16.95, [29.82, 0.78, 0.6], [30.08, 0.1, -0.12], 44), look(20.0, [29.86, 0.66, 0.48], [30.06, 0.08, -0.1], 44, "lin"),   // second scene: Pion by her phone
+  [10.7, "office", null, [look(10.7, [2.05, 1.18, -0.8], [0.0, 1.0, -1.2], 42), look(13.0, [1.9, 1.16, -0.88], [0.0, 1.0, -1.2], 42, "lin"),   // side: Pion at the desk, the laptop's back to us
+    look(15.3, [0.98, 1.36, -1.62], [0.05, 0.95, -1.0], 44, "io"),                                                   // arc behind his shoulder (outside the chair wing): the report
+    look(16.2, [0.5, 1.05, -1.05], SCR, 38, "io"), look(16.95, [0.06, 0.955, -1.14], SCR, 34, "in")]],               // round his shoulder and into the screen
+  [16.95, "mlike", "phones", [look(16.95, [29.45, 1.3, 1.3], [30.15, 0.28, -0.15], 46), look(20.0, [29.52, 1.18, 1.15], [30.12, 0.24, -0.12], 46, "lin"),   // second scene: Pion by her phone
     look(21.0, [29.95, 0.38, 0.26], [30.0, 0.012, 0.0], 40, "io", { aperture: 0.004 }), look(22.1, [29.96, 0.34, 0.22], [30.0, 0.012, 0.0], 40, "lin", { aperture: 0.004 })]],   // rack to the screen
   [22.1, "mlike", "phones", [look(22.1, [PH[0].c[0] - 0.035, 0.31, 0.17], PH[0].c, 40), look(25.04, P(0, -0.01, 0.13, 0.05), P(0, 0, 0, 0), 40, "io")]],
   [25.04, "mlike", "phones", [look(25.04, P(1, 0.07, 0.15, 0.08), P(1, 0, 0, 0), 40, "io", { roll: 0.28 }), look(25.94, P(1, 0.05, 0.12, 0.06), P(1, 0, 0, 0), 40, "lin", { roll: 0.24 })]],
@@ -37,17 +37,17 @@ const SH = [   // [t0, set, loc, camera keys]
   [26.8, "mlike", "phones", [look(26.8, P(3, -0.06, 0.1, 0.07), P(3, 0, 0, 0), 40, "io", { roll: -0.2 }), look(27.7, P(3, -0.03, 0.06, 0.035), P(3, 0, 0, 0), 40, "in", { roll: -0.24 })]],
   [27.7, "office", null, [look(27.7, [-0.78, 1.32, -1.98], [-0.78, 1.2, BZ], 62), look(30.4, [0.78, 1.32, -1.98], [0.78, 1.2, BZ], 62, "lin"),   // lateral along the four panels
     look(31.2, [0.0, 2.02, -1.3], [0.0, 1.72, BZ], 52, "io"), look(32.5, [0.0, 1.98, -1.62], [0.0, PFPY, BZ], 46, "io")]],                       // rise over the chair, push to the repeated picture
-  [32.5, "office", null, [look(32.5, [1.6, 1.08, -0.62], [0.35, 1.05, -2.3], 44), look(37.7, [1.38, 1.06, -0.86], [0.38, 1.08, -2.3], 44, "lin")]],   // Pion at the board pinning the obituaries
+  [32.5, "office", null, [look(32.5, [1.75, 1.0, -0.55], [0.4, 0.82, -2.3], 46), look(37.7, [1.55, 0.98, -0.8], [0.42, 0.84, -2.3], 46, "lin")]],   // Pion at the board pinning the obituaries
   [37.7, "office", null, [look(37.7, [-0.82, USERY + 0.05, -2.05], [-0.82, USERY, BZ], 50), look(39.8, [0.8, USERY + 0.05, -2.05], [0.8, USERY, BZ], 50, "lin"),   // the usernames, crossed out one by one
     look(40.85, [0.0, 1.7, -2.0], [0.0, PFPY, BZ], 48, "io")]],                                                                                    // tilt up to the picture that never changes
-  [40.85, "office", null, [look(40.85, [0.58, 1.22, -1.82], [0.05, 0.95, -1.05], 44), look(43.0, [0.4, 1.1, -1.62], [0.05, 0.95, -1.0], 42, "lin"),   // over his shoulder: the trace
-    look(44.6, [0.05, 0.952, -1.205], SCR, 34, "in")]],                                                                                            // into the house photo
+  [40.85, "office", null, [look(40.85, [1.2, 1.42, -1.42], [0.05, 0.95, -1.0], 44), look(43.0, [1.08, 1.34, -1.38], [0.05, 0.95, -1.0], 42, "lin"),   // over his shoulder (outside the chair wing): the trace
+    look(43.8, [0.5, 1.05, -1.05], SCR, 38, "io"), look(44.6, [0.06, 0.953, -1.15], SCR, 34, "in")]],                                                                                            // into the house photo
   [44.6, "mlike", "ext", [look(44.6, [60.0, 1.12, -7.2], [60.0, 1.05, -2.0], 30), look(45.3, [60.0, 1.0, -4.2], [60.0, 0.95, -2.0], 46, "io")]],   // match cut: the real house, glide to the door
-  [45.3, "mlike", "ext", [look(45.3, [60.28, 0.92, -3.55], [60.0, 0.78, -2.0], 44), look(46.3, [60.15, 0.95, -2.75], [60.0, 0.8, -1.2], 44, "lin")]],   // behind Pion: he opens the door, goes in
-  [46.3, "mlike", "house", [look(46.3, [60.05, 1.05, -1.75], [60.4, 0.7, 0.3], 46), look(47.1, [60.2, 1.1, -1.2], [60.9, 0.6, -0.15], 46, "io")]],   // follow him in: the table appears
+  [45.3, "mlike", "ext", [look(45.3, [60.5, 1.08, -4.25], [60.0, 0.72, -2.2], 44), look(46.3, [60.3, 1.02, -3.4], [60.0, 0.72, -1.5], 44, "lin")]],   // behind Pion: he opens the door, goes in
+  [46.3, "mlike", "house", [look(46.3, [60.25, 1.0, 1.75], [60.1, 0.62, -1.1], 46), look(47.1, [60.45, 1.02, 1.4], [60.7, 0.58, -0.4], 46, "io")]],   // from inside: he comes in, the table appears   // follow him in: the table appears
   [47.1, "mlike", "house", [look(47.1, [60.55, 1.02, 0.42], [60.85, 0.58, -0.22], 44, null, { aperture: 0.003 }), look(50.2, [61.35, 0.98, 0.32], [61.0, 0.58, -0.2], 44, "lin", { aperture: 0.003 })]],   // over the phones
   [50.2, "mlike", "house", [look(50.2, [59.3, 1.15, 1.7], [58.6, 0.85, -1.0], 48), look(52.6, [59.3, 1.15, 1.7], [61.2, 0.85, -0.6], 48, "lin")]],   // slow pan: nobody
-  [52.6, "mlike", "house", [look(52.6, [59.95, 0.78, 0.8], [59.72, 0.62, -0.35], 40), look(54.0, [59.86, 0.74, 0.6], [59.72, 0.62, -0.35], 40, "lin")]],   // he checks his phone
+  [52.6, "mlike", "house", [look(52.6, [60.0, 0.88, 1.3], [59.72, 0.6, -0.35], 40), look(54.0, [59.92, 0.84, 1.1], [59.72, 0.6, -0.35], 40, "lin")]],   // he checks his phone
   [54.0, "mlike", "house", [look(54.0, [60.35, 0.64, 0.32], [60.35, 0.62, -0.05], 40, null, { aperture: 0.003 }), look(57.95, [60.35, 0.632, 0.14], [60.35, 0.62, -0.05], 40, "lin", { aperture: 0.003 })]],   // the notification
   [57.95, "mlike", "house", [look(57.95, [60.35, 0.8, 2.05], [59.9, 0.62, -0.7], 44), look(59.1, [60.15, 0.76, 1.75], [59.9, 0.62, -0.7], 44, "lin"), look(59.7, [60.1, 0.74, 1.62], [59.88, 0.63, -0.7], 44, "out")]],   // slow arc in, the slam
   [59.7, "mlike", "house", [look(59.7, [59.9, 0.76, 1.15], [59.72, 0.62, -0.35], 36), look(63.45, [59.74, 0.7, 0.74], [59.72, 0.62, -0.35], 36, "lin")]],   // his face: confusion -> fear, the slow look back
@@ -99,7 +99,7 @@ module.exports = { N, SH, SEG, frame(f) {
   if (loc === "phones") { F.m0Mode = t < 20.9 ? { mode: "history", o: { hi: 1 } } : VID("@quiet.hollow", "study with me (6 hours)", ["#2b3a6a", "#7a8ad8"]);
     if (s === 5) F.pions = [PION("pB", t, { anchor: [30.38, 0, -0.32], squash: 0.9 })]; }
   if (loc === "ext") { F.door = door(t); if (s === 15) { const h = hops(t, PE_W); F.pions = [PION("pE", t, { anchor: [h.p[0], h.p[1] + h.lift, h.p[2]], lift: h.lift, ground: h.p[1], squash: h.squash })]; } }
-  if (loc === "house") { F.door = door(t); F.figure = s === 23; F.flash = flash(t); F.fall = t >= 64.24 ? t - 64.24 : null; F.pkey = s < 23 ? 1 : 0; F.tableK = s >= 16 && s <= 18 ? 1 : 0.4;
+  if (loc === "house") { F.door = door(t); F.figure = s === 23; F.flash = flash(t); F.fall = t >= 64.24 ? t - 64.24 : null; F.pkey = s < 23 ? 1 : 0; F.tableK = s >= 16 && s <= 18 ? 1.1 : 0.4; if (s === 18) { F.pkey = 1.6; F.hemiK = 1; }
     if (s >= 16 && s <= 18) { const h = hops(t, PH_W); F.pions = [PION("pH", t, { anchor: [h.p[0], h.lift, h.p[2]], lift: h.lift, squash: h.squash })]; }
     if (s === 19) F.pions = [PION("pH2", t, { anchor: [59.72, 0, -0.35] })];
     if (s === 20) F.pionPhone = { mode: "notif" };
