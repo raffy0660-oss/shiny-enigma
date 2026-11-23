@@ -257,13 +257,13 @@ const trimA = mat({ color: 0xf2ece6, roughness: 0.6 });
       for (let k = 0; k < 5; k++) { g.beginPath(); g.ellipse(w * 0.1 + k * w * 0.18, h / 2 + (k % 2 ? 6 : -6), w * 0.12, h * 0.32, 0, 0, 7); g.fill(); } })), 0.3, 0.007, -0.52, { rx: -Math.PI / 2, rz: 2.6, cast: false }); }   // smear trail
   window.__aptGlow = [bulbsV, fairy];
 }
-const aptSpot = new THREE.SpotLight(0xffd8b0, 0, 6, 0.6, 0.38, 1.2); aptSpot.position.set(1.05, A.H - 0.06, 0.4); aptSpot.target.position.set(1.0, 0, 0.12);
+const aptSpot = new THREE.SpotLight(0xffb468, 0, 6, 0.6, 0.38, 1.2); aptSpot.position.set(1.05, A.H - 0.06, 0.4); aptSpot.target.position.set(1.0, 0, 0.12);
 aptSpot.castShadow = true; aptSpot.shadow.mapSize.set(2048, 2048); aptSpot.shadow.bias = -0.0005; aptSpot.shadow.radius = 2.5; aptSpot.shadow.camera.near = 0.2; scene.add(aptSpot, aptSpot.target);
 add(new THREE.CylinderGeometry(0.06, 0.08, 0.1, 16, 1, true), DARK, 1.05, A.H - 0.05, 0.4, { cast: false });   // the ceiling spot fixture
 const aptMoon = new THREE.SpotLight(0x7f90e8, 0, 9, 0.5, 0.6, 1.2); aptMoon.position.set(-3.2, 1.9, -0.6); aptMoon.target.position.set(0.5, 0, -0.2); aptMoon.castShadow = true; aptMoon.shadow.mapSize.set(1024, 1024); scene.add(aptMoon, aptMoon.target);
 const aptNeon = new THREE.PointLight(0xff5aa8, 0, 3.2, 1.6); aptNeon.position.set(0.45, 1.85, A.BACK + 0.35); scene.add(aptNeon);
 const aptVanity = new THREE.PointLight(0xffd8b0, 0, 2.2, 1.8); aptVanity.position.set(1.45, 1.05, A.BACK + 0.6); scene.add(aptVanity);
-const aptFill = new THREE.HemisphereLight(0x6a5a9a, 0x140c10, 0); scene.add(aptFill);
+const aptFill = new THREE.HemisphereLight(0xa86a50, 0x1a0e0c, 0); scene.add(aptFill);
 const aptBeam = beam([1.05, A.H - 0.06, 0.4], [0.98, 0, 0.1], 0.06, 1.2, 0xffd8b0, 0.12);
 
 // ================================================================ B: the phones of the other victims (four small worlds, far apart)
@@ -502,6 +502,19 @@ let bakedLoc = null;
 const LIGHTSET = [[aptSpot, "apt"], [aptMoon, "apt"], [aptNeon, "apt"], [aptVanity, "apt"], [aptFill, "apt"], ...phoneSpots.map(([L]) => [L, "phones"]),
   ...Object.values(PHONES).map(p => [p.G.children.find(c => c.isPointLight), "phones"]), ...winLight.map(L => [L, "house"]), [houseHemi, "house"], [flashL, "house"], [flashBack, "house"], [pionKey, "house"], [tableSpot, "house"], ...tablePhones.map(p => [p.G.children.find(c => c.isPointLight), "house"]),
   [bedLamp, "phones"], [bedMoon, "phones"], [extMoon, "ext"], [extHemi, "ext"], [extDoorSpot, "ext"], [fallLight, "house"], [PHONES.vic.G.children.find(c => c.isPointLight), "apt"]];
+// ---- revision v2: a phone that is picked up / taken out moves continuously (no swap): F.phonePose = { key, pos, face, k, pos0, glow }
+for (const P of Object.values(PHONES)) P.base = { pos: P.G.position.clone(), q: P.G.quaternion.clone() };
+const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion();
+function poseQuat(pos, face) {   // screen normal (+y) toward `face`, phone top (-z) toward world up
+  const Y = V(...face).sub(V(...pos)).normalize(), up = V(0, 1, 0).addScaledVector(Y, -Y.y).normalize(), Z = up.clone().negate(), X = V().crossVectors(Y, Z).normalize();
+  return _q.setFromRotationMatrix(_m4.makeBasis(X, Y, Z)).clone(); }
+function applyPhonePose(F) { for (const P of Object.values(PHONES)) { P.G.position.copy(P.base.pos); P.G.quaternion.copy(P.base.q); const gl = P.G.children.find(c => c.isPointLight); if (gl && P.glow0 == null) P.glow0 = gl.intensity; if (gl) { gl.intensity = P.glow0; gl.position.set(0, 0.16, 0); } }
+  const S = F.phonePose; if (!S) return; const P = PHONES[S.key], k = Math.max(0, Math.min(1, S.k ?? 1)), e = k * k * (3 - 2 * k);
+  const p0 = S.pos0 ? V(...S.pos0) : P.base.pos.clone(), q0 = S.pos0 ? poseQuat(S.pos0, S.face) : P.base.q.clone(), q1 = poseQuat(S.pos, S.face);
+  P.G.position.copy(p0.lerp(V(...S.pos), e)); P.G.position.y += Math.sin(Math.PI * e) * (S.arc ?? 0.08); P.G.quaternion.copy(q0.slerp(q1, e)); P.G.visible = true;
+  const gl = P.G.children.find(c => c.isPointLight); if (gl) { gl.visible = true; gl.intensity = S.glow ?? 0.5; gl.distance = 1.1; gl.position.set(0, 0.12, 0); } }
+// ---- revision v2: a key light that follows what the shot is about (Pion, the victim): F.key = { at, from, col, k }; it also gives the rim/shade direction
+const charKey = new THREE.SpotLight(0xffffff, 0, 7, 0.42, 0.75, 1.3); scene.add(charKey, charKey.target); charKey.visible = false;
 const PTS = {};
 window.renderFrame = async (F) => {   // F: { t, loc, cam, pions, flash, door (rad, 0 = shut), figure, spotK, phonePfp (key) }
   const Lc = LOCS[F.loc || "apt"];
@@ -520,12 +533,13 @@ window.renderFrame = async (F) => {   // F: { t, loc, cam, pions, flash, door (r
   PHONES.vic.G.visible = F.vicPhone !== false; if (F.vicMode) setScreen(PHONES.vic, F.vicMode.mode, F.vicMode.o);
   for (const k of ["held", "pion"]) { const P = PHONES[k], hp = F[k + "Phone"]; P.G.visible = !!hp; if (hp) setScreen(P, hp.mode, hp.o); }
   if (F.m0Mode) setScreen(PHONES.m0, F.m0Mode.mode, F.m0Mode.o);
-  placeFall(F.fall);
+  placeFall(F.fall); applyPhonePose(F);
+  charKey.visible = !!F.key; if (F.key) { const K = F.key, fr = K.from || [0.6, 1.9, 1.2]; charKey.position.set(K.at[0] + fr[0], K.at[1] + fr[1], K.at[2] + fr[2]); charKey.target.position.set(...K.at); charKey.target.updateMatrixWorld(); charKey.color.setHex(K.col ?? 0xffffff); charKey.intensity = K.k ?? 8; charKey.angle = K.angle ?? 0.42; }
   DOOR.rotation.y = F.door ?? 0; FIG.visible = !!F.figure; FIG.userData.face.material.opacity = F.figure ? (F.faceK ?? 0.55) + fl * 0.4 : 0;
   grade.uniforms.flash.value = fl * 0.14;
   if (bakedLoc !== at) { CHARS.bake([aptMoon, ...winLight, extMoon].filter(l => l !== Lc.dyn)); bakedLoc = at; }
   const list = (F.pions || []);
-  await CHARS.place(list, { light: Lc.dyn, rimLight: Lc.rim, ...Lc.LP });
+  await CHARS.place(list, Object.assign({ light: Lc.dyn, rimLight: F.key ? charKey : Lc.rim }, Lc.LP, F.lp ? (LIGHT_PRESETS[F.lp] || F.lp) : {}));
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   composer.render();
   const pr = (p) => { const q = V(...p).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };

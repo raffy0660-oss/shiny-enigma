@@ -410,7 +410,7 @@ function drawScreen(S, t) { const g = scrCanvas.getContext("2d"), w = 1024, h = 
     const gl = Math.max(0, 1 - Math.abs(k - 0.5) * 6);   // glitch around the switch
     if (gl > 0) { for (let i = 0; i < 14; i++) { const y = ((Math.sin(t * 91 + i * 7.3) * 0.5 + 0.5) * h) | 0, hh = 6 + ((i * 13) % 30), dx = Math.sin(t * 57 + i) * 60 * gl; const d = g.getImageData(0, y, w, hh); g.putImageData(d, dx, y); }
       g.fillStyle = `rgba(255,40,60,${0.25 * gl})`; g.fillRect(0, 0, w, h); }
-  } else if (S.mode === "report" || S.mode === "map") { drawML(S, g, w, h, t);
+  } else if (S.mode === "report" || S.mode === "map" || S.mode === "obit") { drawML(S, g, w, h, t);
   } else if (S.mode === "mail") {
     g.fillText("Mail  -  Inbox", 130, 28); g.fillStyle = "#141c32"; g.fillRect(0, 56, 300, h - 56);
     for (let i = 0; i < 6; i++) { g.fillStyle = i === 0 ? "#2a3a66" : "#141c32"; g.fillRect(10, 70 + i * 92, 280, 82); g.fillStyle = "#cfd8f0"; g.font = "700 24px Arial, sans-serif"; g.fillText(i === 0 ? "(no subject)" : "...", 26, 100 + i * 92); g.fillStyle = "#7f8cb0"; g.font = "600 20px Arial, sans-serif"; g.fillText(i === 0 ? "5 years ago" : "", 26, 132 + i * 92); }
@@ -462,6 +462,13 @@ function drawML(S, g, w, h, t) { const k = S.k || 0;
     g.strokeStyle = "#cfd8f0"; g.lineWidth = 3; g.strokeRect(px, py, 420, 480);
     const rows = [["Victim", "#2  ·  Theo Park"], ["Place", "Riverside Hostel, Rm 12"], ["Time", "03:14 AM"], ["Cause", "unknown"], ["Phone", "recovered"]];
     rows.forEach(([a, b], i) => { const y = 180 + i * 90; g.fillStyle = "#7f8cb0"; g.font = "700 26px Arial"; g.fillText(a, 500, y); g.fillStyle = i === 4 ? "#ff5a5a" : "#e8eefc"; g.font = "800 34px Arial"; g.fillText(b, 500, y + 38); });
+  } else if (S.mode === "obit") { g.fillText("Search  -  obituaries", 130, 28);   // "after hours of digging": typing names, the obituaries pile up
+    const q = "@quiet.hollow  @lantern_k  @noah.sleeps  @ivy_after", n = Math.floor(Math.min(1, k * 1.25) * q.length), cur = Math.sin(t * 14) > 0 ? "|" : "";
+    g.fillStyle = "#e8eefc"; g.fillRect(30, 70, w - 60, 64); g.fillStyle = "#1a1f2e"; g.font = "700 30px Arial"; g.fillText(q.slice(0, n) + cur, 50, 114);
+    const R = [["IN LOVING MEMORY", "Clara Voss, 24", "@quiet.hollow"], ["OBITUARY", "Marcus Lee, 31", "@lantern_k"], ["REST IN PEACE", "Noah Brandt, 19", "@noah.sleeps"], ["IN MEMORIAM", "Ivy Moreau, 27", "@ivy_after"]];
+    R.forEach(([a, b, c], i) => { const a2 = Math.max(0, Math.min(1, k * 5 - 0.6 - i * 0.9)); if (!a2) return; const y = 160 + i * 115; g.globalAlpha = a2;
+      g.fillStyle = "#222a3e"; g.fillRect(30, y, w - 60, 100); g.fillStyle = "#d9d2c0"; g.fillRect(44, y + 12, 64, 76); g.fillStyle = "#5a5448"; g.beginPath(); g.arc(76, y + 42, 18, 0, 7); g.fill(); g.fillRect(56, y + 62, 40, 26);
+      g.fillStyle = "#9aa6c8"; g.font = "800 22px Arial"; g.fillText(a, 128, y + 34); g.fillStyle = "#fff"; g.font = "800 32px Arial"; g.fillText(b, 128, y + 72); g.fillStyle = "#ff5a5a"; g.font = "700 24px Arial"; g.fillText(c, w - 260, y + 72); g.globalAlpha = 1; });
   } else if (S.mode === "map") { g.fillText("Trace  -  account @ivy_after", 130, 28);
     const z = 1 + Math.min(k, 0.7) / 0.7 * 5, mx = 640, my = 380;
     g.save(); g.beginPath(); g.rect(0, 56, w, h - 56); g.clip(); g.translate(mx, my); g.scale(z, z); g.translate(-mx, -my);
@@ -560,12 +567,14 @@ window.renderFrame = async (F) => {   // F: { t, cam:{pos,tgt,fov,focus}, mood, 
   bokeh.uniforms.focus.value = F.cam.focus; placeDust(F.t); grade.uniforms.time.value = F.t;
   applyMood(F.mood || "normal", F.mood2 || F.mood || "normal", F.moodK || 0, F.t); if (F.strike) moon.intensity += 140;
   const L = F.lampK ?? 1; key.intensity *= L; coneM.uniforms.k.value *= L; deskBounce.intensity *= L; lampFill.intensity = 0.6 * L;
-  bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk; hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
+  bulb.material.color.multiplyScalar(Math.max(0.02, L)); inner.material.emissiveIntensity *= Math.max(0.03, L); const dk = 0.25 + 0.75 * L; boardLight.intensity *= dk * (F.boardK ?? 1); hemiL.intensity *= 0.55 + 0.45 * L; nightFill.intensity *= 0.6 + 0.4 * L;
   mlBoard.visible = !!F.board; if (F.board) drawMLBoard(F.board); if (F.dust === false) dust.visible = false;
   placeEnv(F.env); anon.visible = F.anonVis !== false; if (F.anon) { anon.position.set(...F.anon.p); anon.rotation.set(F.anon.rx || 0, F.anon.ry || 0, F.anon.rz || 0); } else { anon.position.copy(ANON0.p); anon.rotation.copy(ANON0.r); } if (F.clock) setClock(...F.clock); else setClock(11, 41); placeCalPage(F.calTear); placeLaptop(F.laptop, F.t); placeMag(F.mag); clockSpot.intensity = F.clockLight || 0;
+  CH.visible = !F.noChair;
   { const LP = LIGHT_PRESETS[RIMP[F.mood2 && F.moodK > 0.5 ? F.mood2 : (F.mood || "normal")]] || LIGHT_PRESETS.interior_warm_lamp;
-    await CHR.place(F.pion ? [Object.assign(F.pion.preset ? { cast: true } : { shadow: [1.0, 0.55], cast: true }, F.pion)] : [], { light: key, puffs: F.puffs, ...LP }); }
-  { const sig = JSON.stringify([F.env, F.anon, F.calTear, F.mag, !!F.laptop, F.anonVis]); if (sig !== lastSig) { CHR.bake([moon]); lastSig = sig; } }
+    const scr = F.charLight === "screen" && F.laptop, LPs = scr ? Object.assign({}, LP, { rimCol: [0.7, 0.82, 1.0], litCol: [0.98, 1.04, 1.22], rimK: 1.25 }) : LP;   // optional: the laptop screen is the light that models his face
+    await CHR.place(F.pion ? [Object.assign(F.pion.preset ? { cast: true } : { shadow: [1.0, 0.55], cast: true }, F.pion)] : [], { light: key, rimLight: scr ? scrLight : key, puffs: F.puffs, ...LPs }); }
+  { const sig = JSON.stringify([F.env, F.anon, F.calTear, F.mag, !!F.laptop, F.anonVis, !!F.noChair]); if (sig !== lastSig) { CHR.bake([moon]); lastSig = sig; } }
   inkPass.uniforms.tNormal.value = gtao.normalTexture; inkPass.uniforms.tDepth.value = gtao.depthTexture;
   composer.render();
   const pr = (x, y, z) => { const q = V(x, y, z).project(camera); return [(q.x + 1) / 2, (1 - q.y) / 2, q.z]; };

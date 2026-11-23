@@ -1,9 +1,40 @@
 0 style2d
 0 toon
 0 detective 999 light2
-32.50 penasaran
-32.50 look -55 6 0
-34.20 curiga
+32.50 curiga
+32.50 look 0 18 0
+32.60 gest press 0.2 kanan 700 1150
+32.72 gest press 0.2 kiri 380 1150
+32.84 gest press 0.2 kanan 700 1150
+32.96 gest press 0.2 kiri 380 1150
+33.08 gest press 0.2 kanan 700 1150
+33.20 gest press 0.2 kiri 380 1150
+33.32 gest press 0.2 kanan 700 1150
+33.44 gest press 0.2 kiri 380 1150
+33.56 gest press 0.2 kanan 700 1150
+33.68 gest press 0.2 kiri 380 1150
+33.80 gest press 0.2 kanan 700 1150
+33.92 gest press 0.2 kiri 380 1150
+34.04 gest press 0.2 kanan 700 1150
+34.16 gest press 0.2 kiri 380 1150
+34.28 gest press 0.2 kanan 700 1150
+34.40 gest press 0.2 kiri 380 1150
+34.52 gest press 0.2 kanan 700 1150
+34.64 gest press 0.2 kiri 380 1150
+34.76 gest press 0.2 kanan 700 1150
+34.88 gest press 0.2 kiri 380 1150
+35.00 gest press 0.2 kanan 700 1150
+35.12 gest press 0.2 kiri 380 1150
+35.24 gest press 0.2 kanan 700 1150
+35.36 gest press 0.2 kiri 380 1150
+35.48 gest press 0.2 kanan 700 1150
+35.60 gest press 0.2 kiri 380 1150
+35.72 gest press 0.2 kanan 700 1150
+35.84 gest press 0.2 kiri 380 1150
+35.96 gest press 0.2 kanan 700 1150
+36.08 gest press 0.2 kiri 380 1150
+36.20 gest press 0.2 kanan 700 1150
+34.20 penasaran
 36.40 kaget
+36.40 look 0 8 0
 37.10 cemas
-37.10 look -20 0 0
