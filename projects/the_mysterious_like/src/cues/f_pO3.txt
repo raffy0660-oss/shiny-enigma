@@ -2,7 +2,7 @@
 0 toon
 0 detective 999 light2
 40.85 curiga
-40.85 look 0 16 0
+40.85 look 0 26 0
 41.20 gest press 0.2 kanan 700 1150
 41.36 gest press 0.2 kiri 380 1150
 41.52 gest press 0.2 kanan 700 1150

@@ -4,4 +4,4 @@
 52.60 datar
 52.60 look 0 6 0
 53.10 penasaran
-53.10 look 0 26 0
+53.10 look 0 40 0
