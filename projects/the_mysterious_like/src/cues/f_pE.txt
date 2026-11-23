@@ -3,3 +3,5 @@
 0 detective 999 light2
 45.30 datar
 45.30 look 0 0 0
+45.60 look 10 4 3
+46.00 look -10 2 -3

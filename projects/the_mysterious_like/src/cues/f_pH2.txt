@@ -3,5 +3,7 @@
 0 detective 999 light2
 52.60 datar
 52.60 look 0 6 0
-53.10 penasaran
-53.10 look 0 40 0
+52.85 look 0 26 0
+53.20 penasaran
+53.20 look 22 18 -4
+53.60 look 18 16 3

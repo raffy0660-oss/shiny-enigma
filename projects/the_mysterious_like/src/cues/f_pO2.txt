@@ -3,6 +3,13 @@
 0 detective 999 light2
 32.50 curiga
 32.50 look 0 28 0
+33.10 look 5 26 4
+33.70 look -4 30 -3
+34.20 penasaran
+34.20 look 3 24 2
+34.80 look -6 28 -4
+35.40 look 4 22 3
+35.90 look 0 30 0
 32.60 gest press 0.2 kanan 700 1150
 32.72 gest press 0.2 kiri 380 1150
 32.84 gest press 0.2 kanan 700 1150
@@ -34,7 +41,9 @@
 35.96 gest press 0.2 kanan 700 1150
 36.08 gest press 0.2 kiri 380 1150
 36.20 gest press 0.2 kanan 700 1150
-34.20 penasaran
 36.40 kaget
-36.40 look 0 8 0
+36.40 look 0 6 0
+36.80 look 8 10 5
 37.10 cemas
+37.10 look -5 14 -3
+37.50 look 0 18 0

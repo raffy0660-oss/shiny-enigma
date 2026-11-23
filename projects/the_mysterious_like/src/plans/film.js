@@ -17,10 +17,10 @@ function phoneFrame(pos, face) {   // same basis as mlike.js poseQuat: Y = scree
   const Y = V3.norm(V3.sub(face, pos)), up = V3.norm(V3.sub([0, 1, 0], V3.mul(Y, Y[1]))), Z = V3.mul(up, -1), X = V3.norm(V3.cross(Y, Z));
   const at = (u, w) => V3.add(pos, V3.add(V3.add(V3.mul(X, u), V3.mul(Y, 0.013)), V3.mul(Z, w)));   // point on the screen (u right, w down from centre)
   return { n: Y, at, cam: (u, w, d) => V3.add(at(u, w), V3.mul(Y, d)) }; }
-// hook: her phone rises from the floor into Pion's hands (he looks down at it); the inserts look at that same phone from his eyes
-const PA_END = [0.12, 0, -0.45], VP = { pos: [0.16, 0.4, -0.15], face: [0.12, 0.76, -0.45] }, VF = phoneFrame(VP.pos, VP.face);
+// hook: her phone rises from the floor up to his face (he looks down to pick it up, then reads it head up); the inserts look at that same phone from his eyes
+const PA_END = [0.12, 0, -0.45], VP = { pos: [0.1, 0.56, 0.04], face: [0.12, 0.79, -0.45] }, VF = phoneFrame(VP.pos, VP.face);   // phone in front of his card (toward the lens), right of his face: never hides it
 // house: he takes his own phone out
-const PP = { pos0: [59.8, 0.12, -0.14], pos: [59.75, 0.42, -0.04], face: [59.72, 0.78, -0.35] }, PF = phoneFrame(PP.pos, PP.face);
+const PP = { pos0: [59.8, 0.12, -0.14], pos: [60.0, 0.54, 0.06], face: [59.72, 0.79, -0.35] }, PF = phoneFrame(PP.pos, PP.face);
 // office
 const PZ = -1.37, SEAT = 0.46, LAPP = { pos: [0.05, 0.786, -1.12], ry: Math.PI }, SCR = [0.05, 0.95, -0.96], FACE = [0.0, 1.12, -1.37];
 const BY = 1.52, BZ = -2.54, PFPY = BY + (0.5 - 230 / 1260) * 1.2, USERY = BY + (0.5 - 974 / 1260) * 1.2;

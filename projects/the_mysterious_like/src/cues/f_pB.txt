@@ -2,6 +2,13 @@
 0 toon
 0 detective 999 light2
 16.95 curiga
-16.95 look -18 48 0
+16.95 look -18 44 0
+17.70 look -24 50 -4
+18.50 look -14 46 4
+19.30 look -20 52 0
 20.10 kaget
+20.10 look -10 24 0
+20.40 look -18 46 -3
 20.70 cemas
+20.70 look -22 50 2
+21.40 look -16 44 -2

@@ -2,13 +2,19 @@
 0 toon
 0 detective 999 light2
 10.70 datar
-10.70 look 0 26 0
+10.70 look 0 18 0
+11.30 look 6 22 3
 11.40 gest press 0.2 kanan 700 1150
 11.70 gest press 0.2 kiri 380 1150
 12.00 gest press 0.2 kanan 700 1150
-13.00 penasaran
-13.20 look 0 22 0
+12.20 look -5 16 -3
+12.90 penasaran
+12.90 look 0 10 0
+13.40 look 12 6 5
+13.90 look 0 20 0
 14.20 gest press 0.2 kanan 700 1150
 14.50 gest press 0.2 kiri 380 1150
+15.00 look -4 26 -2
 15.30 curiga
-15.30 look 0 28 0
+15.30 look 2 30 0
+16.10 look -3 28 3
