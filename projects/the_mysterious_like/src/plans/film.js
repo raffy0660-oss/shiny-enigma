@@ -18,9 +18,9 @@ function phoneFrame(pos, face) {   // same basis as mlike.js poseQuat: Y = scree
   const at = (u, w) => V3.add(pos, V3.add(V3.add(V3.mul(X, u), V3.mul(Y, 0.013)), V3.mul(Z, w)));   // point on the screen (u right, w down from centre)
   return { n: Y, at, cam: (u, w, d) => V3.add(at(u, w), V3.mul(Y, d)) }; }
 // hook: her phone rises from the floor up to his face (he looks down to pick it up, then reads it head up); the inserts look at that same phone from his eyes
-const PA_END = [0.12, 0, -0.45], VP = { pos: [0.1, 0.56, 0.04], face: [0.12, 0.79, -0.45] }, VF = phoneFrame(VP.pos, VP.face);   // phone in front of his card (toward the lens), right of his face: never hides it
+const PA_END = [0.12, 0, -0.45], VP = { pos: [0.28, 0.4, -0.05], face: [0.12, 0.79, -0.45] }, VF = phoneFrame(VP.pos, VP.face);   // where his hand (engine `gest hp`) holds it: in front of his chest
 // house: he takes his own phone out
-const PP = { pos0: [59.8, 0.12, -0.14], pos: [60.0, 0.54, 0.06], face: [59.72, 0.79, -0.35] }, PF = phoneFrame(PP.pos, PP.face);
+const PP = { pos0: [59.8, 0.12, -0.14], pos: [59.88, 0.4, 0.06], face: [59.72, 0.79, -0.35] }, PF = phoneFrame(PP.pos, PP.face);
 // office
 const PZ = -1.37, SEAT = 0.46, LAPP = { pos: [0.05, 0.786, -1.12], ry: Math.PI }, SCR = [0.05, 0.95, -0.96], FACE = [0.0, 1.12, -1.37];
 const BY = 1.52, BZ = -2.54, PFPY = BY + (0.5 - 230 / 1260) * 1.2, USERY = BY + (0.5 - 974 / 1260) * 1.2;
@@ -84,6 +84,7 @@ function flash(t) { const f1 = t >= 64.24 ? Math.exp(-(t - 64.24) * 22) : 0, f2 
 function door(t) { if (t < 45.4) return 0; if (t < 59.1) return -1.2 * clamp((t - 45.4) / 0.5) ** 0.7;   // Pion opens it inward and leaves it open
   if (t < 59.2) { const k = clamp((t - 59.1) / 0.1); return -1.2 * (1 - k * k); } const d = t - 59.2; return 0.035 * Math.sin(d * 70) * Math.exp(-d * 7); }   // slam + rattle
 const VID = (user, title, thumb) => ({ mode: "video", o: { user, title, thumb, ago: "just now" } });
+const GRAB = 5.1 + 0.32;   // f_pA: `5.10 gest hp ... angkat` grabs at t0 + .32
 const WARM = 0xffa860, COOL = 0xa8bcff, SCRC = 0xc8d8ff;
 module.exports = { N, SH, SEG, frame(f) {
   const t = f / FPS; let s = 0; while (s < SH.length - 1 && t >= SH[s + 1][0]) s++;
@@ -109,8 +110,8 @@ module.exports = { N, SH, SEG, frame(f) {
     F.pions = s <= 1 ? [vic, PION("pA", t, { anchor: [pa.p[0], pa.lift, pa.p[2]], lift: pa.lift, roll: pa.roll, squash: pa.squash, yaw: yawA })] : [vic];   // vic always index 0 (make_view)   // inserts are his eyes: no Pion
     F.puffs = t > 3.66 && s <= 1 ? PA_W.slice(1).map(w => ({ p: [w.p[0], 0, w.p[2]], age: t - w.t })) : [];
     F.key = s <= 1 ? { at: [pa.p[0], 0.55, pa.p[2]], from: [-0.7, 1.85, 1.1], col: WARM, k: 9 } : null;
-    const k = clamp((t - 5.35) / 0.6); F.vicPhone = true;
-    if (t > 5.35) F.phonePose = { key: "vic", pos: VP.pos, face: VP.face, k, arc: 0.06, glow: 0.18 + 0.5 * k };
+    F.vicPhone = s >= 2 || t < GRAB;                                                   // on the floor until his hand closes on it (engine draws it in his hand from then)
+    if (s >= 2) F.phonePose = { key: "vic", pos: VP.pos, face: VP.face, k: 1, glow: 0.6 };   // inserts: the phone where he holds it
     F.vicMode = s < 2 || t < 7.35 ? { mode: "profile" } : VID("@m0rn1ngdew_", "my morning routine (real)", ["#ff9ab8", "#ffd0e0"]);
     if (t > 9.5 && t < 10.6) F.spotK = Math.sin(t * 47) * Math.sin(t * 13) > 0.1 ? 1 : 0.35;   // the lamp flickers on the picture
   }
@@ -119,7 +120,7 @@ module.exports = { N, SH, SEG, frame(f) {
   if (loc === "ext") { F.door = door(t); if (s === 15) { const h = hops(t, PE_W); F.pions = [PION("pE", t, { anchor: [h.p[0], h.p[1] + h.lift, h.p[2]], lift: h.lift, ground: h.p[1], squash: h.squash })]; F.key = { at: [h.p[0], 0.6, h.p[2]], from: [0.8, 1.9, -1.4], col: COOL, k: 7 }; } }
   if (loc === "house") { F.door = door(t); F.figure = s === 23; F.flash = flash(t); F.fall = t >= 64.24 ? t - 64.24 : null; F.pkey = s < 23 ? 1 : 0; F.tableK = s >= 16 && s <= 18 ? 1.1 : 0.4; if (s === 18) { F.pkey = 1.6; F.hemiK = 1; }
     if (s >= 16 && s <= 18) { const h = hops(t, PH_W); const yawH = t < 46.9 ? 0 : t < 50.2 ? 50 * clamp((t - 46.9) / 0.6) : 50 * (1 - clamp((t - 50.2) / 0.4)); F.pions = [PION("pH", t, { anchor: [h.p[0], h.lift, h.p[2]], lift: h.lift, squash: h.squash, yaw: yawH })]; F.key = { at: [h.p[0], 0.55, h.p[2]], from: [0.75, 1.9, 1.3], col: COOL, k: 7 }; }
-    if (s === 19 || s === 20) { const k = clamp((t - 52.85) / 0.5); if (t > 52.85) F.phonePose = { key: "pion", pos0: PP.pos0, pos: PP.pos, face: PP.face, k, arc: 0.03, glow: 0.6 }; F.pionPhone = { mode: "notif" }; }
+    if (s === 20) { F.phonePose = { key: "pion", pos: PP.pos, face: PP.face, k: 1, glow: 0.6 }; F.pionPhone = { mode: "notif" }; }   // s19: the engine draws it in his hand
     if (s === 19) { F.pions = [PION("pH2", t, { anchor: [59.72, 0, -0.35] })]; F.key = { at: [59.72, 0.55, -0.35], from: [0.6, 1.8, 1.3], col: COOL, k: 6 }; }
     if (s === 21 || s === 22) { F.pions = [PION("pH3", t, { anchor: [59.72, 0, -0.35], tint: [0.92, 0.95, 1.05] })]; F.key = { at: [59.72, 0.6, -0.35], from: [0.9, 1.6, 1.0], col: COOL, k: 5 }; } }
   return F; } };

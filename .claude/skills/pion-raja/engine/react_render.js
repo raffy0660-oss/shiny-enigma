@@ -59,6 +59,7 @@ function analyse(file) {
 /* ---------- cue file ---------- */
 // lines: <time> <command> [args]   time = seconds or m:ss.xx ; '#' starts a comment
 //   <t> <expression>                 e.g. "1.2 kaget"  (see EXPR below: 33 expressions; soktahu adds nerd glasses)
+//   <t> gest hp <dur> [kiri|kanan] [angkat x y z]   holds a phone in front of the chest and READS it (screen tilted up to his face); angkat: picks it up from x y z first
 //   <t> gest <type> [dur] [kiri|kanan] [x y]   type: up cheer present shrug wave point press clap lookout dance facepalm knock cross
 //   <t> look <turn°> [nod°] [tilt°]  head turn (+ = toward screen right), nod (+ = down), tilt; "look 0" resets
 //   <t> startle                      jump of surprise
@@ -68,7 +69,7 @@ function analyse(file) {
 //   <t> hover off|on                 gentle floating (on by default)
 const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
   'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu', 'melet', 'gembung', 'tiup', 'malu', 'sewot', 'mati'];
-const GEST = ['kantong', 'flail', 'tread', 'cough', 'windup', 'blow', 'gaya', 'up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click', 'toss', 'cointhrow', 'pouch', 'deathnote', 'call', 'gun'];
+const GEST = ['kantong', 'flail', 'tread', 'cough', 'windup', 'blow', 'gaya', 'up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click', 'toss', 'cointhrow', 'pouch', 'deathnote', 'call', 'gun', 'hp'];
 function parseCues(txt) {
   const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], float: [], panic: [], bg: null, frame: null, frameOverride: null }, warn = [];
   const time = s => { const m = s.split(':').map(Number); return m.length > 1 ? m[0] * 60 + m[1] : m[0]; };
@@ -102,6 +103,7 @@ function parseCues(txt) {
       if (type === 'throw' && nums.length) G.fly = nums[0];
       if (type === 'click') G.hit = t + dur * .4;
       if (type === 'paper' && rest.some(v => /^(will|wasiat)$/i.test(v))) G.will = true;
+      if ((type === 'phone' || type === 'hp') && rest.some(v => /^(angkat|lift)$/i.test(v))) { G.lift = true; G.grab = .32; G.reach = nums.length >= 3 ? nums.slice(0, 3) : null; }   // phone angkat [x y z]: the hand reaches down, grabs it (no pop) at t0+.32, lifts it beside the head
       C.gest.push(G);
     }
     else if (cmd === 'look') { const d = w.slice(2).map(Number).map(v => (isNaN(v) ? 0 : v) * Math.PI / 180); C.look.push([t, d[0] || 0, d[1] || 0, -(d[2] || 0)]); }

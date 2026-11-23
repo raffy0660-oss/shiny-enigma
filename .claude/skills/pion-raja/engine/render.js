@@ -259,6 +259,10 @@ function gestureState(t, o) {
     }
     else if (G.type === 'call') { res[k0] = { env, h: [sd0 * .98, 2.72 + .02 * Math.sin(ph * 4), .42], head: true }; res[1 - k0] = HIP(-sd0); }   // phone held to the ear
     else if (G.type === 'gun') { const b = .02 * Math.sin(ph * 3); res[1] = { env, h: [.54, 1.63 + b, 1.95] }; res[0] = { env, h: [-.57, 2.53 + b, 1.95] }; }   // cartoon rifle across the chest
+    else if (G.type === 'hp') { const B = [sd0 * .72, 1.72 + .025 * Math.sin(ph * 4), 1.9], A = G.reach ? [sd0 * Math.abs(G.reach[0]), G.reach[1], G.reach[2]] : B, u = G.lift ? easeIO(clamp((t - G.t0 - G.grab - .04) / .55, 0, 1)) : 1;
+      res[k0] = { env, h: A.map((v, i) => lerp(v, B[i], u)) }; }   // reading a phone held in front of the chest (never at the eyes)
+    else if (G.type === 'phone' && G.lift) { const A = G.reach ? [sd0 * Math.abs(G.reach[0]), G.reach[1], G.reach[2]] : [sd0 * 1.1, .2, 1.6], B = [sd0 * .95, 2.95 + .03 * Math.sin(ph * 5), .85], u = easeIO(clamp((t - G.t0 - G.grab - .04) / .55, 0, 1));
+      res[k0] = { env, h: A.map((v, i) => lerp(v, B[i], u)) }; }   // reach down to the phone, pick it up, hold it beside the head
     else if (G.type === 'phone') { res[k0] = { env, h: [sd0 * .95, 2.95 + .03 * Math.sin(ph * 5), .85] }; }      // holding a phone up beside the head (visible from front and back)
     else if (G.type === 'paper') { const b = .03 * Math.sin(ph * 4); res[0] = { env, h: [-.92, 2.0 + b, 1.0] }; res[1] = { env, h: [.92, 2.0 + b, 1.0] }; } // showing a sheet with both hands
     else if (G.type === 'throw') { // wind up behind the head, fling forward, follow through

@@ -428,7 +428,7 @@ function uiTex(mode, o = {}) {   // generic video app (no real brand logo); mode
 }
 function setScreen(P, mode, o) { P.screen.material.map = uiTex(mode, o); P.screen.material.needsUpdate = true; }
 // the victim's phone, lit on the floor by her hand (visible from the very first frame)
-PHONES.vic = phone(0.47, 0.0, 0.14, 0.75, 0, "@m0rn1ngdew_", "my morning routine (real)", ["#ff9ab8", "#ffd0e0"], "just now"); setScreen(PHONES.vic, "profile");
+PHONES.vic = phone(0.37, 0.0, -0.08, 0.75, 0, "@m0rn1ngdew_", "my morning routine (real)", ["#ff9ab8", "#ffd0e0"], "just now"); setScreen(PHONES.vic, "profile");
 PHONES.vic.G.children.find(c => c.isPointLight).intensity = 0.04;
 // held-phone inserts (upright, screen to the lens): in the apartment (scene 1) and in the house (Pion's own phone, scene 7)
 function heldPhone(x, y, z, ry) { const P = phone(x, y, z, ry, 1.32, "@m0rn1ngdew_", "my morning routine (real)", ["#ff9ab8", "#ffd0e0"], "just now"); P.G.children.find(c => c.isPointLight).intensity = 0.0; P.G.visible = false; return P; }

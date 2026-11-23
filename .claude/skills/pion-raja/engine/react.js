@@ -264,11 +264,18 @@ function drawProps(t, PP, base, VP, L, cam) {
   for (const G of TL.gest) {
     if (t < G.t0 || t > G.t1) continue; const env = gEnv(G, t), k = (G.side || 1) > 0 ? 1 : 0, Hd = hands[k];
     if (G.type === 'phone' && Hd) { // phone in the hand: back towards the camera, screen towards his face
-      const sc = clamp(env * 1.3, 0, 1), M0 = mat.chain(Hd.M, mat.T(0, .22, .1), mat.RX(-.25), mat.S(sc, sc, sc));
-      drawOutline(PROP.phone, mat.mul(M0, mat.S(1.12, 1.06, 1.5)), VP, 0); drawToon(PROP.phone, M0, VP, L, { color: [.12, .12, .16], spec: .4 });
+      const sc = G.lift ? (t >= G.t0 + G.grab ? 1 : 0) : clamp(env * 1.3, 0, 1), M0 = mat.chain(Hd.M, mat.T(0, .22, .1), mat.RX(-.25), mat.S(sc, sc, sc));   // lift: picked up, not popped in
+      if (sc <= 0) continue; drawOutline(PROP.phone, mat.mul(M0, mat.S(1.12, 1.06, 1.5)), VP, 0); drawToon(PROP.phone, M0, VP, L, { color: [.12, .12, .16], spec: .4 });
       const scanned = RX.fxl.some(e => e.type === 'scan' && t > e.t1 - .05);
       tex(mat.chain(M0, mat.T(0, 0, -.037), mat.RY(Math.PI), mat.S(.31, .6, 1)), scanned ? PROP.screenOK : PROP.screenScan, { color: [1.15, 1.15, 1.15] });
       drawToon(PROP.phone, mat.chain(M0, mat.T(-.1, .24, .04), mat.S(.18, .1, .3)), VP, L, { color: [.3, .3, .34] }); // camera bump
+    }
+    if (G.type === 'hp' && Hd) { // phone READ in front of the chest: back to the camera, screen tilted up toward his face, a bit bigger than the ear phone
+      const sd = (G.side || 1) > 0 ? 1 : -1, sc = G.lift ? (t >= G.t0 + G.grab ? 1 : 0) : clamp(env * 1.3, 0, 1); if (sc <= 0) continue;
+      const M0 = mat.chain(Hd.M, mat.T(-sd * .04, .2, .1), mat.RY(sd * .38), mat.RX(.78), mat.S(1.55 * sc, 1.55 * sc, 1.55 * sc));
+      drawOutline(PROP.phone, mat.mul(M0, mat.S(1.12, 1.06, 1.5)), VP, 0); drawToon(PROP.phone, M0, VP, L, { color: [.12, .12, .16], spec: .4 });
+      tex(mat.chain(M0, mat.T(0, 0, -.037), mat.RY(Math.PI), mat.S(.31, .6, 1)), PROP.screenScan, { color: [1.15, 1.15, 1.15] });
+      drawToon(PROP.phone, mat.chain(M0, mat.T(-.1, .24, .04), mat.S(.18, .1, .3)), VP, L, { color: [.3, .3, .34] });
     }
     if (G.type === 'call' && Hd) { // phone pressed to the ear, screen glowing toward the camera side
       const sd = (G.side || 1) > 0 ? 1 : -1, sc = clamp(env * 1.3, 0, 1), M0 = mat.chain(Hd.M, mat.T(-sd * .02, .22, .2), mat.RZ(sd * .2), mat.RY(sd * 1.15), mat.S(sc, sc, sc));
@@ -710,7 +717,7 @@ function drawReact(f, u) {
   for (const E of fxActive('money', t)) drawMoney(trailCtx, fx, t, E, cam);
   for (const G of TL.gest) if (G.type === 'crownlift' && t >= G.t0 + .5 && t < G.t0 + 1.2) { // crown is up: shine on the bald scalp
     const q = pix(PP.headM, [.32, .82, .45]); drawGlint(fx, q[0], q[1], cam.ppu * .55, t - G.t0 - .55); }
-  for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw' || G.type === 'nerd' || G.type === 'gun' || G.type === 'call') && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears
+  for (const G of TL.gest) if ((G.type === 'phone' || G.type === 'paper' || G.type === 'throw' || G.type === 'nerd' || G.type === 'gun' || G.type === 'call') && !G.lift && t >= G.t0 && t < G.t0 + .5) { // pop sparkle where the prop appears
     const Hd = PP.hands[(G.side || 1) > 0 ? 1 : 0] || PP.hands[0]; if (!Hd) continue; const w = mat.xform(Hd.M, [0, 0, 0, 1]), q = cam.toPix([w[0] / w[3], w[1] / w[3], w[2] / w[3]]);
     drawSparkle(fx, q[0], q[1], cam.ppu * 1.1, t - G.t0 - .1); }
 }
