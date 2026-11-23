@@ -105,7 +105,8 @@ module.exports = { N, SH, SEG, frame(f) {
     let pa; if (t < 3.34) pa = { p: [1.72, 0, 0.12], lift: 0, squash: 1, roll: -0.13 }; else { const h = hops(t, PA_W); pa = Object.assign(h, { roll: -0.13 * (1 - clamp((t - 3.34) / 0.3)) }); if (t < 3.5) pa.squash = 0.92; }
     if (t > 5.05 && t < 5.75) pa.squash = 0.86;   // he bends down to the phone
     const vic = { eng: "vic", ef: ef("vic", t), anchor: VIC.anchor, ground: 0, height: 1.1, preset: "victim", facing: "faceCam", bodyDir: [0, -1], push: 0.35, tint: [1, 0.95, 0.95] };
-    F.pions = s <= 1 ? [vic, PION("pA", t, { anchor: [pa.p[0], pa.lift, pa.p[2]], lift: pa.lift, roll: pa.roll, squash: pa.squash })] : [vic];   // vic always index 0 (make_view)   // inserts are his eyes: no Pion
+    const yawA = t < 3.34 ? -45 : -45 * (1 - clamp((t - 3.34) / 1.3));   // at the wall his body is turned toward her, then squares up as he hops
+    F.pions = s <= 1 ? [vic, PION("pA", t, { anchor: [pa.p[0], pa.lift, pa.p[2]], lift: pa.lift, roll: pa.roll, squash: pa.squash, yaw: yawA })] : [vic];   // vic always index 0 (make_view)   // inserts are his eyes: no Pion
     F.puffs = t > 3.66 && s <= 1 ? PA_W.slice(1).map(w => ({ p: [w.p[0], 0, w.p[2]], age: t - w.t })) : [];
     F.key = s <= 1 ? { at: [pa.p[0], 0.55, pa.p[2]], from: [-0.7, 1.85, 1.1], col: WARM, k: 9 } : null;
     const k = clamp((t - 5.35) / 0.6); F.vicPhone = true;
@@ -117,7 +118,7 @@ module.exports = { N, SH, SEG, frame(f) {
     if (s === 5) { F.pions = [PION("pB", t, { anchor: [30.38, 0, -0.32], squash: 0.9 })]; F.key = { at: [30.38, 0.5, -0.32], from: [0.55, 1.8, 1.25], col: COOL, k: 8 }; F.lp = "interior_night"; } }
   if (loc === "ext") { F.door = door(t); if (s === 15) { const h = hops(t, PE_W); F.pions = [PION("pE", t, { anchor: [h.p[0], h.p[1] + h.lift, h.p[2]], lift: h.lift, ground: h.p[1], squash: h.squash })]; F.key = { at: [h.p[0], 0.6, h.p[2]], from: [0.8, 1.9, -1.4], col: COOL, k: 7 }; } }
   if (loc === "house") { F.door = door(t); F.figure = s === 23; F.flash = flash(t); F.fall = t >= 64.24 ? t - 64.24 : null; F.pkey = s < 23 ? 1 : 0; F.tableK = s >= 16 && s <= 18 ? 1.1 : 0.4; if (s === 18) { F.pkey = 1.6; F.hemiK = 1; }
-    if (s >= 16 && s <= 18) { const h = hops(t, PH_W); F.pions = [PION("pH", t, { anchor: [h.p[0], h.lift, h.p[2]], lift: h.lift, squash: h.squash })]; F.key = { at: [h.p[0], 0.55, h.p[2]], from: [0.75, 1.9, 1.3], col: COOL, k: 7 }; }
+    if (s >= 16 && s <= 18) { const h = hops(t, PH_W); const yawH = t < 46.9 ? 0 : t < 50.2 ? 50 * clamp((t - 46.9) / 0.6) : 50 * (1 - clamp((t - 50.2) / 0.4)); F.pions = [PION("pH", t, { anchor: [h.p[0], h.lift, h.p[2]], lift: h.lift, squash: h.squash, yaw: yawH })]; F.key = { at: [h.p[0], 0.55, h.p[2]], from: [0.75, 1.9, 1.3], col: COOL, k: 7 }; }
     if (s === 19 || s === 20) { const k = clamp((t - 52.85) / 0.5); if (t > 52.85) F.phonePose = { key: "pion", pos0: PP.pos0, pos: PP.pos, face: PP.face, k, arc: 0.03, glow: 0.6 }; F.pionPhone = { mode: "notif" }; }
     if (s === 19) { F.pions = [PION("pH2", t, { anchor: [59.72, 0, -0.35] })]; F.key = { at: [59.72, 0.55, -0.35], from: [0.6, 1.8, 1.3], col: COOL, k: 6 }; }
     if (s === 21 || s === 22) { F.pions = [PION("pH3", t, { anchor: [59.72, 0, -0.35], tint: [0.92, 0.95, 1.05] })]; F.key = { at: [59.72, 0.6, -0.35], from: [0.9, 1.6, 1.0], col: COOL, k: 5 }; } }
