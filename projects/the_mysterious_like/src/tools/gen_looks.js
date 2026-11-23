@@ -22,9 +22,9 @@ const W = [
   ["f_pA", "pA", 3.34, 4.2, 0.2, () => VIC_HEAD, t => ({ dt: 3 * Math.sin(t * 4), dn: 0, tilt: 3 * Math.sin(t * 3) })],   // hops round her, eyes on her
   ["f_pA", "pA", 4.2, 6.4, 0.12, t => held(t, 5.1, VIC_PHONE, [0.28, 0.4, -0.05]), () => ({ dt: 0, dn: 0, tilt: 0 })],               // the phone: on the floor, rising, beside his face
   ["f_pB", "pB", 16.95, 22.1, 0.3, () => [30.0, 0.0, 0.0], t => (t > 20.1 && t < 20.45 ? { dt: 4, dn: -24, tilt: 0 } : jit(t, 4, 3))],   // her phone on the floor (a jolt on "disturbing")
-  ["f_pO1", "pO1", 10.7, 16.95, 0.3, () => SCR, t => (t > 13.3 && t < 13.9 ? { dt: 14, dn: -16, tilt: 5 } : jit(t, 4, 2))],             // reading the screen, a glance away while thinking
-  ["f_pO2", "pO2", 32.5, 37.7, 0.25, () => SCR, t => (t > 36.4 && t < 36.9 ? { dt: 6, dn: -24, tilt: 4 } : jit(t * 1.6, 5, 2))],        // typing fast; jolts back on "died"
-  ["f_pO3", "pO3", 40.85, 44.6, 0.3, () => SCR, t => jit(t, 4, 2)],
+  ["f_pO1", "pO1", 10.7, 16.95, 0.3, () => SCR, t => ({ ...(t > 13.3 && t < 13.9 ? { dt: 14, dn: -8, tilt: 5 } : jit(t, 4, 2)), k: 0.28 })],   // k: the screen is just below his eyes; a full nod buries his face under the hat brim             // reading the screen, a glance away while thinking
+  ["f_pO2", "pO2", 32.5, 37.7, 0.25, () => SCR, t => ({ ...(t > 36.4 && t < 36.9 ? { dt: 6, dn: -12, tilt: 4 } : jit(t * 1.6, 5, 2)), k: 0.28 })],        // typing fast; jolts back on "died"
+  ["f_pO3", "pO3", 40.85, 44.6, 0.3, () => SCR, t => ({ ...jit(t, 4, 2), k: 0.28 })],
   ["f_pH", "pH", 47.0, 50.1, 0.3, () => TABLE, t => jit(t, 4, 3)],                                                                          // the table of phones
   ["f_pH2", "pH2", 52.85, 54.0, 0.1, t => held(t, 52.85, [59.85, 0.29, -0.13], [59.88, 0.4, 0.06]), t => ({ dt: 0, dn: -16, tilt: 3 * Math.sin(t * 3) })],   // high lens here: less nod or the hat hides his face                       // his own phone coming up beside his face
 ];
@@ -32,7 +32,7 @@ const byCue = {};
 for (const [cue, eng, t0, t1, step, tgt, ex] of W) {
   const L = (byCue[cue] = byCue[cue] || { win: [], lines: [] }); L.win.push([t0, t1]);
   for (let t = t0; t < t1 - 1e-6; t += step) { const F = film.frame(Math.round(t * FPS)), P = pionOf(F, eng); if (!P) continue;
-    const g = tgt(t, F), [tu0, no0] = Array.isArray(g) ? aim(head(P), g) : [g.turn, g.nod], e = ex(t), tu = tu0 - (P.yaw || 0), no = no0 * 0.85;   // relative to his body; the eyes take ~15% of the nod
+    const g = tgt(t, F), [tu0, no0] = Array.isArray(g) ? aim(head(P), g) : [g.turn, g.nod], e = ex(t), tu = tu0 - (P.yaw || 0), no = no0 * (e.k ?? 0.85);   // relative to his body; the eyes take ~15% of the nod
     L.lines.push([t, clamp(tu + e.dt, -62, 62), clamp(no + e.dn, -22, 55), e.tilt]); } }
 for (const [cue, L] of Object.entries(byCue)) {
   const f = path.join(CUES, cue + ".txt"), keep = fs.readFileSync(f, "utf8").split("\n").filter(l => { const m = l.match(/^([\d.]+)\s+look\b/); return !(m && L.win.some(([a, b]) => +m[1] >= a - 1e-6 && +m[1] < b - 1e-6)); });

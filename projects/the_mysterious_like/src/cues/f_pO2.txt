@@ -2,58 +2,58 @@
 0 toon
 0 detective 999 light2
 32.50 curiga
-32.50 look 10 35 2
+32.50 look 10 13 2
 32.60 gest press 0.2 kanan 700 1150
 32.72 gest press 0.2 kiri 380 1150
-32.75 look 11 35 3
+32.75 look 11 13 3
 32.84 gest press 0.2 kanan 700 1150
 32.96 gest press 0.2 kiri 380 1150
-33.00 look 9 34 4
+33.00 look 9 12 4
 33.08 gest press 0.2 kanan 700 1150
 33.20 gest press 0.2 kiri 380 1150
-33.25 look 10 32 4
+33.25 look 10 10 4
 33.32 gest press 0.2 kanan 700 1150
 33.44 gest press 0.2 kiri 380 1150
-33.50 look 3 31 2
+33.50 look 3 9 2
 33.56 gest press 0.2 kanan 700 1150
 33.68 gest press 0.2 kiri 380 1150
-33.75 look -0 31 0
+33.75 look -0 9 0
 33.80 gest press 0.2 kanan 700 1150
 33.92 gest press 0.2 kiri 380 1150
-34.00 look 6 32 -2
+34.00 look 6 10 -2
 34.04 gest press 0.2 kanan 700 1150
 34.16 gest press 0.2 kiri 380 1150
 34.20 penasaran
-34.25 look 9 33 -3
+34.25 look 9 11 -3
 34.28 gest press 0.2 kanan 700 1150
 34.40 gest press 0.2 kiri 380 1150
-34.50 look 9 34 -4
+34.50 look 9 12 -4
 34.52 gest press 0.2 kanan 700 1150
 34.64 gest press 0.2 kiri 380 1150
-34.75 look 13 35 -4
+34.75 look 13 13 -4
 34.76 gest press 0.2 kanan 700 1150
 34.88 gest press 0.2 kiri 380 1150
 35.00 gest press 0.2 kanan 700 1150
-35.00 look 8 35 -2
+35.00 look 8 13 -2
 35.12 gest press 0.2 kiri 380 1150
 35.24 gest press 0.2 kanan 700 1150
-35.25 look 1 34 -0
+35.25 look 1 12 -0
 35.36 gest press 0.2 kiri 380 1150
 35.48 gest press 0.2 kanan 700 1150
-35.50 look 4 33 2
+35.50 look 4 11 2
 35.60 gest press 0.2 kiri 380 1150
 35.72 gest press 0.2 kanan 700 1150
-35.75 look 6 32 3
+35.75 look 6 9 3
 35.84 gest press 0.2 kiri 380 1150
 35.96 gest press 0.2 kanan 700 1150
-36.00 look 7 31 4
+36.00 look 7 9 4
 36.08 gest press 0.2 kiri 380 1150
 36.20 gest press 0.2 kanan 700 1150
-36.25 look 13 32 4
+36.25 look 13 9 4
 36.40 kaget
-36.50 look 13 9 4
-36.75 look 13 9 4
-37.00 look 3 35 -2
+36.50 look 13 -1 4
+36.75 look 13 -1 4
+37.00 look 3 13 -2
 37.10 cemas
-37.25 look 4 35 -3
-37.50 look 3 34 -4
+37.25 look 4 13 -3
+37.50 look 3 12 -4

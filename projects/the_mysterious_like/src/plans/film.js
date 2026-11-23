@@ -36,7 +36,7 @@ const SH = [   // [t0, set, loc, camera keys]
   [6.38, "mlike", "apt", [look(6.38, VF.cam(0, 0, 0.42), VF.at(0, 0), 40, null, { aperture: 0.003 }), look(7.35, VF.cam(0, 0, 0.36), VF.at(0, 0), 40, "lin", { aperture: 0.003 }),
     look(8.54, VF.cam(-0.015, 0.045, 0.22), VF.at(-0.015, 0.045), 40, "io", { aperture: 0.003 })]],                  // his eyes: profile -> latest video -> engagement
   [8.54, "mlike", "apt", [look(8.54, VF.cam(-0.0338, 0.0577, 0.2), VF.at(-0.0338, 0.0577), 40, null, { aperture: 0.004 }), look(10.7, VF.cam(-0.0338, 0.0577, 0.1), VF.at(-0.0338, 0.0577), 40, "lin", { aperture: 0.004 })]],   // macro push on the picture
-  [10.7, "office", null, [look(10.7, [0.5, 1.32, 1.2], FACE, 50), look(12.9, [0.38, 1.26, 0.85], FACE, 48, "lin"),          // from behind the laptop: the lid in front, his face in its light
+  [10.7, "office", null, [look(10.7, [0.95, 1.3, 0.8], FACE, 48), look(12.9, [0.7, 1.26, 0.45], FACE, 46, "lin"),             // from behind the laptop, off its right edge: lid in front, his face clear above/beside it in its light
     look(14.5, [-1.65, 1.3, -0.15], [0.0, 1.02, -1.3], 46, "io"),                                                  // swing to the left
     look(15.45, [-1.22, 1.44, -1.42], [0.05, 0.95, -1.0], 44, "io"),                                                // over his left shoulder: the report
     look(16.25, [-0.4, 1.05, -1.05], SCR, 38, "io"), look(16.95, [0.04, 0.955, -1.14], SCR, 34, "in")]],             // round his shoulder and into the screen
@@ -49,8 +49,8 @@ const SH = [   // [t0, set, loc, camera keys]
   [27.7, "office", null, [look(27.7, [0.0, 1.62, 0.25], [0.0, 1.5, BZ], 64), look(28.7, [0.0, 1.6, 0.02], [0.0, 1.5, BZ], 64, "lin"),   // wide: all four victims
     look(29.7, [0.72, 1.56, -1.55], [0.72, 1.45, BZ], 50, "io"),                                                     // in on the right one first
     look(31.6, [-0.72, 1.56, -1.55], [-0.72, 1.45, BZ], 50, "io"), look(32.5, [-0.7, 1.57, -1.62], [-0.72, 1.46, BZ], 50, "lin")]],   // carried to the left
-  [32.5, "office", null, [look(32.5, [1.75, 1.9, 0.3], [0.0, 0.98, -1.3], 48), look(34.6, [1.25, 1.4, 0.45], [0.0, 1.0, -1.3], 46, "io"),   // "after hours of digging": high, craning down to him typing fast
-    look(37.7, [-0.9, 1.25, 0.35], FACE, 44, "io")]],                                                                // arc round the laptop to his face in the screen light
+  [32.5, "office", null, [look(32.5, [1.35, 1.42, 0.25], [0.0, 1.0, -1.3], 48), look(34.6, [1.0, 1.24, 0.1], [0.0, 1.02, -1.3], 46, "io"),   // "after hours of digging": from the right, a little above, pushing in on him typing fast (face clear of the lid)
+    look(37.7, [-0.85, 1.2, 0.2], FACE, 44, "io")]],                                                                // arc round the laptop to his face in the screen light
   [37.7, "office", null, [look(37.7, [-0.82, USERY + 0.05, -2.05], [-0.82, USERY, BZ], 52), look(39.8, [0.8, USERY + 0.05, -2.05], [0.8, USERY, BZ], 52, "lin"),   // the usernames, crossed out one by one
     look(40.85, [0.0, 1.7, -2.0], [0.0, PFPY, BZ], 50, "io")]],                                                                                    // tilt up to the picture that never changes
   [40.85, "office", null, [look(40.85, [1.45, 1.5, -1.3], [0.05, 0.95, -1.0], 46), look(43.0, [1.2, 1.42, -1.42], [0.05, 0.95, -1.0], 44, "lin"),   // over his right shoulder: the trace
