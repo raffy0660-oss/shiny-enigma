@@ -56,7 +56,7 @@ const SH = [   // [t0, set, loc, camera keys]
   [40.85, "office", null, [look(40.85, [1.45, 1.5, -1.3], [0.05, 0.95, -1.0], 46), look(43.0, [1.2, 1.42, -1.42], [0.05, 0.95, -1.0], 44, "lin"),   // over his right shoulder: the trace
     look(43.8, [0.5, 1.05, -1.05], SCR, 38, "io"), look(44.6, [0.06, 0.953, -1.15], SCR, 34, "in")]],                                                // into the house photo
   [44.6, "mlike", "ext", [look(44.6, [60.0, 1.12, -7.2], [60.0, 1.05, -2.0], 30), look(45.3, [60.0, 1.0, -4.4], [60.0, 0.95, -2.0], 46, "io")]],   // match cut: the real house, glide to the door
-  [45.3, "mlike", "ext", [look(45.3, [60.6, 1.12, -4.6], [60.0, 0.72, -2.2], 44), look(46.3, [60.35, 1.06, -3.75], [60.0, 0.72, -1.5], 44, "lin")]],   // behind Pion: he opens the door, goes in
+  [45.3, "mlike", "ext", [look(45.3, [60.75, 1.18, -5.1], [60.0, 0.72, -2.2], 44), look(46.3, [60.5, 1.12, -4.45], [60.0, 0.72, -1.6], 44, "lin")]],   // behind Pion, kept back so he stays small in the doorway: he opens the door, goes in
   [46.3, "mlike", "house", [look(46.3, [60.3, 1.1, 2.05], [60.05, 0.55, -1.1], 48), look(47.1, [60.4, 1.12, 1.9], [60.35, 0.52, -0.3], 48, "io")]],   // from inside: he comes in, the table appears
   [47.1, "mlike", "house", [look(47.1, [60.62, 1.26, 0.78], [60.92, 0.58, -0.2], 44, null, { aperture: 0.003 }), look(50.2, [61.42, 1.22, 0.62], [61.0, 0.58, -0.2], 44, "lin", { aperture: 0.003 })]],   // over the phones
   [50.2, "mlike", "house", [look(50.2, [59.3, 1.2, 1.9], [58.6, 0.85, -1.0], 50), look(52.6, [59.3, 1.2, 1.9], [61.2, 0.85, -0.6], 50, "lin")]],   // slow pan: nobody
