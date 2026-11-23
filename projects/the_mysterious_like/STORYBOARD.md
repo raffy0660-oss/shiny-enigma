@@ -63,3 +63,10 @@ Permintaan user: "zoomnya pertama dari kepala, terus scanning sampai kaki, baru 
 - **Petir (64,24)**: lampu berdiri dari rak kanan jatuh ke tengah lantai. Bohlamnya berkedip lalu padam, dengan SFX benda pecah di 64,74.
 - **3A (TKP 2)**: kamar tidur korban kedua (dinding, ranjang berantakan, meja kecil dengan lampu tidur biru, jendela malam). Pion tidak lagi melayang di ruang hitam.
 - **2B**: jalur kamera di belakang bahu Pion digeser keluar dari sayap kursi, jadi tidak ada lagi blok hitam yang menutup layar.
+
+## Revisi v2 → v3 (23 Nov 2026)
+- Hook: backsound tension sintetis (detak jantung makin cepat, drone, tik jam, boom di "found dead", riser ke cut kantor) sebagai stem sendiri; cahaya oranye hangat.
+- Arah kepala dihitung dari geometri scene (`src/tools/gen_looks.js`): menunduk ke HP di lantai, mengikuti HP saat diangkat, gerak kepala hidup sesuai konteks; di depan laptop anggukannya kecil supaya muka tidak tertutup topi.
+- HP dipegang tangan: gesture engine baru `gest hp <dur> kanan|kiri [angkat x y z]` (ambil dari titik x,y,z lalu dibawa ke depan dada). HP digenggam di ujung bawahnya supaya bentuknya terbaca. HP di lantai disembunyikan tepat saat diambil (tidak teleport).
+- Kamera: lebih jauh. Laptop: dari balik laptop di sisi kanan (muka kelihatan) → ke kiri → lewat bahu ke layar. Papan: wide 4 korban → kanan → kiri. "After hours of digging": Pion mengetik cepat, kamera dari kanan memutar ke depan. Pintu rumah: kamera dimundurkan.
+- Cahaya: oranye (hook) → biru/gelap, selalu ada key light ke Pion; cahaya layar laptop ke muka (s4, s11, s13); kamar korban diberi lampu.
