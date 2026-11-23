@@ -272,7 +272,7 @@ function drawProps(t, PP, base, VP, L, cam) {
     }
     if (G.type === 'hp' && Hd) { // phone READ in front of the chest: back to the camera, screen tilted up toward his face, a bit bigger than the ear phone
       const sd = (G.side || 1) > 0 ? 1 : -1, sc = G.lift ? (t >= G.t0 + G.grab ? 1 : 0) : clamp(env * 1.3, 0, 1); if (sc <= 0) continue;
-      const M0 = mat.chain(Hd.M, mat.T(-sd * .04, .2, .1), mat.RY(sd * .38), mat.RX(.78), mat.S(1.55 * sc, 1.55 * sc, 1.55 * sc));
+      const M0 = mat.chain(Hd.M, mat.T(-sd * .05, .44, .14), mat.RY(sd * .38), mat.RX(.55), mat.S(1.9 * sc, 1.9 * sc, 1.9 * sc));   // gripped at its lower end: most of the phone shows above the round glove, so it reads as a phone
       drawOutline(PROP.phone, mat.mul(M0, mat.S(1.12, 1.06, 1.5)), VP, 0); drawToon(PROP.phone, M0, VP, L, { color: [.12, .12, .16], spec: .4 });
       tex(mat.chain(M0, mat.T(0, 0, -.037), mat.RY(Math.PI), mat.S(.31, .6, 1)), PROP.screenScan, { color: [1.15, 1.15, 1.15] });
       drawToon(PROP.phone, mat.chain(M0, mat.T(-.1, .24, .04), mat.S(.18, .1, .3)), VP, L, { color: [.3, .3, .34] });
