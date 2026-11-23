@@ -17,8 +17,8 @@ const jit = (t, a = 4, b = 3) => ({ dt: a * Math.sin(t * 2.3) + 0.5 * a * Math.s
 const W = [
   ["f_pA", "pA", 0.0, 3.34, 0.25, t => t < 2.4 ? lerp3(VIC_HEAD, VIC_FEET, sm(clamp((t - 0.2) / 2.0, 0, 1))) : lerp3(VIC_FEET, VIC_HEAD, sm(clamp((t - 2.4) / 0.9, 0, 1))),
     t => ({ dt: 0, dn: t > 2.9 ? -10 : 0, tilt: 5 * Math.sin(t * 1.6) })],                                         // scans her head -> feet, a beat of thought
-  ["f_pA", "pA", 3.34, 4.55, 0.2, () => VIC_HEAD, t => ({ dt: 3 * Math.sin(t * 4), dn: 0, tilt: 3 * Math.sin(t * 3) })],   // hops round her, eyes on her
-  ["f_pA", "pA", 4.55, 6.4, 0.12, (t, F) => phoneAt(F, VIC_PHONE), () => ({ dt: 0, dn: 0, tilt: 0 })],               // the phone: on the floor, rising, beside his face
+  ["f_pA", "pA", 3.34, 4.2, 0.2, () => VIC_HEAD, t => ({ dt: 3 * Math.sin(t * 4), dn: 0, tilt: 3 * Math.sin(t * 3) })],   // hops round her, eyes on her
+  ["f_pA", "pA", 4.2, 6.4, 0.12, (t, F) => phoneAt(F, VIC_PHONE), () => ({ dt: 0, dn: 0, tilt: 0 })],               // the phone: on the floor, rising, beside his face
   ["f_pB", "pB", 16.95, 22.1, 0.3, () => [30.0, 0.0, 0.0], t => (t > 20.1 && t < 20.45 ? { dt: 4, dn: -24, tilt: 0 } : jit(t, 4, 3))],   // her phone on the floor (a jolt on "disturbing")
   ["f_pO1", "pO1", 10.7, 16.95, 0.3, () => SCR, t => (t > 13.3 && t < 13.9 ? { dt: 14, dn: -16, tilt: 5 } : jit(t, 4, 2))],             // reading the screen, a glance away while thinking
   ["f_pO2", "pO2", 32.5, 37.7, 0.25, () => SCR, t => (t > 36.4 && t < 36.9 ? { dt: 6, dn: -24, tilt: 4 } : jit(t * 1.6, 5, 2))],        // typing fast; jolts back on "died"
