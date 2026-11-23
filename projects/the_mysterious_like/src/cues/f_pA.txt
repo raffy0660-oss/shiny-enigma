@@ -7,6 +7,6 @@
 3.34 look -38 26 0
 4.20 look -20 34 0
 5.05 look -8 50 0
-5.15 gest press 0.55 kanan 620 1560
+5.15 gest press 0.55 kanan 820 1500
 5.70 look 0 42 0
 6.00 curiga

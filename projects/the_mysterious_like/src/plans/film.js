@@ -32,7 +32,7 @@ const SH = [   // [t0, set, loc, camera keys]
     look(3.0, [-0.97, 1.09, 1.14], [0.78, 0.2, 0.76], 44, "lin"),
     look(3.42, [1.0, 1.22, 2.05], [1.6, 0.46, 0.1], 46, "io"),                                                       // "found dead": to Pion pushing off the wall
     look(4.86, [-1.15, 1.22, 1.55], [0.45, 0.35, -0.4], 48, "io")]],                                                     // follow his hops round her head
-  [4.86, "mlike", "apt", [look(4.86, [-1.95, 0.95, 2.0], [0.2, 0.4, -0.3], 46), look(6.38, [-1.72, 0.92, 1.78], [0.2, 0.42, -0.3], 46, "lin")]],   // he reaches down, the phone rises to him
+  [4.86, "mlike", "apt", [look(4.86, [-1.62, 1.1, 1.58], [0.2, 0.38, -0.3], 46), look(6.38, [-1.44, 1.06, 1.38], [0.2, 0.4, -0.3], 46, "lin")]],   // he reaches down, the phone rises to him
   [6.38, "mlike", "apt", [look(6.38, VF.cam(0, 0, 0.42), VF.at(0, 0), 40, null, { aperture: 0.003 }), look(7.35, VF.cam(0, 0, 0.36), VF.at(0, 0), 40, "lin", { aperture: 0.003 }),
     look(8.54, VF.cam(-0.015, 0.045, 0.22), VF.at(-0.015, 0.045), 40, "io", { aperture: 0.003 })]],                  // his eyes: profile -> latest video -> engagement
   [8.54, "mlike", "apt", [look(8.54, VF.cam(-0.0338, 0.0577, 0.2), VF.at(-0.0338, 0.0577), 40, null, { aperture: 0.004 }), look(10.7, VF.cam(-0.0338, 0.0577, 0.1), VF.at(-0.0338, 0.0577), 40, "lin", { aperture: 0.004 })]],   // macro push on the picture
