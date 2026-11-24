@@ -37,7 +37,7 @@ function segment(mesh, a, b) { const d = b.clone().sub(a), L = d.length(); mesh.
 function placeThief(T) {
   THIEF.visible = !!T; ROPE.visible = !!T && T.rope !== false; ROPETAIL.visible = !!T && T.rope !== false && (T.tail ?? 0) > 0.05; STOLEN.visible = false;
   if (!T) return;
-  THIEF.position.set(...T.pos); THIEF.rotation.set(0, 0, 0); THIEF.rotation.order = "YXZ"; THIEF.rotation.set(T.pitch || 0, T.yaw || 0, T.roll || 0); THIEF.updateMatrixWorld(true);
+  THIEF.position.set(...T.pos); if (T.q) THIEF.quaternion.set(...T.q); else { THIEF.rotation.order = "YXZ"; THIEF.rotation.set(T.pitch || 0, T.yaw || 0, T.roll || 0); } THIEF.updateMatrixWorld(true);   // T.q from heist_sim (rope tilt * yaw * pitch)
   // the painting: from its place in the frame to his hands (held in front of his chest, picture toward him)
   const pk = Math.max(0, Math.min(1, T.panelK || 0)); let panelLocal = null;
   if (pk > 0) { GALLERY.canvas.updateMatrixWorld(true); const p0 = new THREE.Vector3(), q0 = new THREE.Quaternion(); GALLERY.canvas.getWorldPosition(p0); GALLERY.canvas.getWorldQuaternion(q0);
@@ -50,7 +50,9 @@ function placeThief(T) {
   for (const A of THIEF.userData.arms) { let hnd = V(...((A.s < 0 ? T.handL : T.handR) || [A.s * 0.26, -0.05, 0.12]));
     if (panelLocal && gk > 0) { const edge = THIEF.worldToLocal(STOLEN.localToWorld(V(A.s * MONA.W * 0.5 * -1, 0, 0))); hnd.lerp(edge, gk); }
     const sh = A.sh.clone(), mid = sh.clone().lerp(hnd, 0.5); const len = sh.distanceTo(hnd), bend = Math.max(0, 0.42 - len) * 0.6 + 0.03;
-    mid.add(V(A.s * bend, -bend * 0.6, -bend * 0.4)); segment(A.up, sh, mid); segment(A.lo, mid, hnd); A.hand.position.copy(hnd); }
+    mid.add(V(A.s * bend, -bend * 0.6, -bend * 0.4));
+    const ak = Math.max(0, T.arms ?? 1), vis = ak > 0.02; A.up.visible = A.lo.visible = A.hand.visible = vis;   // arms only when needed (user rule): they grow out of the shoulder
+    if (vis) { const k = Math.min(ak, 1.25), h2 = sh.clone().lerp(hnd, Math.min(1, k)), m2 = sh.clone().lerp(mid, Math.min(1, k)); segment(A.up, sh, m2); segment(A.lo, m2, h2); A.hand.position.copy(h2); A.hand.scale.setScalar(Math.max(0.01, k)); } }
   // rope from the eye bolt to the carabiner, and its loose tail hanging below him
   const hookP = V(HOOK[0], HOOK[1] - 0.15, HOOK[2]), carab = THIEF.localToWorld(V(0, 0, 0.16)); segment(ROPE, hookP, carab);
   const tl = T.tail ?? 0, sw = T.sway || 0; segment(ROPETAIL, carab, carab.clone().add(V(0.08 * Math.sin(sw), -tl, 0.06 * Math.cos(sw * 1.3))));

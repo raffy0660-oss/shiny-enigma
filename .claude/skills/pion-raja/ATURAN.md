@@ -45,3 +45,13 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
 20. **Gaya sinematik referensi user wajib** untuk video full animasi / dunia 3D: ikuti `PANDUAN_SINEMATIK.md` (spotlight saat hook,
     malam biru + 1 lampu hangat saat "But / Until one night", flash putih lalu hangat saat payoff, kamera terbang kontinu tiap ~1,65 dtk
     dengan ease sinus 0,6 dtk dan drift push-in 2%/dtk, lampu praktis + god ray + DOF, bayangan biru bukan hitam).
+21. **Tangan bidak muncul hanya saat dibutuhkan**: bidak (Pion, maling, karakter lain) boleh punya tangan, tapi tangan
+    muncul (pop in dengan pegas) hanya saat ada aksi tangan: meraih, meninju, memegang, menulis. Saat tidak dipakai
+    (turun di tali, melompat, berdiri) tangan hilang. Rig maling museum: `F.thief.arms` (0..1).
+22. **Benda yang DIBACA Pion menghadap Pion sendiri, BUKAN kamera**: buku yang dibuka, HP, kertas, layar: halaman /
+    layarnya ke arah mata Pion, kamera melihat sampul belakang / punggung HP. Judul buku ditaruh di sampul luar supaya
+    tetap terbaca dari kamera (`gest catat`: buku DEATH NOTE, halaman ke Pion, judul di kedua sampul luar).
+    Kalau isi halaman / layar perlu terlihat penonton, pakai shot insert dari balik bahu Pion, jangan memutar bendanya.
+23. **Gerakan aksi pakai fisika, bukan lerp keyframe**: tali = bandul (gravitasi, panjang tali berubah, efek Coriolis),
+    berhenti di tali = pegas teredam (sedikit mantul), rotasi badan = inersia + redaman, puntiran tali = pegas torsi,
+    tinju = impuls + hentakan balik, tangan = pegas mengikuti target. Lihat `projects/the_mona_lisa/src/plans/heist_sim.js`.

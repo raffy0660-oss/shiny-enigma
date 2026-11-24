@@ -272,7 +272,7 @@ function drawProps(t, PP, base, VP, L, cam) {
     }
     if (G.type === 'catat') { // the notebook + pen of gest catat (pose shared with the arms: catatPose in render.js)
       const P = catatPose(G, t); if (P.sc <= .01) continue;
-      const B = mat.chain(base, mat.T(...P.c), mat.RX(-P.a), mat.S(P.sc * P.K, P.sc * P.K, P.sc * P.K)), BK = [.05, .05, .06], PG = [.95, .93, .86];
+      const B = mat.chain(base, mat.T(...P.c), mat.RY(Math.PI), mat.RX(-P.a), mat.S(P.sc * P.K, P.sc * P.K, P.sc * P.K)), BK = [.05, .05, .06], PG = [.95, .93, .86];
       if (!PROP.dnCover) { PROP.dnCover = canvasTex(320, 430, (g, w, h) => { g.fillStyle = '#0b0b0e'; g.fillRect(0, 0, w, h); g.strokeStyle = '#2a2a30'; g.lineWidth = 6; g.strokeRect(10, 10, w - 20, h - 20);
           g.fillStyle = '#f2f2f2'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '900 54px "Times New Roman", Georgia, serif'; g.save(); g.translate(w / 2, h * .36); g.scale(1, 1.25); g.fillText('DEATH', 0, -22); g.fillText('NOTE', 0, 30); g.restore();
           g.strokeStyle = '#f2f2f2'; g.lineWidth = 2; g.beginPath(); g.moveTo(60, h * .55); g.lineTo(w - 60, h * .55); g.stroke(); });

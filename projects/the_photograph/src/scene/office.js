@@ -411,6 +411,21 @@ function drawScreen(S, t) { const g = scrCanvas.getContext("2d"), w = 1024, h = 
     if (gl > 0) { for (let i = 0; i < 14; i++) { const y = ((Math.sin(t * 91 + i * 7.3) * 0.5 + 0.5) * h) | 0, hh = 6 + ((i * 13) % 30), dx = Math.sin(t * 57 + i) * 60 * gl; const d = g.getImageData(0, y, w, hh); g.putImageData(d, dx, y); }
       g.fillStyle = `rgba(255,40,60,${0.25 * gl})`; g.fillRect(0, 0, w, h); }
   } else if (S.mode === "report" || S.mode === "map" || S.mode === "obit") { drawML(S, g, w, h, t);
+  } else if (S.mode === "case") {   // The Mona Lisa: the case lands on his laptop (k: 0 the painting -> 1 the empty frame, the ASSIGNED stamp)
+    g.fillText("Case File  -  #779", 130, 28); const bl = Math.sin(t * 8) > 0 ? 1 : 0.6; g.fillStyle = `rgba(200,30,40,${bl})`; g.fillRect(0, 56, w, 70); g.fillStyle = "#fff"; g.font = "900 40px Arial"; g.fillText("STOLEN:  MONA LISA", 30, 92);
+    const px = 40, py = 150, pw = 360, ph = 470; g.fillStyle = "#6a4a1c"; g.fillRect(px - 16, py - 16, pw + 32, ph + 32); g.fillStyle = "#c49a46"; g.fillRect(px - 10, py - 10, pw + 20, ph + 20);
+    const e = Math.min(1, Math.max(0, (k - 0.35) / 0.3));
+    g.fillStyle = "#a9b48c"; g.fillRect(px, py, pw, ph); g.globalAlpha = 1 - e;   // the painting (drawn small)
+    g.fillStyle = "#7d9488"; g.beginPath(); g.moveTo(px, py + 180); g.lineTo(px + 90, py + 120); g.lineTo(px + 130, py + 200); g.lineTo(px, py + 260); g.fill(); g.beginPath(); g.moveTo(px + pw, py + 150); g.lineTo(px + 270, py + 110); g.lineTo(px + 240, py + 220); g.lineTo(px + pw, py + 260); g.fill();
+    g.fillStyle = "#231910"; g.beginPath(); g.moveTo(px + 30, py + ph); g.quadraticCurveTo(px + 70, py + 250, px + 180, py + 235); g.quadraticCurveTo(px + 300, py + 250, px + 330, py + ph); g.fill();
+    g.fillStyle = "#26180b"; g.beginPath(); g.ellipse(px + 180, py + 160, 82, 112, 0, 0, 7); g.fill(); g.fillStyle = "#e2ae6e"; g.beginPath(); g.ellipse(px + 180, py + 150, 56, 72, 0, 0, 7); g.fill();
+    g.fillStyle = "#3a2410"; g.fillRect(px + 155, py + 140, 10, 6); g.fillRect(px + 195, py + 140, 10, 6); g.strokeStyle = "#8a4428"; g.lineWidth = 3; g.beginPath(); g.moveTo(px + 165, py + 182); g.quadraticCurveTo(px + 180, py + 188, px + 196, py + 180); g.stroke();
+    g.fillStyle = "#9e7638"; g.fillRect(px + 70, py + 360, 220, 60); g.globalAlpha = e; g.fillStyle = "#6a4e30"; g.fillRect(px, py, pw, ph);   // ... and the empty backing board
+    g.fillStyle = "#3a2a1a"; g.font = "700 26px Arial"; g.fillText("INV. 779", px + 20, py + ph - 26); g.globalAlpha = 1;
+    const rows = [["Location", "Grand Gallery"], ["Time", "02:11 AM"], ["Alarm", "none"], ["Suspect", "UNKNOWN"]];
+    rows.forEach(([a, b], i) => { const y = 180 + i * 96; g.fillStyle = "#7f8cb0"; g.font = "700 26px Arial"; g.fillText(a, 470, y); g.fillStyle = i === 3 ? "#ff5a5a" : "#e8eefc"; g.font = "800 36px Arial"; g.fillText(b, 470, y + 40); });
+    const st = Math.min(1, Math.max(0, (k - 0.7) / 0.12)); if (st > 0) { g.save(); g.translate(720, 590); g.rotate(-0.16); const sc = 1 + 1.6 * (1 - st); g.scale(sc, sc); g.globalAlpha = st;
+      g.strokeStyle = "#ff3a3a"; g.lineWidth = 7; g.strokeRect(-170, -42, 340, 84); g.fillStyle = "#ff3a3a"; g.font = "900 46px Arial"; g.textAlign = "center"; g.fillText("ASSIGNED", 0, 4); g.restore(); g.textAlign = "left"; }
   } else if (S.mode === "mail") {
     g.fillText("Mail  -  Inbox", 130, 28); g.fillStyle = "#141c32"; g.fillRect(0, 56, 300, h - 56);
     for (let i = 0; i < 6; i++) { g.fillStyle = i === 0 ? "#2a3a66" : "#141c32"; g.fillRect(10, 70 + i * 92, 280, 82); g.fillStyle = "#cfd8f0"; g.font = "700 24px Arial, sans-serif"; g.fillText(i === 0 ? "(no subject)" : "...", 26, 100 + i * 92); g.fillStyle = "#7f8cb0"; g.font = "600 20px Arial, sans-serif"; g.fillText(i === 0 ? "5 years ago" : "", 26, 132 + i * 92); }

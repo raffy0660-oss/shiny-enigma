@@ -494,7 +494,7 @@ function segment(mesh, a, b) { const d = b.clone().sub(a), L = d.length(); mesh.
 function placeThief(T) {
   THIEF.visible = !!T; ROPE.visible = !!T && T.rope !== false; ROPETAIL.visible = !!T && T.rope !== false && (T.tail ?? 0) > 0.05; STOLEN.visible = false;
   if (!T) return;
-  THIEF.position.set(...T.pos); THIEF.rotation.set(0, 0, 0); THIEF.rotation.order = "YXZ"; THIEF.rotation.set(T.pitch || 0, T.yaw || 0, T.roll || 0); THIEF.updateMatrixWorld(true);
+  THIEF.position.set(...T.pos); if (T.q) THIEF.quaternion.set(...T.q); else { THIEF.rotation.order = "YXZ"; THIEF.rotation.set(T.pitch || 0, T.yaw || 0, T.roll || 0); } THIEF.updateMatrixWorld(true);   // T.q from heist_sim (rope tilt * yaw * pitch)
   // the painting: from its place in the frame to his hands (held in front of his chest, picture toward him)
   const pk = Math.max(0, Math.min(1, T.panelK || 0)); let panelLocal = null;
   if (pk > 0) { GALLERY.canvas.updateMatrixWorld(true); const p0 = new THREE.Vector3(), q0 = new THREE.Quaternion(); GALLERY.canvas.getWorldPosition(p0); GALLERY.canvas.getWorldQuaternion(q0);
@@ -507,7 +507,9 @@ function placeThief(T) {
   for (const A of THIEF.userData.arms) { let hnd = V(...((A.s < 0 ? T.handL : T.handR) || [A.s * 0.26, -0.05, 0.12]));
     if (panelLocal && gk > 0) { const edge = THIEF.worldToLocal(STOLEN.localToWorld(V(A.s * MONA.W * 0.5 * -1, 0, 0))); hnd.lerp(edge, gk); }
     const sh = A.sh.clone(), mid = sh.clone().lerp(hnd, 0.5); const len = sh.distanceTo(hnd), bend = Math.max(0, 0.42 - len) * 0.6 + 0.03;
-    mid.add(V(A.s * bend, -bend * 0.6, -bend * 0.4)); segment(A.up, sh, mid); segment(A.lo, mid, hnd); A.hand.position.copy(hnd); }
+    mid.add(V(A.s * bend, -bend * 0.6, -bend * 0.4));
+    const ak = Math.max(0, T.arms ?? 1), vis = ak > 0.02; A.up.visible = A.lo.visible = A.hand.visible = vis;   // arms only when needed (user rule): they grow out of the shoulder
+    if (vis) { const k = Math.min(ak, 1.25), h2 = sh.clone().lerp(hnd, Math.min(1, k)), m2 = sh.clone().lerp(mid, Math.min(1, k)); segment(A.up, sh, m2); segment(A.lo, m2, h2); A.hand.position.copy(h2); A.hand.scale.setScalar(Math.max(0.01, k)); } }
   // rope from the eye bolt to the carabiner, and its loose tail hanging below him
   const hookP = V(HOOK[0], HOOK[1] - 0.15, HOOK[2]), carab = THIEF.localToWorld(V(0, 0, 0.16)); segment(ROPE, hookP, carab);
   const tl = T.tail ?? 0, sw = T.sway || 0; segment(ROPETAIL, carab, carab.clone().add(V(0.08 * Math.sin(sw), -tl, 0.06 * Math.cos(sw * 1.3))));
@@ -636,8 +638,10 @@ const LIGHTSET = [[monaSpot, "gallery"], [thiefSpot, "gallery"], [hookSpot, "gal
 // gallery moods. heist: the museum closed for the night, chandeliers off; a hard top light on the thief and the painting's spot, the rest falls into the dark.
 // night: the same hall at night without the theft light. day: the investigation, skylight + chandeliers + warm picture lights.
 const MOODS = {
+  heistWarm: { mona: 30, thief: 44, thiefCol: 0xffd6a0, sky: 0.25, skyCol: 0x8fb0ff, hemi: [0x5a3a22, 0x0a0604, 0.07], wash: 0.6, washOp: 0.16, bulbs: 0.12, chand: 0, hall: 1.2, beams: [1, 1, 0.12], env: 0.08, skyTex: "skyNight", bg: 0x050302, fog: 0.065, vig: 0.6 },   // brief: the opening is warm, golden
   heist: { mona: 34, thief: 46, sky: 0.45, skyCol: 0x8fb0ff, hemi: [0x3a4a70, 0x0a0806, 0.06], wash: 0, washOp: 0.1, bulbs: 0.08, chand: 0, hall: 0.6, beams: [1, 1, 0.35], env: 0.07, skyTex: "skyNight", bg: 0x030406, fog: 0.07, vig: 0.62 },
   night: { mona: 34, thief: 0, sky: 1.2, skyCol: 0x8fb0ff, hemi: [0x5a6a90, 0x120c08, 0.16], wash: 1.4, washOp: 0.3, bulbs: 0.15, chand: 0, hall: 1.5, beams: [0.8, 0, 1], env: 0.1, skyTex: "skyNight", bg: 0x05070c, fog: 0.045, vig: 0.5 },
+  dayNeutral: { mona: 22, thief: 0, sky: 2.6, skyCol: 0xf2f5ff, hemi: [0xe6ecf6, 0x2a2622, 0.42], wash: 3.6, washOp: 0.42, bulbs: 0.8, chand: 3.8, hall: 4.5, beams: [0.3, 0, 0.45], env: 0.24, skyTex: "skyDay", bg: 0x10131a, fog: 0.024, vig: 0.42, sunCol: 0xeef2ff },   // brief: early investigation = neutral white, slightly cooler shadows
   day: { mona: 24, thief: 0, sky: 3.0, skyCol: 0xfff0d6, hemi: [0xffe6c4, 0x3a2614, 0.45], wash: 4.5, washOp: 0.55, bulbs: 1, chand: 5, hall: 6, beams: [0.35, 0, 0.55], env: 0.28, skyTex: "skyDay", bg: 0x1a140e, fog: 0.022, vig: 0.4, sunCol: 0xffe2b0 },
 };
 const bulbCol = new THREE.Color(0xffd28a);
@@ -652,12 +656,12 @@ window.renderFrame = async (F) => {   // F: { t, loc, mood, cam, pions, key, lp,
   for (const [L, where] of LIGHTSET) L.visible = where === at;
   scene.environmentIntensity = gal ? Md.env * (0.4 + 0.6 * dk) : 0.1;
   // ---- gallery
-  monaSpot.intensity = Md.mona * (F.spotK ?? 1); thiefSpot.intensity = Md.thief * (F.thiefK ?? 1); thiefSpot.visible = gal && Md.thief > 0;
+  monaSpot.intensity = Md.mona * (F.spotK ?? 1); thiefSpot.intensity = Md.thief * (F.thiefK ?? 1); thiefSpot.color.setHex(Md.thiefCol ?? 0xdce8ff); thiefBeam.material.uniforms.col.value.setHex(Md.thiefCol ?? 0xdce8ff); thiefPool.material.color.setHex(Md.thiefCol ?? 0xdce8ff); thiefSpot.visible = gal && Md.thief > 0;
   skyLight.intensity = Md.sky * dk; skyLight.color.setHex(Md.skyCol); galHemi.color.setHex(Md.hemi[0]); galHemi.groundColor.setHex(Md.hemi[1]); galHemi.intensity = Md.hemi[2] * dk;
   galWash.forEach(L => L.intensity = Md.wash * dk); GALLERY.chandLights.forEach(L => L.intensity = Md.chand * dk); GALLERY.hallLight.intensity = Md.hall * dk; hookSpot.intensity = (F.hookLight || 0) * 6;
   GALLERY.washes.forEach(w => w.material.opacity = Md.washOp * dk); GALLERY.bulbs.forEach(b => b.material.color.copy(bulbCol).multiplyScalar(2.5 * Md.bulbs * (0.3 + 0.7 * dk)));
   GALLERY.sky.material.map = GALLERY[Md.skyTex];
-  const [bm, bt, bs] = Md.beams; monaBeam.visible = gal && bm > 0; monaBeam.material.uniforms.k.value = bm; thiefBeam.visible = thiefPool.visible = gal && bt > 0 && F.thiefBeam !== false; thiefBeam.material.uniforms.k.value = bt * (F.thiefK ?? 1); thiefPool.material.opacity = 0.5 * bt * (F.thiefK ?? 1);
+  const [bm0, bt, bs] = Md.beams, bm = bm0 * (F.monaBeamK ?? 1); monaBeam.visible = gal && bm > 0; monaBeam.material.uniforms.k.value = bm; thiefBeam.visible = thiefPool.visible = gal && bt > 0 && F.thiefBeam !== false; thiefBeam.material.uniforms.k.value = bt * (F.thiefK ?? 1); thiefPool.material.opacity = 0.5 * bt * (F.thiefK ?? 1);
   moonBeam.visible = moonPool.visible = gal && bs > 0; moonBeam.material.uniforms.k.value = bs * dk; moonPool.material.opacity = 0.25 * bs * dk;
   const bc = Md.sunCol ?? 0x9ab8ff; moonBeam.material.uniforms.col.value.setHex(bc); moonPool.material.color.setHex(bc);
   for (const b of [monaBeam, thiefBeam, moonBeam, hatchBeam]) b.material.uniforms.time.value = t;
