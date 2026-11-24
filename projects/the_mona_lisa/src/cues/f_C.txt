@@ -1,0 +1,18 @@
+# corridor 49.2-59.4: walks in, flashlight up at the open hatch, then down at the footprints
+0 toon
+0 detective 999 light2
+0 hover off
+49.20 datar
+49.20 look 0 -8 0
+50.60 penasaran
+51.00 gest senter 3.25 kanan atas
+51.00 look 0 -45 0
+52.30 look -6 -50 -2
+53.30 curiga
+54.25 gest senter 3.3 kanan bawah
+54.30 look 4 40 0
+55.30 look -10 45 -2
+56.20 kaget
+56.25 startle
+56.80 look 6 42 2
+57.50 curiga

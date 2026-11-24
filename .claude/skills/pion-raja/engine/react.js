@@ -270,6 +270,13 @@ function drawProps(t, PP, base, VP, L, cam) {
       tex(mat.chain(M0, mat.T(0, 0, -.037), mat.RY(Math.PI), mat.S(.31, .6, 1)), scanned ? PROP.screenOK : PROP.screenScan, { color: [1.15, 1.15, 1.15] });
       drawToon(PROP.phone, mat.chain(M0, mat.T(-.1, .24, .04), mat.S(.18, .1, .3)), VP, L, { color: [.3, .3, .34] }); // camera bump
     }
+    if (G.type === 'senter') { // the flashlight: black body + grip ribs, a glowing lens toward the target
+      const S = senterPose(G, t); if (S.sc <= .01) continue; const n = S.dir, BX = PROP.box || (PROP.box = new Mesh(boxGeo(1, 1, 1)));
+      const M = mat.chain(base, mat.T(...S.hand), mat.RY(Math.atan2(n[0], n[2])), mat.RX(Math.acos(clamp(n[1], -1, 1))), mat.S(1.9 * S.sc, 1.9 * S.sc, 1.9 * S.sc), mat.T(0, .1, 0));   // held at its tail: the head sticks out of the glove
+      const part = (y, w, h, col, spec) => { const M1 = mat.chain(M, mat.T(0, y, 0), mat.S(w, h, w)); drawOutline(BX, mat.mul(M1, mat.S(1.15, 1.04, 1.15)), VP, 0); drawToon(BX, M1, VP, L, { color: col, spec: spec ?? .4 }); };
+      part(.05, .13, .42, [.1, .1, .12], .5); for (const y of [-.06, .02, .1]) part(y, .145, .025, [.25, .25, .28]); part(.32, .2, .14, [.14, .14, .16], .6);
+      drawToon(BX, mat.chain(M, mat.T(0, .395, 0), mat.S(.17, .015, .17)), VP, L, { color: [3.2, 3.0, 2.4], noSoot: true });   // the lit lens
+    }
     if (G.type === 'catat') { // the notebook + pen of gest catat (pose shared with the arms: catatPose in render.js)
       const P = catatPose(G, t); if (P.sc <= .01) continue;
       const B = mat.chain(base, mat.T(...P.c), mat.RY(Math.PI), mat.RX(-P.a), mat.S(P.sc * P.K, P.sc * P.K, P.sc * P.K)), BK = [.05, .05, .06], PG = [.95, .93, .86];

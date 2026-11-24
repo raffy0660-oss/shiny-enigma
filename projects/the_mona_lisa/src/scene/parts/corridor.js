@@ -95,7 +95,14 @@ const SECURITY = {};
     const rows = [["01:47:02", "routine check", "night.guard2"], ["01:58:40", "door 4 status", "night.guard2"], ["02:08:11", "SYSTEM OVERRIDE", "head.technician"], ["02:08:14", "CAMERAS 01-09 OFFLINE", "head.technician"], ["02:11:30", "door S3 keycard", "director"]];
     rows.forEach(([t, a, u], i) => { const y = 84 + i * 52; const hl = hi === i || (hi === "tech" && (i === 2 || i === 3)) || (hi === "dir" && i === 4); if (hl) { g.fillStyle = "rgba(255,70,60,.25)"; g.fillRect(14, y - 28, w - 28, 40); }
       g.fillStyle = hl ? "#ff8a7a" : "#58f08a"; g.fillText(t, 22, y); g.fillText(a, 140, y); g.fillText(u, 410, y); });
-    g.fillStyle = "#58f08a"; g.fillText("_", 22, h - 24); });
+    if (hi === "dir") { g.fillStyle = "rgba(255,40,40,.9)"; g.fillRect(20, h - 74, w - 40, 54); g.fillStyle = "#fff"; g.font = "900 30px monospace"; g.fillText("ONLY KEYCARD:  MUSEUM DIRECTOR", 34, h - 37); }
+    else { g.fillStyle = "#58f08a"; g.fillText("_", 22, h - 24); } });
+  const staffTex = (miss) => canvasTex(480, 380, (g, w, h) => { g.fillStyle = "#0c1426"; g.fillRect(0, 0, w, h); g.fillStyle = "#1c2a4a"; g.fillRect(0, 0, w, 50); g.fillStyle = "#cfe0ff"; g.font = "700 24px monospace"; g.fillText("STAFF RECORD", 18, 33);
+    g.fillStyle = "#26365a"; g.fillRect(24, 74, 150, 190); g.fillStyle = "#0a0d16"; g.beginPath(); g.arc(99, 140, 40, 0, 7); g.fill(); g.beginPath(); g.moveTo(44, 264); g.quadraticCurveTo(99, 170, 154, 264); g.fill();   // a pawn silhouette photo
+    g.fillStyle = "#9fb4e0"; g.font = "700 20px monospace"; g.fillText("ROLE", 196, 96); g.fillText("ACCESS", 196, 176); g.fillStyle = "#e8f0ff"; g.font = "800 26px monospace"; g.fillText("HEAD TECHNICIAN", 196, 128); g.fillText("SYSTEM ADMIN", 196, 208);
+    if (miss) { g.save(); g.translate(w / 2, 318); g.rotate(-0.06); g.strokeStyle = "#ff3a3a"; g.lineWidth = 6; g.strokeRect(-200, -34, 400, 64); g.fillStyle = "#ff3a3a"; g.font = "900 30px monospace"; g.textAlign = "center"; g.fillText("MISSING - 3 DAYS", 0, 10); g.restore(); } });
+  SECURITY.staffTex = [staffTex(false), staffTex(true)]; add(box(0.52, 0.36, 0.04, 0.01), mat({ color: 0x101012 }), -0.7, 1.0, -0.15, { parent: DK, rx: -0.12 });
+  SECURITY.staff = add(new THREE.PlaneGeometry(0.47, 0.32), new THREE.MeshBasicMaterial({ map: SECURITY.staffTex[0], toneMapped: false, fog: false }), -0.7, 1.0, -0.125, { parent: DK, rx: -0.12, cast: false }); SECURITY.staff.visible = false;
   SECURITY.logTex = logTex; SECURITY.log = add(new THREE.PlaneGeometry(0.55, 0.34), new THREE.MeshBasicMaterial({ map: logTex(null), toneMapped: false, fog: false }), 0.65, 1.0, -0.125, { parent: DK, rx: -0.12, cast: false }); SECURITY.logHi = null;
   add(new THREE.CylinderGeometry(0.04, 0.035, 0.1, 14), mat({ color: 0xdedad2 }), -1.0, 0.82, 0.1, { parent: DK });
   const CH = group(SEC.X - 0.3, 0, back + 1.55, 0.3); add(box(0.5, 0.08, 0.5, 0.03), mat({ color: 0x1a1a1c }), 0, 0.48, 0, { parent: CH }); add(box(0.48, 0.6, 0.07, 0.03), mat({ color: 0x1a1a1c }), 0, 0.86, 0.22, { parent: CH }); add(new THREE.CylinderGeometry(0.03, 0.03, 0.4, 8), mat({ color: 0x6a6a6a, metalness: 0.7 }), 0, 0.24, 0, { parent: CH });

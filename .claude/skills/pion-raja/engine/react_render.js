@@ -59,6 +59,7 @@ function analyse(file) {
 /* ---------- cue file ---------- */
 // lines: <time> <command> [args]   time = seconds or m:ss.xx ; '#' starts a comment
 //   <t> <expression>                 e.g. "1.2 kaget"  (see EXPR below: 33 expressions; soktahu adds nerd glasses)
+//   <t> gest senter <dur> [kiri|kanan] [atas|bawah]   takes out a flashlight and shines it (the beam itself is the 3D scene's job: F.flash)
 //   <t> gest catat <dur> [tinggi]    takes a black notebook (DEATH NOTE) out of the coat, opens it on his chest and writes in it with a pen; closes it at the end
 //   <t> gest hp <dur> [kiri|kanan] [angkat x y z]   holds a phone in front of the chest and READS it (screen tilted up to his face); angkat: picks it up from x y z first
 //   <t> gest <type> [dur] [kiri|kanan] [x y]   type: up cheer present shrug wave point press clap lookout dance facepalm knock cross
@@ -70,7 +71,7 @@ function analyse(file) {
 //   <t> hover off|on                 gentle floating (on by default)
 const EXPR = ['datar', 'imut', 'senang', 'kaget', 'penasaran', 'curiga', 'pusing', 'sinis', 'ngakak', 'duit', 'marah', 'sakit', 'kecewa', 'ragu', 'licik',
   'nangis', 'tersedu', 'girang', 'bahagia', 'cium', 'lega', 'gemas', 'syok', 'kesal', 'ngiler', 'merajuk', 'memelas', 'bosan', 'cemas', 'bangga', 'ngamuk', 'santai', 'soktahu', 'melet', 'gembung', 'tiup', 'malu', 'sewot', 'mati'];
-const GEST = ['kantong', 'flail', 'tread', 'cough', 'windup', 'blow', 'gaya', 'up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click', 'toss', 'cointhrow', 'pouch', 'deathnote', 'call', 'gun', 'hp', 'catat'];
+const GEST = ['kantong', 'flail', 'tread', 'cough', 'windup', 'blow', 'gaya', 'up', 'cheer', 'present', 'shrug', 'wave', 'point', 'press', 'clap', 'lookout', 'dance', 'facepalm', 'knock', 'cross', 'think', 'phone', 'paper', 'throw', 'hang', 'fist', 'write', 'magnify', 'nerd', 'crownlift', 'salam', 'pocket', 'click', 'toss', 'cointhrow', 'pouch', 'deathnote', 'call', 'gun', 'hp', 'catat', 'senter'];
 function parseCues(txt) {
   const C = { expr: [], gest: [], startle: [], look: [], fly: [], hover: [], cams: [], shakes: [], turns: [], fx: [], boing: [], float: [], panic: [], bg: null, frame: null, frameOverride: null }, warn = [];
   const time = s => { const m = s.split(':').map(Number); return m.length > 1 ? m[0] * 60 + m[1] : m[0]; };
@@ -104,7 +105,8 @@ function parseCues(txt) {
       if (type === 'throw' && nums.length) G.fly = nums[0];
       if (type === 'click') G.hit = t + dur * .4;
       if (type === 'paper' && rest.some(v => /^(will|wasiat)$/i.test(v))) G.will = true;
-      if (type === 'catat' && rest.some(v => /^(tinggi|high)$/i.test(v))) G.high = true;   // gest catat <dur> tinggi: the book held up at the chin (seated at a desk: clears the desk top)
+      if (type === 'catat' && rest.some(v => /^(tinggi|high)$/i.test(v))) G.high = true;
+      if (type === 'senter') G.aim = rest.some(v => /^(atas|up)$/i.test(v)) ? 'up' : rest.some(v => /^(bawah|down)$/i.test(v)) ? 'down' : 'fwd';   // flashlight aimed up / down / forward   // gest catat <dur> tinggi: the book held up at the chin (seated at a desk: clears the desk top)
       if ((type === 'phone' || type === 'hp') && rest.some(v => /^(angkat|lift)$/i.test(v))) { G.lift = true; G.grab = .32; G.reach = nums.length >= 3 ? nums.slice(0, 3) : null; }   // phone angkat [x y z]: the hand reaches down, grabs it (no pop) at t0+.32, lifts it beside the head
       C.gest.push(G);
     }

@@ -1,0 +1,9 @@
+# security 67.6-73.0: back to the camera, reading the keycard record: MUSEUM DIRECTOR
+0 toon
+0 detective 999 light2
+0 hover off
+67.60 curiga
+67.60 look 10 -8 0
+69.00 penasaran
+70.80 syok
+70.82 startle

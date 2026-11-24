@@ -191,6 +191,11 @@ function catatPose(G, t) {
   const tipB = toBase(...tip), nrm = [0, Math.sin(a), -Math.cos(a)], handR = [tipB[0] - .14 + nrm[0] * .3, tipB[1] + .08 + nrm[1] * .3, tipB[2] + nrm[2] * .3 + .05];
   return { c, a, sc, K, th, prog, li, f, writing, tip: tipB, handL: toBase(...hl), handR, rest: u < .78 || u > d - .5, d, u };
 }
+// ---- gest senter: a flashlight held out in front, aimed up / forward / down (the light itself is drawn by the 3D scene)
+function senterPose(G, t) { const sd = (G.side || 1) > 0 ? 1 : -1, u = t - G.t0, out = easeIO(clamp(u / .4, 0, 1)), sway = .03 * Math.sin(u * 2.3);
+  const H = G.aim === 'up' ? [sd * .78, 2.55 + sway, 1.45] : G.aim === 'down' ? [sd * .7, 1.55 + sway, 1.75] : [sd * .8, 2.0 + sway, 1.75];
+  const D = G.aim === 'up' ? [-sd * .15, .85, .5] : G.aim === 'down' ? [-sd * .1, -.7, .7] : [-sd * .12, -.08, 1];
+  const POCKET = [sd * .55, 1.4, .9]; return { sd, hand: POCKET.map((v, i) => lerp(v, H[i], out)), dir: D.map(v => v / Math.hypot(...D)), sc: clamp(u / .15, 0, 1) * (1 - smooth(G.t1 - .2, G.t1, t)) }; }
 function gEnv(G, t) { const r = Math.min(.16, (G.t1 - G.t0) / 3); return smooth(G.t0, G.t0 + r, t) * (1 - smooth(G.t1 - r, G.t1, t)); }
 const SHOULDER = side => [side * .27, 1.6, .1]; // ball (r .15) stays inside the body, caps the arm tube
 function gestureState(t, o) {
@@ -273,6 +278,7 @@ function gestureState(t, o) {
     }
     else if (G.type === 'call') { res[k0] = { env, h: [sd0 * .98, 2.72 + .02 * Math.sin(ph * 4), .42], head: true }; res[1 - k0] = HIP(-sd0); }   // phone held to the ear
     else if (G.type === 'gun') { const b = .02 * Math.sin(ph * 3); res[1] = { env, h: [.54, 1.63 + b, 1.95] }; res[0] = { env, h: [-.57, 2.53 + b, 1.95] }; }   // cartoon rifle across the chest
+    else if (G.type === 'senter') { const S = senterPose(G, t); res[S.sd > 0 ? 1 : 0] = { env, h: S.hand }; }   // flashlight hand
     else if (G.type === 'catat') { const P = catatPose(G, t); res[1] = { env, h: P.handL }; res[0] = P.rest ? HIP(-1) : { env, h: P.handR }; }   // notebook in his left hand (screen right), pen in his right (screen left)
     else if (G.type === 'hp') { const B = [sd0 * .74, 1.52 + .025 * Math.sin(ph * 4), 1.95], A = G.reach ? [sd0 * Math.abs(G.reach[0]), G.reach[1], G.reach[2]] : B, u = G.lift ? easeIO(clamp((t - G.t0 - G.grab - .04) / .55, 0, 1)) : 1;
       res[k0] = { env, h: A.map((v, i) => lerp(v, B[i], u)) }; }   // reading a phone held in front of the chest (never at the eyes)

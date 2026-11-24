@@ -1,0 +1,10 @@
+# gallery 28.4-32.4: notes the black fabric in the DEATH NOTE (visible 30.5-32.4)
+0 toon
+0 detective 999 light2
+0 hover off
+28.40 curiga
+28.40 look 0 -30 0
+30.45 gest catat 1.95
+30.50 look -6 22 0
+31.20 look 4 26 2
+31.80 licik

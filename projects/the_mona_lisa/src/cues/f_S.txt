@@ -1,0 +1,26 @@
+# security 32.4-49.2: the CCTV wall (up), cameras die one by one, the log (right, low), the staff record (left): MISSING
+0 toon
+0 detective 999 light2
+0 hover off
+32.40 penasaran
+32.40 look 0 -30 0
+33.40 look -15 -28 -2
+34.20 look 12 -32 2
+36.00 look 0 -30 0
+37.10 kaget
+37.15 startle
+37.60 look -10 -30 0
+38.30 syok
+38.90 curiga
+39.10 look 18 -10 0
+40.00 penasaran
+41.40 look 20 -6 2
+42.50 curiga
+43.90 look 40 -5 0
+44.30 curiga
+45.10 ragu
+46.00 look 45 -8 0
+47.20 kaget
+47.25 startle
+48.00 syok
+48.60 cemas

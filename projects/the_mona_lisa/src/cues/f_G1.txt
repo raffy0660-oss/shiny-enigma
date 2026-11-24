@@ -1,0 +1,32 @@
+# gallery 10.8-24.4: arrives, the empty frame (shock), the glass (flashlight), looks up at the hook (flashlight up)
+0 toon
+0 detective 999 light2
+0 hover off
+10.80 datar
+10.80 look 0 -4 0
+11.60 penasaran
+11.80 look -14 -6 -2
+12.40 look 12 -4 2
+12.60 curiga
+12.95 look -34 -6 -3
+13.40 look 30 -10 3
+13.75 look 2 -16 0
+14.30 look 0 -6 0
+14.96 kaget
+14.98 startle
+15.20 syok
+15.40 look 6 -4 3
+15.90 curiga
+16.45 gest senter 3.15 kanan
+16.50 look 4 -18 0
+17.10 look -8 -20 -2
+17.90 look 10 -22 2
+18.30 penasaran
+18.90 look 0 -16 0
+19.80 gest senter 4.55 kanan atas
+19.85 look 6 -42 0
+20.60 curiga
+21.60 look 2 -48 2
+22.90 kaget
+23.30 penasaran
+24.00 look 0 -40 0

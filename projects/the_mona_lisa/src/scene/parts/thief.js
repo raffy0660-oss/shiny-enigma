@@ -54,6 +54,6 @@ function placeThief(T) {
     const ak = Math.max(0, T.arms ?? 1), vis = ak > 0.02; A.up.visible = A.lo.visible = A.hand.visible = vis;   // arms only when needed (user rule): they grow out of the shoulder
     if (vis) { const k = Math.min(ak, 1.25), h2 = sh.clone().lerp(hnd, Math.min(1, k)), m2 = sh.clone().lerp(mid, Math.min(1, k)); segment(A.up, sh, m2); segment(A.lo, m2, h2); A.hand.position.copy(h2); A.hand.scale.setScalar(Math.max(0.01, k)); } }
   // rope from the eye bolt to the carabiner, and its loose tail hanging below him
-  const hookP = V(HOOK[0], HOOK[1] - 0.15, HOOK[2]), carab = THIEF.localToWorld(V(0, 0, 0.16)); segment(ROPE, hookP, carab);
+  const hookP = T.top ? V(...T.top) : V(HOOK[0], HOOK[1] - 0.15, HOOK[2]), carab = THIEF.localToWorld(V(0, 0, 0.16)); segment(ROPE, hookP, carab);
   const tl = T.tail ?? 0, sw = T.sway || 0; segment(ROPETAIL, carab, carab.clone().add(V(0.08 * Math.sin(sw), -tl, 0.06 * Math.cos(sw * 1.3))));
 }
