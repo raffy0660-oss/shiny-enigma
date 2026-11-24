@@ -270,6 +270,36 @@ function drawProps(t, PP, base, VP, L, cam) {
       tex(mat.chain(M0, mat.T(0, 0, -.037), mat.RY(Math.PI), mat.S(.31, .6, 1)), scanned ? PROP.screenOK : PROP.screenScan, { color: [1.15, 1.15, 1.15] });
       drawToon(PROP.phone, mat.chain(M0, mat.T(-.1, .24, .04), mat.S(.18, .1, .3)), VP, L, { color: [.3, .3, .34] }); // camera bump
     }
+    if (G.type === 'catat') { // the notebook + pen of gest catat (pose shared with the arms: catatPose in render.js)
+      const P = catatPose(G, t); if (P.sc <= .01) continue;
+      const B = mat.chain(base, mat.T(...P.c), mat.RX(-P.a), mat.S(P.sc * P.K, P.sc * P.K, P.sc * P.K)), BK = [.05, .05, .06], PG = [.95, .93, .86];
+      if (!PROP.dnCover) { PROP.dnCover = canvasTex(320, 430, (g, w, h) => { g.fillStyle = '#0b0b0e'; g.fillRect(0, 0, w, h); g.strokeStyle = '#2a2a30'; g.lineWidth = 6; g.strokeRect(10, 10, w - 20, h - 20);
+          g.fillStyle = '#f2f2f2'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '900 54px "Times New Roman", Georgia, serif'; g.save(); g.translate(w / 2, h * .36); g.scale(1, 1.25); g.fillText('DEATH', 0, -22); g.fillText('NOTE', 0, 30); g.restore();
+          g.strokeStyle = '#f2f2f2'; g.lineWidth = 2; g.beginPath(); g.moveTo(60, h * .55); g.lineTo(w - 60, h * .55); g.stroke(); });
+        PROP.dnPageL = canvasTex(300, 410, (g, w, h) => { g.fillStyle = '#f2eedf'; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(80,110,170,.35)'; g.lineWidth = 2; for (let y = 60; y < h; y += 34) { g.beginPath(); g.moveTo(16, y); g.lineTo(w - 12, y); g.stroke(); }
+          g.strokeStyle = 'rgba(200,60,60,.45)'; g.beginPath(); g.moveTo(40, 0); g.lineTo(40, h); g.stroke(); g.fillStyle = '#1c2a52'; g.font = '700 30px Caveat, "Comic Sans MS", cursive';
+          [['CASE #779', 52], ['Mona Lisa', 86], ['stolen - Louvre', 120], ['night, 02:00?', 154]].forEach(([s, y]) => g.fillText(s, 50, y)); g.strokeStyle = '#1c2a52'; g.lineWidth = 3; g.beginPath(); g.moveTo(50, 60); g.lineTo(190, 60); g.stroke(); });
+        PROP.dnPageR = {}; }
+      const step = Math.round(P.prog * 40), key = step;
+      if (!PROP.dnPageR[key]) PROP.dnPageR[key] = canvasTex(300, 410, (g, w, h) => { g.fillStyle = '#f2eedf'; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(80,110,170,.35)'; g.lineWidth = 2; for (let y = 60; y < h; y += 34) { g.beginPath(); g.moveTo(12, y); g.lineTo(w - 16, y); g.stroke(); }
+        const lines = ['Who took her?', 'glass? alarm?', 'inside job...', 'FIND HIM'], p = step / 40 * lines.length; g.fillStyle = '#1c2a52'; g.font = '700 30px Caveat, "Comic Sans MS", cursive';
+        lines.forEach((s, i) => { const k = Math.max(0, Math.min(1, p - i)); if (k <= 0) return; g.save(); g.beginPath(); g.rect(0, 0, 24 + (w - 30) * k, h); g.clip(); g.fillStyle = i === 3 ? '#a01818' : '#1c2a52'; g.fillText(s, 26, 56 + i * 36); g.restore(); });
+        if (p >= lines.length) { g.strokeStyle = '#a01818'; g.lineWidth = 3; g.beginPath(); g.moveTo(26, 168); g.lineTo(170, 166); g.stroke(); } });
+      const box = PROP.bookCover, pages = PROP.bookPages;
+      // fixed half (back cover + right pages)
+      const R = mat.chain(B, mat.T(.31, 0, 0)); drawOutline(box, mat.chain(R, mat.T(0, 0, -.05)), VP, 0); drawToon(box, mat.chain(R, mat.T(0, 0, -.05)), VP, L, { color: BK, spec: .2 });
+      drawToon(pages, mat.chain(R, mat.T(-.01, 0, -.002)), VP, L, { color: PG }); tex(mat.chain(R, mat.T(-.01, 0, .03), mat.S(.55, .77, 1)), PROP.dnPageR[key], { color: [1.08, 1.08, 1.08] });
+      // the leaf: front cover + left pages, hinged at the spine (x = 0)
+      const Lf = mat.chain(B, mat.RY(-P.th), mat.T(.31, 0, .075));
+      drawOutline(box, Lf, VP, 0); drawToon(box, Lf, VP, L, { color: BK, spec: .2 }); tex(mat.chain(Lf, mat.T(0, 0, .02), mat.S(.58, .8, 1)), PROP.dnCover, { color: [1.05, 1.05, 1.05] });
+      drawToon(pages, mat.chain(Lf, mat.T(-.01, 0, -.045)), VP, L, { color: PG }); tex(mat.chain(Lf, mat.T(-.01, 0, -.077), mat.RY(Math.PI), mat.S(.55, .77, 1)), PROP.dnPageL, { color: [1.08, 1.08, 1.08] });
+      drawToon(PROP.bookSpine, mat.chain(B, mat.T(0, 0, -.01), mat.S(.6, 1, .9)), VP, L, { color: BK });
+      // the pen: from its tip on the page up into the right hand
+      if (!P.rest) { const tip = P.tip, hd = P.handR, dv = [hd[0] - tip[0], hd[1] - tip[1], hd[2] - tip[2]], dl = Math.hypot(...dv), n = dv.map(v => v / dl), Lp = .55;
+        const PEN = PROP.box || (PROP.box = new Mesh(boxGeo(1, 1, 1))), Mp = mat.chain(base, mat.T(...tip), mat.RY(Math.atan2(n[0], n[2])), mat.RX(Math.acos(clamp(n[1], -1, 1))));
+        drawOutline(PEN, mat.chain(Mp, mat.T(0, Lp / 2, 0), mat.S(.055, Lp, .055)), VP, 0); drawToon(PEN, mat.chain(Mp, mat.T(0, Lp / 2, 0), mat.S(.045, Lp, .045)), VP, L, { color: [.08, .08, .1], spec: .5 });
+        drawToon(PEN, mat.chain(Mp, mat.T(0, .03, 0), mat.S(.03, .06, .03)), VP, L, { color: [.85, .7, .3], spec: .8 }); drawToon(PEN, mat.chain(Mp, mat.T(.03, Lp * .8, 0), mat.S(.012, .12, .02)), VP, L, { color: [.85, .7, .3], spec: .8 }); }
+    }
     if (G.type === 'hp' && Hd) { // phone READ in front of the chest: back to the camera, screen tilted up toward his face, a bit bigger than the ear phone
       const sd = (G.side || 1) > 0 ? 1 : -1, sc = G.lift ? (t >= G.t0 + G.grab ? 1 : 0) : clamp(env * 1.3, 0, 1); if (sc <= 0) continue;
       const M0 = mat.chain(Hd.M, mat.T(-sd * .05, .44, .14), mat.RY(sd * .38), mat.RX(.55), mat.S(1.9 * sc, 1.9 * sc, 1.9 * sc));   // gripped at its lower end: most of the phone shows above the round glove, so it reads as a phone

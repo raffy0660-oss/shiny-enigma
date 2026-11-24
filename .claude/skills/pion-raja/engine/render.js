@@ -177,6 +177,20 @@ function crownRimPt(u, sd) { // where the hand holds the crown: just outside its
   return [x * c - y * s + sd * .55 * u, 3.55 + x * s + y * c + 1.15 * u, .3 + .25 * u];
 }
 /* ---------- arms ---------- */
+// ---- gest catat: takes a notebook out of the coat, opens it on his chest, writes in it with a pen, closes it (book frame = base/model units)
+function catatPose(G, t) {
+  const d = Math.max(1.6, G.t1 - G.t0), u = t - G.t0, POCKET = [-.42, 1.55, 1.15], C = [-.02, 1.66, 2.05], A = .62, K = 1.4;
+  const out = easeIO(clamp(u / .45, 0, 1)), sc = clamp(u / .14, 0, 1) * (1 - smooth(G.t1 - .22, G.t1, t));
+  const th = Math.PI * (easeIO(clamp((u - .5) / .32, 0, 1)) - easeIO(clamp((u - (d - .55)) / .28, 0, 1)));   // the cover: 0 closed .. PI open
+  const w0 = .92, w1 = d - .62, prog = clamp((u - w0) / Math.max(.3, w1 - w0), 0, 1), writing = u > w0 && u < w1;
+  const c = POCKET.map((v, i) => lerp(v, C[i], out)), a = A * out;
+  const s = sc * K, toBase = (x, y, z) => [c[0] + x * s, c[1] + (y * Math.cos(a) + z * Math.sin(a)) * s, c[2] + (-y * Math.sin(a) + z * Math.cos(a)) * s];   // book local -> base (RX(-a))
+  const nl = 4, li = Math.min(nl - 1, Math.floor(prog * nl)), f = prog * nl - li, ph = u * 1.0;
+  const tip = [.12 + .36 * f + .012 * Math.sin(ph * 55) * (writing ? 1 : 0), .2 - li * .105 + .01 * Math.sin(ph * 37) * (writing ? 1 : 0), .045 + (writing ? 0 : .06)];
+  const open = th / Math.PI, hl = [lerp(.02, -.56, open), -.34, -.04];
+  const tipB = toBase(...tip), handR = [tipB[0] + .32, tipB[1] + .2, tipB[2] + .22];
+  return { c, a, sc, K, th, prog, li, f, writing, tip: tipB, handL: toBase(...hl), handR, rest: u < .78 || u > d - .5, d, u };
+}
 function gEnv(G, t) { const r = Math.min(.16, (G.t1 - G.t0) / 3); return smooth(G.t0, G.t0 + r, t) * (1 - smooth(G.t1 - r, G.t1, t)); }
 const SHOULDER = side => [side * .27, 1.6, .1]; // ball (r .15) stays inside the body, caps the arm tube
 function gestureState(t, o) {
@@ -259,6 +273,7 @@ function gestureState(t, o) {
     }
     else if (G.type === 'call') { res[k0] = { env, h: [sd0 * .98, 2.72 + .02 * Math.sin(ph * 4), .42], head: true }; res[1 - k0] = HIP(-sd0); }   // phone held to the ear
     else if (G.type === 'gun') { const b = .02 * Math.sin(ph * 3); res[1] = { env, h: [.54, 1.63 + b, 1.95] }; res[0] = { env, h: [-.57, 2.53 + b, 1.95] }; }   // cartoon rifle across the chest
+    else if (G.type === 'catat') { const P = catatPose(G, t); res[0] = { env, h: P.handL }; res[1] = P.rest ? HIP(1) : { env, h: P.handR }; }   // notebook in the left hand, pen in the right
     else if (G.type === 'hp') { const B = [sd0 * .74, 1.52 + .025 * Math.sin(ph * 4), 1.95], A = G.reach ? [sd0 * Math.abs(G.reach[0]), G.reach[1], G.reach[2]] : B, u = G.lift ? easeIO(clamp((t - G.t0 - G.grab - .04) / .55, 0, 1)) : 1;
       res[k0] = { env, h: A.map((v, i) => lerp(v, B[i], u)) }; }   // reading a phone held in front of the chest (never at the eyes)
     else if (G.type === 'phone' && G.lift) { const A = G.reach ? [sd0 * Math.abs(G.reach[0]), G.reach[1], G.reach[2]] : [sd0 * 1.1, .2, 1.6], B = [sd0 * .95, 2.95 + .03 * Math.sin(ph * 5), .85], u = easeIO(clamp((t - G.t0 - G.grab - .04) / .55, 0, 1));
