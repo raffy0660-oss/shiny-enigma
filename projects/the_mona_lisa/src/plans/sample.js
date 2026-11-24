@@ -20,10 +20,10 @@ const WALK = []; { let z = 3.4, t = 10.85; WALK.push({ t, p: [0.15, 0, z] }); fo
 const SEAT = 0.46, PZ = -1.37, FACE = [0, 1.12, -1.37], LAPP = { pos: [0.05, 0.786, -1.12], ry: Math.PI };
 const SH = [   // [t0, t1, set/loc, camera(t)]
   [0, 5.6, "heist"],
-  [5.6, 7.9, "office", t => { const k = sm((t - 5.6) / 2.3); return camK(L3([0.62, 1.42, -1.95], [0.5, 1.33, -1.72], k), [0.05, 0.95, -0.98], 44 - 6 * k); }],        // over his shoulder: the case file lands, ASSIGNED
-  [7.9, 10.75, "office", t => { const k = sm((t - 7.9) / 2.85); return camK(L3([1.25, 1.32, -0.55], [1.02, 1.22, -0.78], k), [0.0, 1.0, -1.37], 42 - 6 * k); }],          // front-right, past the laptop: the DEATH NOTE, him writing
+  [5.6, 7.9, "office", t => { const k = sm((t - 5.6) / 2.3); return camK(L3([-1.05, 1.38, -1.48], [-0.86, 1.32, -1.34], k), [0.05, 0.95, -0.98], 40 - 6 * k); }],        // over his left shoulder (outside the chair): the case file lands, ASSIGNED
+  [7.9, 10.75, "office", t => { const k = sm((t - 7.9) / 2.85); return camK(L3([1.3, 1.62, -0.42], [1.12, 1.52, -0.58], k), [0.0, 0.98, -1.37], 48 - 6 * k); }],   // higher: over the desk clutter, the DEATH NOTE in his hands          // front-right, past the laptop: the DEATH NOTE, him writing
   [10.75, 12.4, "gallery", t => { const k = sm((t - 10.75) / 1.65); return camK(L3([-1.3, 1.25, -0.9], [-1.15, 1.2, -0.45], k), [0.1, 1.1, 2.6 - 1.4 * k], 52 - 5 * k); }],      // from inside the hall: he comes in through the arch under the chandelier
-  [12.4, 14.1, "gallery", t => { const P = hops(t, WALK), k = sm((t - 12.4) / 1.7); return camK(L3([1.55, 1.35, 1.4], [1.15, 1.3, 0.25], k), [lerp(P.p[0], 0, k * 0.6), 0.9, lerp(P.p[2] - 1.2, -2.9, k)], 50 - 5 * k); }],   // behind-right, the crime scene opens up
+  [12.4, 14.1, "gallery", t => { const P = hops(t, WALK), k = sm((t - 12.4) / 1.7); return camK(L3([1.75, 1.45, 2.1], [1.4, 1.35, 0.75], k), [P.p[0] * 0.6, 0.8, P.p[2] - 1.0], 52 - 5 * k); }],   // behind-right, Pion kept in frame, the case ahead of him   // behind-right, the crime scene opens up
   [14.1, 14.95, "gallery", t => { const k = sm((t - 14.1) / 0.85); return camK(L3([0.42, 1.42, -0.55], [0.22, 1.45, -1.55], k), [0, 1.45, -3.4], 40 - 9 * k); }],         // a firmer zoom on the empty frame         // push in: the empty frame
   [14.95, T, "gallery", t => { const k = sm((t - 14.95) / 0.75); return camK(L3([0.7, 1.05, -2.35], [0.62, 1.08, -2.2], k), [0.12, 0.72, -1.05], 44 - 7 * sm(clamp((t - 14.95) / 0.22)) - 2 * k); }],   // a short zoom punch on "gone"          // his face: shock
 ];
