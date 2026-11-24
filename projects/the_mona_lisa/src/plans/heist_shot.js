@@ -13,17 +13,18 @@ const SIM = simulate({ hook: HOOK, T, L0: 0.35, release: 0.32, catchL: 2.0,
   punch: { t: T_SMASH, kick: 0.15 }, grip: [2.16, 2.26], panel: [2.26, 2.66], massAt: 2.5 });
 // camera: raw path per shot, then a critically damped follow (no snaps inside a shot; hard cuts between shots)
 const SHOTS = [
-  { t0: 0, t1: 1.75, pos: t => { const k = sm(t / 1.75); return [1.7 - 0.25 * k, 0.72 + 0.25 * k, -0.15 - 0.65 * k]; }, tgt: t => { const s = SIM.at(t + 0.08); return [s.pos[0] * 0.6, Math.max(1.9, s.pos[1] + 0.05), -2.95]; }, fov: 54 },
-  { t0: 1.75, t1: 3.0, pos: t => { const k = sm((t - 1.75) / 1.25); return [1.6 - 0.14 * k, 1.08 + 0.1 * k, -2.96 + 0.04 * k]; }, tgt: t => [0, 1.62, -2.88], fov: 52, aperture: 0.0018, noMonaBeam: true },
+  { t0: 0, t1: 1.75, pos: t => { const k = sm(t / 1.75); return [1.7 - 0.25 * k, 0.72 + 0.25 * k, -0.15 - 0.65 * k]; }, tgt: t => { const s = SIM.at(t + 0.08); return [s.pos[0] * 0.6, Math.max(1.9, s.pos[1] + 0.05), -2.95]; }, fov: t => 57 - 7 * sm(t / 1.75) },   // a slow, gentle zoom-in (user: camera movement, not brutal)
+  { t0: 1.75, t1: 3.0, pos: t => { const k = sm((t - 1.75) / 1.25); return [1.6 - 0.14 * k, 1.08 + 0.1 * k, -2.96 + 0.04 * k]; }, tgt: t => [0, 1.62, -2.88], fov: t => 54 - 6 * sm((t - 1.75) / 1.25), aperture: 0.0018, noMonaBeam: true },
   { t0: 3.0, t1: T, pos: t => { const k = sm((t - 3.0) / 1.6); return [0.95 - 0.35 * k, 0.85 + 0.45 * k, -1.2 - 0.35 * k]; },
-    tgt: t => { const s = SIM.at(t), k = sm(clamp((t - 3.55) / 0.8)); return [s.pos[0] * (1 - k), (s.pos[1] + 0.3) * (1 - k) + 1.45 * k, -2.75 * (1 - k) - 3.4 * k]; }, fov: 56 },
+    tgt: t => { const s = SIM.at(t), k = sm(clamp((t - 3.55) / 0.8)); return [s.pos[0] * (1 - k), (s.pos[1] + 0.3) * (1 - k) + 1.45 * k, -2.75 * (1 - k) - 3.4 * k]; }, fov: t => 58 - 10 * sm(clamp((t - 3.5) / 1.1)) },   // up after him, then settle and zoom on the empty frame
 ];
 const CAM = SHOTS.map(S => { const dt = 1 / 240, n = Math.ceil((S.t1 - S.t0) / dt) + 2, P = [], Q = []; let p = S.pos(S.t0), q = S.tgt(S.t0), pv = [0, 0, 0], qv = [0, 0, 0]; const w = 9;
   for (let i = 0; i < n; i++) { const t = S.t0 + i * dt, pr = S.pos(t), qr = S.tgt(t);
     for (let j = 0; j < 3; j++) { pv[j] += (w * w * (pr[j] - p[j]) - 2 * w * pv[j]) * dt; p[j] += pv[j] * dt; qv[j] += (w * w * (qr[j] - q[j]) - 2 * w * qv[j]) * dt; q[j] += qv[j] * dt; }
     P.push(p.slice()); Q.push(q.slice()); } return { S, P, Q }; });
 function cam(t) { const C = CAM.find(c => t >= c.S.t0 && t < c.S.t1) || CAM[CAM.length - 1], i = Math.min(C.P.length - 1, Math.round((t - C.S.t0) * 240)), pos = C.P[i], tgt = C.Q[i];
-  return { pos, tgt, fov: C.S.fov, aperture: C.S.aperture ?? 0.0016, focus: Math.hypot(...pos.map((v, j) => v - tgt[j])), noMonaBeam: !!C.S.noMonaBeam }; }
+  const hh = [0.012 * Math.sin(t * 1.7) + 0.006 * Math.sin(t * 4.1), 0.01 * Math.sin(t * 1.3 + 1), 0.008 * Math.sin(t * 2.2 + 2)];   // a breath of handheld
+  return { pos, tgt: tgt.map((v, j) => v + hh[j]), fov: typeof C.S.fov === "function" ? C.S.fov(t) : C.S.fov, aperture: C.S.aperture ?? 0.0016, focus: Math.hypot(...pos.map((v, j) => v - tgt[j])), noMonaBeam: !!C.S.noMonaBeam }; }
 function frame(t) { const s = SIM.at(t), sh = t >= T_SMASH ? t - T_SMASH : null;
   const c = cam(t); return { t, set: "museum", loc: "gallery", mood: "heistWarm", monaBeamK: c.noMonaBeam ? 0 : 1, glass: t >= T_SMASH ? "broken" : "ok", shatter: sh,
     thief: { pos: s.pos, q: s.q, arms: s.arms, handL: s.handL, handR: s.handR, grip: s.grip, panelK: s.panelK },
