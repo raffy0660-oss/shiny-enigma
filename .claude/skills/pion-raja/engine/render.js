@@ -179,7 +179,7 @@ function crownRimPt(u, sd) { // where the hand holds the crown: just outside its
 /* ---------- arms ---------- */
 // ---- gest catat: takes a notebook out of the coat, opens it on his chest, writes in it with a pen, closes it (book frame = base/model units)
 function catatPose(G, t) {
-  const d = Math.max(1.6, G.t1 - G.t0), u = t - G.t0, POCKET = [-.42, 1.55, 1.15], C = [0, 1.58, 1.85], A = .9, K = 1.4;   // the book is READ by Pion: pages tilted up toward HIS face (camera sees the back cover)
+  const d = Math.max(1.6, G.t1 - G.t0), u = t - G.t0, POCKET = [-.42, 1.55, 1.15], C = [0, 1.72, 1.85], A = .45, K = 1.4;   // the book is READ by Pion: pages tilted up toward HIS face (camera sees the back cover)
   const out = easeIO(clamp(u / .45, 0, 1)), sc = clamp(u / .14, 0, 1) * (1 - smooth(G.t1 - .22, G.t1, t));
   const th = Math.PI * (easeIO(clamp((u - .5) / .32, 0, 1)) - easeIO(clamp((u - (d - .55)) / .28, 0, 1)));   // the cover: 0 closed .. PI open
   const w0 = .92, w1 = d - .62, prog = clamp((u - w0) / Math.max(.3, w1 - w0), 0, 1), writing = u > w0 && u < w1;
