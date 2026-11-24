@@ -1,17 +1,12 @@
 """Remotion caption layer for the Mona Lisa sample (narration captions, 1-2 words, in sync with the VO) -> ~/pion/proj13/final/sample_ov.mp4
-No word timestamps (ElevenLabs STT credits used up): each phrase is placed between the pauses found in vo.mp3 (ffmpeg silencedetect)
-and its words are spread over it by syllable weight."""
+Word timing: ElevenLabs speech-to-text (audio/stt.json)."""
 import json, os, re, subprocess, glob
 P = os.path.expanduser("~/pion/proj13"); REM = os.path.expanduser("~/pion/castle3d/remotion"); CHROME = glob.glob("/opt/pw-browsers/chromium-*/chrome-linux*/chrome")[0]
-HERE = os.path.dirname(os.path.realpath(__file__)); N = 930
-PHRASES = [(0.02, 2.56, "Someone had stolen the Mona Lisa."), (2.64, 3.10, "And now,"), (3.20, 5.31, "I was the one assigned to find it..."),
-           (5.67, 6.37, "and uncover"), (6.45, 8.13, "the identity of the thief."), (8.35, 10.41, "When I arrived at the museum,"),
-           (10.92, 13.71, "I examined the crime scene."), (14.23, 15.37, "The painting was gone.")]
-syl = lambda w: max(1, len(re.findall(r"[aeiouy]+", w.lower().strip(".,!?"))) - (1 if w.lower().strip(".,!?").endswith("e") and len(w) > 3 else 0))
-words = []
-for a, b, txt in PHRASES:
-    ws = txt.split(); wt = [syl(w) + 0.35 for w in ws]; tot = sum(wt); t = a
-    for w, k in zip(ws, wt): d = (b - a) * k / tot; words.append([t, t + d, w]); t += d
+HERE = os.path.dirname(os.path.realpath(__file__)); N = 942
+words = []   # word timing from ElevenLabs STT (audio/stt.json)
+for seg in json.load(open(P + "/audio/stt.json")):
+    for a, b, w in seg["w"]:
+        if a < 15.7: words.append([a, min(b, 15.7), w.strip()])
 chunks, i = [], 0
 while i < len(words):
     a, b, w = words[i]; txt = w; j = i + 1

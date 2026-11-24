@@ -1,18 +1,19 @@
-# gallery 8.3-15.5: hops in through the arch, looks over the crime scene, the empty frame: shock
+# gallery 10.75-15.7: hops in through the arch ("When I arrived at the museum"), looks over the crime scene ("I examined the crime scene"),
+# the empty frame ("The painting was gone"): shock
 0 toon
 0 detective 999 light2
 0 hover off
-8.30 datar
-8.30 look 0 0 0
-9.40 penasaran
-10.20 look -10 -6 0
-11.00 look 8 -4 2
+10.75 datar
+10.75 look 0 -4 0
+11.60 penasaran
+11.80 look -14 -6 -2
+12.40 look 12 -4 2
 12.60 curiga
-12.65 look -38 -4 -3
-13.15 look 34 -8 3
-13.55 look 4 -20 0
-13.78 kaget
-13.80 startle
-14.20 look 0 -6 0
-14.65 syok
-15.10 look 6 -4 3
+12.95 look -34 -6 -3
+13.40 look 30 -10 3
+13.75 look 2 -16 0
+14.30 look 0 -6 0
+14.96 kaget
+14.98 startle
+15.20 syok
+15.40 look 6 -4 3

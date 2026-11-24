@@ -1,8 +1,9 @@
-"""The Mona Lisa Heist, sample 0-15.5 s: dramatic SFX + score + VO -> ~/pion/proj13/final/sample_audio.wav (+ sample_sfx_only.wav, no VO).
-ElevenLabs credits are used up: everything new is synthesized here (numpy), plus the SFX library of the earlier films (~/pion/proj12/sfx_norm).
+"""The Mona Lisa Heist, sample 0-15.7 s: dramatic SFX + score + VO -> ~/pion/proj13/final/sample_audio.wav (+ sample_sfx_only.wav, no VO).
+SFX generated with ElevenLabs (audio/el/*.mp3: glass, rope, winch, hall, sting, pen, book, chime, hop, whoosh, two music stems) layered with
+synthesized ones (numpy) and the SFX library of the earlier films (~/pion/proj12/sfx_norm). The ElevenLabs music API needs a paid plan.
 A hall reverb (synthetic impulse response) glues the museum sounds; the office stays dry; loudness: VO on top, score under it."""
 import os, wave, subprocess, numpy as np
-SR, T = 48000, 15.5
+SR, T = 48000, 15.7
 N = int(SR * T)
 P = os.path.expanduser("~/pion/proj13"); LIB = os.path.expanduser("~/pion/proj12/sfx_norm")
 rng = np.random.default_rng(11)
@@ -68,49 +69,43 @@ def riser(d):
     for i in range(len(nz)): s += a[i] * (nz[i] - s); y[i] = s
     return (y * 1.5 + 0.2 * np.sin(2 * np.pi * np.cumsum(150 + 900 * u ** 2) / SR)) * u ** 1.8
 
-# ---------------- score (synth): heist = staccato strings at 140 bpm over a low D, timpani on the actions; then a low pulse + heartbeat
+# ---------------- score: ElevenLabs music stems (heist strings, detective pulse) + synth drone + timpani on the actions
+EL = f"{P}/audio/el"; H0 = 0.5   # the heist runs 0.5 s late (an establishing beat first)
 def score():
     out = np.zeros((N, 2)); tt = np.arange(N) / SR
     saw = lambda f, x: 2 * ((x * f) % 1.0) - 1
-    drone = (saw(36.7, tt) + saw(36.9, tt) + 0.6 * saw(55.0, tt)) / 2.6; drone = lp(drone, 0.03)
-    dv = np.interp(tt, [0, 0.3, 4.4, 4.6, 8.3, 8.5, 13.7, 15.5], [0, .55, .8, .25, .3, .38, .5, .55])
-    out[:, 0] += drone * dv * 0.5; out[:, 1] += drone * dv * 0.5
-    beat = 60 / 140 / 2
-    for k in range(int(4.5 / beat)):   # staccato string 8ths (D minor figure), heist only
-        t0 = k * beat; notes = [146.8, 146.8, 174.6, 146.8, 220.0, 146.8, 174.6, 196.0]; f = notes[k % 8]; n = int(0.16 * SR); x = np.arange(n) / SR
-        s = (saw(f, x) + 0.5 * saw(f * 2.003, x)) * np.exp(-x * 18) * (0.5 + 0.5 * (k % 2 == 0)); put(out, lp(s, 0.25) * 0.22, t0, pan=(-0.3 if k % 2 else 0.3))
-    for t0, g in ((0.0, .8), (1.0, 1.0), (1.92, 1.25), (3.02, .9), (3.9, 1.3)): put(out, boom(70, 32, 2.4, 1.0), t0, g)
-    put(out, riser(0.85), 3.05, 0.55)
-    pulse = np.sin(2 * np.pi * 55 * tt) * (0.5 + 0.5 * np.sign(np.sin(2 * np.pi * 1.2 * tt))) ; pv = np.interp(tt, [0, 4.6, 4.7, 8.3, 8.4, 15.5], [0, 0, .18, .2, .14, .2]); out[:, 0] += lp(pulse, 0.05) * pv; out[:, 1] += lp(pulse, 0.05) * pv
-    tb = load(f"{LIB}/tension_bed.wav"); put(out, tb[:int(11 * SR)] * np.interp(np.arange(min(len(tb), int(11 * SR))) / SR, [0, 1.5, 9, 11], [0, 1, 1, .7])[:, None], 4.5, 0.35)
+    drone = lp((saw(36.7, tt) + saw(36.9, tt) + 0.6 * saw(55.0, tt)) / 2.6, 0.03)
+    dv = np.interp(tt, [0, 0.4, 5.4, 5.6, 10.75, 11.0, 14.9, 15.7], [0, .45, .7, .2, .25, .35, .5, .6]); out += st(drone * dv * 0.45)
+    mh = load(f"{EL}/mus_heist.mp3"); put(out, mh * np.interp(np.arange(len(mh)) / SR, [0, 0.2, 5.0, 5.6, 6.1], [0, 1, 1, .5, 0])[:, None], 0.0, 0.9)
+    md = load(f"{EL}/mus_detective.mp3"); put(out, md * np.interp(np.arange(len(md)) / SR, [0, 0.6, 9.5, 11.0], [0, 1, 1, .6])[:, None], 5.55, 0.75)
+    for t0, g in ((H0 + 0.98, .8), (H0 + 1.92, 1.2), (H0 + 3.02, .8), (4.62, 1.2), (14.96, 1.1)): put(out, boom(70, 32, 2.4), t0, g)
+    put(out, riser(0.9), H0 + 3.0, 0.5)
     return out
-
 # ---------------- build
 sfx = np.zeros((N, 2)); hall = np.zeros((N, 2))
-amb = lp(rng.standard_normal(N), 0.004) * 0.6 + 0.02 * np.sin(2 * np.pi * 50 * np.arange(N) / SR)   # museum room tone (hum + air)
-av = np.interp(np.arange(N) / SR, [0, 4.6, 4.65, 8.3, 8.35, 15.5], [1, 1, 0, 0, 1, 1]); hall += st(amb * av * 0.25)
-put(hall, rope_zip(0.7), 0.32, 0.9); put(hall, rope_catch(), 1.0, 1.0)
-put(hall, load(f"{LIB}/whoosh.wav"), 1.12, 0.9, pan=-0.2); put(hall, load(f"{LIB}/whoosh2.wav"), 1.66, 0.35, pan=0.3)   # turn over, arms out
-put(hall, load(f"{LIB}/glass_crack.wav"), 1.9, 1.2); put(hall, shatter(), 1.92, 1.1); put(sfx, load(f"{LIB}/bass_hit.wav"), 1.92, 0.9)
-put(hall, creak(0.45), 2.28, 0.7, pan=0.2); put(hall, lp(rng.standard_normal(int(0.35 * SR)), 0.3) * np.hanning(int(0.35 * SR)) * 0.5, 2.35, 0.6)   # the panel slides out
-put(hall, load(f"{LIB}/whoosh.wav"), 2.62, 0.7, pan=0.2); put(hall, rope_zip(0.8, up=True), 3.0, 1.0); put(hall, load(f"{LIB}/whoosh2.wav"), 3.05, 0.8)
-put(sfx, load(f"{LIB}/sting.wav"), 3.88, 0.9)
-put(sfx, ding(), 4.78, 0.8); put(sfx, load(f"{LIB}/stamp.wav"), 5.6, 1.1); put(sfx, load(f"{LIB}/bass_hit.wav"), 5.6, 0.35)
-put(sfx, load(f"{LIB}/paper.wav"), 6.02, 0.9); put(sfx, flap(), 6.55, 0.9); put(sfx, scribble(1.3), 6.95, 0.75); put(sfx, flap(), 8.1, 0.5)
-import importlib.util
-for k in range(11): put(hall, load(f"{LIB}/hop.wav")[:int(0.35 * SR)], 8.35 + 0.42 * k + 0.41, 0.42, pan=(0.1 if k % 2 else -0.1))   # landings
-put(sfx, load(f"{LIB}/sting.wav"), 13.76, 1.0); put(sfx, boom(64, 30, 2.2), 13.78, 0.9)
-hb = load(f"{LIB}/heartbeat.wav"); [put(sfx, hb, 14.0 + 0.78 * k, 0.75 - 0.08 * k) for k in range(2)]
-sfx += reverb(hall, 2.4, 0.38)
+ha = load(f"{EL}/hall_amb.mp3"); amb = np.concatenate([ha] * 3)[:N]; av = np.interp(np.arange(N) / SR, [0, 5.55, 5.6, 10.75, 10.8, 15.7], [1, 1, 0, 0, 1, 1]); hall += amb * av[:, None] * 0.9
+put(hall, load(f"{EL}/rope_zip.mp3"), H0 + 0.3, 1.0); put(hall, rope_zip(0.66), H0 + 0.32, 0.35)                              # released: the rope runs
+put(hall, load(f"{EL}/rope_catch.mp3"), H0 + 0.96, 1.0); put(hall, rope_catch(), H0 + 0.98, 0.45)                            # caught: thud, twang
+put(hall, load(f"{EL}/flip_whoosh.mp3"), H0 + 1.1, 0.9, pan=-0.2); put(hall, load(f"{LIB}/whoosh2.wav"), H0 + 1.64, 0.3, pan=0.3)   # turns over, the arms pop out
+put(hall, load(f"{EL}/glass_shatter.mp3"), H0 + 1.9, 1.25); put(hall, shatter(), H0 + 1.92, 0.45); put(sfx, load(f"{LIB}/bass_hit.wav"), H0 + 1.92, 0.9)
+put(hall, creak(0.45), H0 + 2.28, 0.7, pan=0.2); put(hall, lp(rng.standard_normal(int(0.35 * SR)), 0.3) * np.hanning(int(0.35 * SR)) * 0.5, H0 + 2.35, 0.6)   # the panel slides out
+put(hall, load(f"{EL}/flip_whoosh.mp3"), H0 + 2.6, 0.6, pan=0.2); put(hall, load(f"{EL}/winch_up.mp3"), H0 + 2.98, 1.1); put(hall, rope_zip(0.8, up=True), H0 + 3.0, 0.35)
+put(sfx, load(f"{EL}/sting.mp3"), 4.6, 0.85)                                                                                  # "...without a trace": the empty frame
+put(sfx, load(f"{EL}/notif.mp3"), 5.8, 0.8); put(sfx, load(f"{LIB}/stamp.wav"), 7.15, 1.1); put(sfx, load(f"{LIB}/bass_hit.wav"), 7.15, 0.35)
+put(sfx, load(f"{LIB}/paper.wav"), 7.97, 0.8); put(sfx, load(f"{EL}/book_open.mp3"), 8.45, 0.9); put(sfx, load(f"{EL}/pen_write.mp3")[:int(1.6 * SR)] * np.hanning(int(1.6 * SR))[:, None] ** 0.3, 8.9, 0.8); put(sfx, flap(), 10.42, 0.45)
+for k in range(1, 8): put(hall, load(f"{EL}/hop.mp3"), 10.85 + 0.38 * k - 0.02, 0.55, pan=(0.1 if k % 2 else -0.1))       # landings (WALK in sample.js)
+put(sfx, load(f"{EL}/sting.mp3"), 14.94, 0.9)                                                                                 # "The painting was gone"
+hb = load(f"{LIB}/heartbeat.wav"); put(sfx, hb, 15.15, 0.7)
+sfx += reverb(hall, 2.4, 0.3)
 mus = score()
 vo = load(f"{P}/audio/vo.mp3")[:N]; vo = np.pad(vo, ((0, N - len(vo)), (0, 0)))
 def write(path, x):
     x = np.tanh(x * 1.0); x /= max(1e-6, np.abs(x).max() / 0.95)
     with wave.open(path, "wb") as w: w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes((x * 32767).astype("<i2").tobytes())
 os.makedirs(f"{P}/final", exist_ok=True)
-duck = 1 - 0.45 * np.clip(lp(np.abs(vo[:, 0]) * 6, 0.0008), 0, 1)                                # duck score under the voice
-mix = vo * 1.0 + sfx * 0.55 + mus * 0.42 * duck[:, None]
-write(f"{P}/final/_s_mix.wav", mix); write(f"{P}/final/_s_sfx.wav", sfx * 0.55 + mus * 0.42)
+duck = 1 - 0.5 * np.clip(lp(np.abs(vo[:, 0]) * 6, 0.0008), 0, 1)                                # the score ducks under the voice
+mix = vo * 1.0 + sfx * 0.6 + mus * 0.4 * duck[:, None]
+write(f"{P}/final/_s_mix.wav", mix); write(f"{P}/final/_s_sfx.wav", sfx * 0.6 + mus * 0.4)
 for a, b in (("_s_mix.wav", "sample_audio.wav"), ("_s_sfx.wav", "sample_sfx_only.wav")):
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f"{P}/final/{a}", "-af", "loudnorm=I=-13:TP=-1.0:LRA=9", "-ar", str(SR), f"{P}/final/{b}"], check=True)
 print("->", f"{P}/final/sample_audio.wav")
