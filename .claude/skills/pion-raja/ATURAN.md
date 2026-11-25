@@ -76,3 +76,12 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     "Wait…?" di 30–55%; pivot "You see," + analogi di 65–82%; payoff ironis yang mengulang pembuka; 3.6–3.8 kata/dtk
     tanpa jeda > 0.3 dtk; master -14 LUFS; video habis ≤ 0.25 dtk setelah kata terakhir, tanpa fade. Isi checklist di
     bagian H sebelum render.
+29. **Kualitas produksi mengikuti `PANDUAN_KUALITAS.md`** (hasil ukur 14 referensi):
+    - zoom = gerak kamera 3D 0,8–1,6 dtk dengan easeInOutSine, di-ease di ruang log (`engine/camease.js`), bukan crop;
+    - minimal 1 dari 4 zoom adalah pull-out, dan punch pendek ≤ 10% / 0,3 dtk;
+    - hard cut ≤ 2 per menit;
+    - "misterius" = biru navy dan kontras hangat-dingin, tetap dengan titik terang (p98 ≥ 210) dan hitam yang
+      terangkat (p2 12–25), rata-rata luma 70–100, tidak boleh hitam pekat;
+    - dunia padat dengan figuran yang bereaksi; caption instan tanpa pop;
+    - ekspor dengan motion blur (tmix), -14 LUFS.
+    Jalankan `tools/refs_analysis/qc_kualitas.py` sebelum mengirim video.
