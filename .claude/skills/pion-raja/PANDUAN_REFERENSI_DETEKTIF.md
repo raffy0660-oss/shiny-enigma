@@ -20,12 +20,11 @@ Diukur dari videonya (ffmpeg scene detect + contact sheet tiap ~1,2 dtk + strip 
 7. **Label 3D di dalam dunia**, bukan grafis tempel: papan / tulisan menempel di benda ("OUR WINNERS", "PRIZE CLAIMS").
 8. **Cutaway / diorama**: potongan tanah (peti di bawah tanah), tampak atas meja / dinding foto untuk menjelaskan.
 9. **Over-shoulder dialog** dengan kepala karakter depan besar dan blur; karakter keluar frame lewat pintu (blocking).
-10. **Iris / spotlight** di beat penting ("But..."): sekeliling gelap menyempit ke wajah / benda; **garis konsentrasi radial**
-   untuk kaget / impact; **bingkai latar depan** (jeruji, kusen, jendela bulat) untuk kedalaman; **insert waktu** (kalender, jam).
+10. **Iris / spotlight** di beat penting ("But..."): sekeliling gelap menyempit ke wajah / benda; **bingkai latar depan** (jeruji, kusen, jendela bulat) untuk kedalaman; **insert waktu** (kalender, jam).
 11. **Caption 1 kata**, putih tebal + outline hitam, di tengah agak bawah, ganti tiap kata.
 
 ## Yang sudah dipakai di "The Mona Lisa Heist" v3 (contoh implementasi)
-- `post_film.py`: grade low-key misterius (v4; v3 terlalu terang menurut user); iris di beat tegang; garis konsentrasi di beat kaget; smash zoom 0,14 dtk di kata kunci (hook, technician,
+- `post_film.py`: grade low-key misterius (v4; v3 terlalu terang menurut user); iris di beat tegang; (garis konsentrasi v4 DITOLAK user: tidak ada di referensi); smash zoom 0,14 dtk di kata kunci (hook, technician,
   disappeared, hatch, footprints, waiting, card, director); POV CCTV + HUD (REC, CAM 01, jam berjalan, scanline, noise).
 - Shot rekaman CCTV = POV kamera plafon, hitam putih (`F.bw`, `cctvPov`).
 - Remotion `SceneOverlay`: `word` ("UNTOUCHED"), `cuts` = flash zoom-blur di tiap ganti lokasi. (Item `ring` ada di komponen
@@ -37,3 +36,12 @@ Diukur dari videonya (ffmpeg scene detect + contact sheet tiap ~1,2 dtk + strip 
 - Minimal 2-3 close-up reaksi Pion per menit.
 - Grade low-key misterius untuk cerita detektif, tapi subjek selalu disorot (jangan keruh tanpa titik terang).
 - Rekaman / layar = POV full screen dengan HUD.
+
+## Koreksi user setelah v4 (wajib untuk konten berikutnya; lihat ATURAN 25-27)
+- **Tidak ada efek garis-garis saat zoom.** Zoom murni. Mulai dari framing agak jauh agar zoom terasa sebagai reveal.
+- **Kamera terlalu dekat = kelemahan utama kita.** Referensi: karakter besar di awal, lalu kamera mundur sampai karakter
+  kecil di dalam lingkungannya. Beri ruang di sekitar subjek.
+- **Tanpa hard transition.** Latar berpindah lewat hubungan di dunia cerita: latar 1 jadi foto/layar di latar 2, ruangan
+  (latar 1) ada di dalam bangunan di lingkungan latar 2 (kamera keluar jendela -> bangunan -> lingkungan), pantulan, match
+  cut benda. Storyboard menulis rantai transisi ini lebih dulu, set dibangun bersambung dalam satu dunia.
+

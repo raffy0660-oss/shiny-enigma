@@ -52,7 +52,23 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     layarnya ke arah mata Pion, kamera melihat sampul belakang / punggung HP. Judul buku ditaruh di sampul luar supaya
     tetap terbaca dari kamera (`gest catat`: buku DEATH NOTE, halaman ke Pion, judul di kedua sampul luar).
     Kalau isi halaman / layar perlu terlihat penonton, pakai shot insert dari balik bahu Pion, jangan memutar bendanya.
-24. **Ikuti PANDUAN_REFERENSI_DETEKTIF.md** untuk video detektif/explainer: ganti fokus kamera tiap 1-2 dtk, smash zoom ke benda di katanya, POV+HUD untuk rekaman, grade low-key misterius (bukan terang) dengan subjek tetap disorot, iris di beat tegang, garis konsentrasi di beat kaget, close-up reaksi.
+24. **Ikuti PANDUAN_REFERENSI_DETEKTIF.md** untuk video detektif/explainer: ganti fokus kamera tiap 1-2 dtk, smash zoom ke benda di katanya, POV+HUD untuk rekaman, grade low-key misterius (bukan terang) dengan subjek tetap disorot, iris di beat tegang, close-up reaksi. TANPA garis konsentrasi (lihat 25).
 23. **Gerakan aksi pakai fisika, bukan lerp keyframe**: tali = bandul (gravitasi, panjang tali berubah, efek Coriolis),
     berhenti di tali = pegas teredam (sedikit mantul), rotasi badan = inersia + redaman, puntiran tali = pegas torsi,
     tinju = impuls + hentakan balik, tangan = pegas mengikuti target. Lihat `projects/the_mona_lisa/src/plans/heist_sim.js`.
+25. **Zoom = zoom saja, tanpa garis-garis** (garis konsentrasi radial / speed lines TIDAK ada di referensi, jangan dipakai).
+    Zoom harus berangkat dari framing yang AGAK JAUH dulu, supaya saat zoom masuk benar-benar terasa "menampilkan sesuatu"
+    (reveal). Jangan zoom dari framing yang sudah dekat.
+26. **Kamera jangan terlalu dekat** (kelemahan terbesar versi kita). Pola referensi: karakter awalnya besar (close / medium),
+    lalu kamera bergerak mundur / naik sehingga karakter jadi kecil dan lingkungannya terlihat (wide reveal). Setiap shot
+    punya ruang di sekitar subjek; close-up hanya untuk beat reaksi, dan tidak berturut-turut.
+27. **Tidak ada hard transition antar scene.** Pergantian latar selalu menyambung secara logis, latar 1 dan latar 2 punya
+    hubungan di dalam dunia ceritanya, contohnya:
+    - latar 1 berubah jadi **foto / layar / lukisan / poster** yang ada di latar 2 (kamera mundur dari foto itu);
+    - latar 1 adalah **ruangan di dalam bangunan** yang berdiri di lingkungan latar 2 (kamera keluar lewat jendela / pintu,
+      terbang mundur sampai bangunannya kelihatan, lalu turun ke latar 2); atau sebaliknya masuk lewat jendela;
+    - latar 1 terlihat **di layar CCTV / HP / laptop** di latar 2, atau di **pantulan** (kaca, genangan, mata);
+    - benda yang sama menyambungkan dua latar (match cut bentuk/benda: bulan -> lampu, bingkai kosong -> bingkai foto).
+    Rencanakan rantai transisi ini di storyboard SEBELUM membangun set (set yang bersebelahan / bersarang dibangun dalam
+    satu dunia 3D supaya kamera bisa terbang kontinu dari satu ke yang lain).
+
