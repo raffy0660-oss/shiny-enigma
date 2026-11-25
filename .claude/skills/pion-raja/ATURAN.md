@@ -52,7 +52,7 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     layarnya ke arah mata Pion, kamera melihat sampul belakang / punggung HP. Judul buku ditaruh di sampul luar supaya
     tetap terbaca dari kamera (`gest catat`: buku DEATH NOTE, halaman ke Pion, judul di kedua sampul luar).
     Kalau isi halaman / layar perlu terlihat penonton, pakai shot insert dari balik bahu Pion, jangan memutar bendanya.
-24. **Ikuti PANDUAN_REFERENSI_DETEKTIF.md** untuk video detektif/explainer: ganti fokus kamera tiap 1-2 dtk, smash zoom ke benda di katanya, POV+HUD untuk rekaman, warna cerah dengan bayangan biru, close-up reaksi.
+24. **Ikuti PANDUAN_REFERENSI_DETEKTIF.md** untuk video detektif/explainer: ganti fokus kamera tiap 1-2 dtk, smash zoom ke benda di katanya, POV+HUD untuk rekaman, grade low-key misterius (bukan terang) dengan subjek tetap disorot, iris di beat tegang, garis konsentrasi di beat kaget, close-up reaksi.
 23. **Gerakan aksi pakai fisika, bukan lerp keyframe**: tali = bandul (gravitasi, panjang tali berubah, efek Coriolis),
     berhenti di tali = pegas teredam (sedikit mantul), rotasi badan = inersia + redaman, puntiran tali = pegas torsi,
     tinju = impuls + hentakan balik, tangan = pegas mengikuti target. Lihat `projects/the_mona_lisa/src/plans/heist_sim.js`.
