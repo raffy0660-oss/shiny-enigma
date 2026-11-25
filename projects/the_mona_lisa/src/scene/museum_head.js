@@ -42,9 +42,9 @@ const pionComp = new ShaderPass({
 });
 pionComp.uniforms.tPion.value = pionRT.texture; composer.addPass(pionComp);
 const grade = new ShaderPass({
-  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, vig: { value: 0.45 }, tint: { value: new THREE.Vector3() }, sepia: { value: 0 }, flash: { value: 0 }, grain: { value: 0.025 } },
+  uniforms: { tDiffuse: { value: null }, time: { value: 0 }, vig: { value: 0.45 }, tint: { value: new THREE.Vector3() }, sepia: { value: 0 }, flash: { value: 0 }, grain: { value: 0.025 }, bw: { value: 0 } },
   vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-  fragmentShader: `uniform sampler2D tDiffuse; uniform float time, vig, sepia, flash, grain; uniform vec3 tint; varying vec2 vUv;
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float time, vig, sepia, flash, grain, bw; uniform vec3 tint; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     void main(){ vec3 c = texture2D(tDiffuse, vUv).rgb; float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
       c = mix(vec3(l), c, 1.14); c = (c - 0.5) * 1.12 + 0.48;
@@ -57,7 +57,7 @@ const grade = new ShaderPass({
       c = mix(c, ph + scr + spk, sepia);
       vec2 q = vUv - 0.5; c *= 1.0 - vig * smoothstep(0.28, 0.85, length(q * vec2(1.0, 0.72)));
       c += (h(vUv * 1000.0 + time) - 0.5) * grain;
-      c = mix(c, vec3(1.0, 0.98, 0.95), flash);
+      c = mix(c, vec3(1.0, 0.98, 0.95), flash); { float g2 = dot(c, vec3(0.2126, 0.7152, 0.0722)); c = mix(c, vec3((g2 - 0.5) * 1.15 + 0.5), bw); }   // black & white (reconstructions)
       gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0); }`,
 });
 composer.addPass(grade);

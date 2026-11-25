@@ -45,7 +45,7 @@ window.renderFrame = async (F) => {   // F: { t, loc, mood, cam, pions, key, lp,
   camera.position.set(...F.cam.pos); camera.fov = F.cam.fov; camera.updateProjectionMatrix(); camera.lookAt(...F.cam.tgt); if (F.cam.roll) camera.rotateZ(F.cam.roll); camera.updateMatrixWorld();
   bokeh.uniforms.focus.value = F.cam.focus; bokeh.uniforms.aperture.value = F.cam.aperture ?? 0.0016; grade.uniforms.time.value = t;
   const Md = MOODS[F.mood || "night"], gal = at === "gallery", dk = 1 - (F.dark || 0);
-  const bg = gal ? Md.bg : Lc.bg; scene.background.setHex(bg); scene.fog.color.setHex(bg); scene.fog.density = gal ? Md.fog : Lc.fog; grade.uniforms.vig.value = gal ? Md.vig : Lc.vig; grade.uniforms.sepia.value = F.sepia || 0; grade.uniforms.grain.value = 0.03;
+  const bg = gal ? Md.bg : Lc.bg; scene.background.setHex(bg); scene.fog.color.setHex(bg); scene.fog.density = gal ? Md.fog : Lc.fog; grade.uniforms.vig.value = gal ? Md.vig : Lc.vig; grade.uniforms.sepia.value = F.sepia || 0; grade.uniforms.bw.value = F.bw || 0; grade.uniforms.grain.value = 0.03;
   for (const [L, where] of LIGHTSET) L.visible = where === at;
   scene.environmentIntensity = gal ? Md.env * (0.4 + 0.6 * dk) : 0.1;
   // ---- gallery

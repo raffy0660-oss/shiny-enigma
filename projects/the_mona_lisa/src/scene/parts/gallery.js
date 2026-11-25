@@ -75,7 +75,7 @@ function moreArt(kind) { return canvasTex(512, 640, (g, w, h) => {
   // arch surround + a warm hall beyond it (paintings, light); staff door with its sign + keycard reader
   const archT = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.08, 10, 40, Math.PI), GOLD); archT.position.set(0, 3.2 - 1.1, GAL.FRONT - 0.03); scene.add(archT);
   for (const sx of [-1, 1]) add(box(0.16, 2.1, 0.14, 0.02), GOLD, sx * 1.1, 1.05, GAL.FRONT - 0.03);
-  { const T = new THREE.Mesh(new THREE.BoxGeometry(5, 3.6, 6), mat({ map: wallT.clone(), side: THREE.BackSide, roughness: 0.8 })); T.material.map.repeat.set(1 / 2, 1 / 3.6); T.position.set(0, 1.8, GAL.FRONT + 3.05); T.receiveShadow = true; scene.add(T);
+  { const T = new THREE.Mesh(new THREE.BoxGeometry(5, 3.6, 6), mat({ map: wallT.clone(), side: THREE.BackSide, roughness: 0.8 })); T.material.map.repeat.set(1 / 2, 1 / 3.6); T.position.set(0, 1.79, GAL.FRONT + 3.05);   // its floor face just under the hall floor (no z-fighting flicker behind the arch) T.receiveShadow = true; scene.add(T);
     for (const [x, z, ry, k] of [[-2.45, GAL.FRONT + 2.5, Math.PI / 2, "garden"], [2.45, GAL.FRONT + 2.5, -Math.PI / 2, "storm"], [0, GAL.FRONT + 6, Math.PI, "hills"]]) { const P = group(x, 1.8, z, ry); add(new THREE.PlaneGeometry(1.1, 0.9), mat({ map: k === "hills" ? artTex(k) : moreArt(k) }), 0, 0, 0.03, { parent: P, cast: false }); pictureFrame(P, 1.1, 0.9, 0.09, 0.04); }
     GALLERY.hallLight = new THREE.PointLight(0xffc07a, 6, 7, 1.6); GALLERY.hallLight.position.set(0, 3.0, GAL.FRONT + 3); scene.add(GALLERY.hallLight); }
   const exitT = canvasTex(256, 96, (g, w, h) => { g.fillStyle = "#0c6a34"; g.fillRect(0, 0, w, h); g.fillStyle = "#e8ffe8"; g.font = "900 64px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("EXIT", w * 0.58, h / 2); g.fillRect(16, 30, 40, 36); });
@@ -96,7 +96,7 @@ function moreArt(kind) { return canvasTex(512, 640, (g, w, h) => {
         g.strokeStyle = "rgba(80,45,20,.18)"; g.lineWidth = 1; for (let k = 0; k < 3; k++) { const o = 6 + k * 8; g.beginPath(); g.moveTo(x0 + 4, y + o); g.lineTo(x0 + cw - 4, y + s * cw + o + (rnd() - 0.5) * 3); g.stroke(); } } }
     for (let i = 0; i < 2500; i++) { g.fillStyle = `rgba(40,20,5,${rnd() * 0.05})`; g.fillRect(rnd() * w, rnd() * h, 3, 3); } }, [(GAL.XR - GAL.XL) / 1.4, (GAL.FRONT - GAL.BACK) / 1.4]);
   GALLERY.floor = add(new THREE.PlaneGeometry(GAL.XR - GAL.XL, GAL.FRONT - GAL.BACK), mat({ map: floorT, roughness: 0.32, metalness: 0.0 }), 0, 0, (GAL.FRONT + GAL.BACK) / 2, { rx: -Math.PI / 2, cast: false }); GALLERY.floor.userData.ground = true;
-  add(new THREE.PlaneGeometry(5, 6), mat({ map: floorT.clone(), roughness: 0.35 }), 0, 0, GAL.FRONT + 3, { rx: -Math.PI / 2, cast: false });   // the hall beyond
+  add(new THREE.PlaneGeometry(5, 6), mat({ map: floorT.clone(), roughness: 0.35 }), 0, 0.002, GAL.FRONT + 3.01, { rx: -Math.PI / 2, cast: false });   // the hall beyond
   const coffT = canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#1a2540"; g.fillRect(0, 0, w, h); g.strokeStyle = "#b89048"; g.lineWidth = 6; g.strokeRect(18, 18, w - 36, h - 36); g.lineWidth = 2; g.strokeRect(30, 30, w - 60, h - 60);
     g.save(); g.translate(w / 2, h / 2); g.fillStyle = "#c8a050"; for (let i = 0; i < 8; i++) { g.rotate(Math.PI / 4); g.beginPath(); g.ellipse(0, -26, 9, 22, 0, 0, 7); g.fill(); } g.beginPath(); g.arc(0, 0, 12, 0, 7); g.fillStyle = "#e8c870"; g.fill(); g.restore(); }, [(GAL.XR - GAL.XL) / 1.5, (GAL.FRONT - GAL.BACK) / 1.25]);
   const SK = { X: 0, Z: -0.4, W: 3.0, D: 2.5 };
