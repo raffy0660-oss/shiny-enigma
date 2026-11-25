@@ -85,3 +85,7 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     - dunia padat dengan figuran yang bereaksi; caption instan tanpa pop;
     - ekspor dengan motion blur (tmix), -14 LUFS.
     Jalankan `tools/refs_analysis/qc_kualitas.py` sebelum mengirim video.
+30. **Tension mengikuti `PANDUAN_TENSION.md`**: cahaya berdetak di awal kalimat (~3,6 dtk) dan bereaksi pada kata belok;
+    malam muncul tepat di kata "night"; banking dan getaran tangan di kamera; musik 20,8 dB di bawah VO tanpa fade,
+    ketegangan dari aransemen (drum keluar-masuk), lubang musik sebelum belokan, ~15 SFX per menit; narator membisik di
+    "but" / "wait". Pakai `engine/tension.py` → `tension_grade.py` / `camease.js` / `tension_mix.py`.

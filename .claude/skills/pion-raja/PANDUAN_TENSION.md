@@ -61,9 +61,47 @@ Script: `tools/refs_analysis/{colortl.py, deep.py, audio.py}`.
     subjek tajam). Kita 0,33.
 13. **Flash putih jarang**, 0–3 per video (6 dari 14 video), hanya di momen ledakan atau terbongkarnya rahasia.
 
-## 3. Audio (dipisah per stem)
+## 3. Audio (dipisah per stem, 14 video)
 
-(diisi setelah ke-14 stem selesai dipisah, lihat bagian 3 di bawah)
+| Ukuran | Referensi: median [rentang] | Mona Lisa v4 |
+|---|---|---|
+| Musik di bawah VO saat bicara | **20,8 dB** [16,7–22,8] | 11,9 dB (musik ~9 dB terlalu keras) |
+| Musik terdengar | 99,7% waktu | 94% |
+| Level musik di detik pertama / terakhir | +1,3 / +1,3 dB dari median (tanpa fade, tanpa swell) | −8 / **+16** dB |
+| Arc level musik sepanjang video | datar ±1 dB | −5 sampai +4 dB |
+| Arc drum | naik-turun ~9 dB (drum masuk-keluar) | |
+| Tempo | 110 BPM [96–152] | 172 BPM |
+| Onset per menit | 39 [13–56] | 15 |
+| Hit di luar ketukan (SFX) per menit | **15,5** [1,9–27] (satu tiap ~4 dtk) | 1,6 |
+| Energi bass < 120 Hz | 40% [19–73] | **78%** (gemuruh keruh) |
+| Pusat spektrum musik | 606 Hz | 216 Hz |
+| Lubang musik (turun ≥ 9 dB) | 0–7 per video, 0,25–0,5 dtk, berkumpul di 20–25%, 43–50%, 67–80% | |
+| Pitch narator | 188 Hz [170–201] | 147 Hz |
+| Rentang pitch narator (p10–p90) | **17,2 semitone** | 14,5 |
+| Naik-turun volume VO (std) | 4,8 dB (VO dikompres rata) | 6,4 dB |
+| Kecerahan VO (centroid) | 777 Hz (hangat) | 1013 Hz (tipis) |
+
+Detail yang membangun tension:
+
+14. **Ketegangan dibangun lewat aransemen, bukan volume.** Level musik datar dari awal sampai akhir, tapi drum
+    masuk dan keluar (selisih ~9 dB). Bagian tegang = drum hilang dan tinggal pluck atau string. Bagian aksi =
+    drum masuk.
+15. **Musik penuh dari frame pertama dan berhenti mendadak di frame terakhir.** Tidak ada fade-in, tidak ada
+    swell di akhir. Video yang langsung "panas" dari detik 0 dan selesai tanpa penutup terasa seperti
+    terpotong, jadi orang menonton ulang.
+16. **Lubang musik 0,25–0,5 dtk** tepat sebelum belokan cerita (seperempat, setengah, dan tiga perempat
+    video). Hening sesaat sebelum "But…" membuat kalimat berikutnya terasa berat.
+17. **SFX sekitar 15 per menit di luar ketukan musik:** satu bunyi kecil tiap ~4 detik (klik, whoosh, tik,
+    benturan) yang menandai aksi di layar. Kita hampir tidak punya (1,6 per menit).
+18. **Musiknya ringan dan terang** (pusat 606 Hz, bass 40%), bukan gemuruh berat. Misterius di referensi =
+    pluck / pizzicato / string pelan dengan tempo ~110, bukan drone bass 78%.
+19. **Narator membisik di kata belok** (rata-rata semua kata = 0):
+    - "but": pitch −2,5 semitone, volume −3,2 dB, suara turun seperti membocorkan rahasia;
+    - "wait": −2,7 semitone, −2,3 dB, dan musik ikut turun 1,9 dB;
+    - "until": pitch turun tapi volume naik +1,9 dB (menekan);
+    - "nobody": pitch naik +4,3 semitone (heran); "you": +2,1 semitone, +1,8 dB (menunjuk penonton).
+20. **Narator lebih ekspresif dan lebih rata volumenya:** rentang pitch 17 semitone (kita 14,5), volume
+    dikompres (std 4,8 dB), dan suaranya lebih hangat (centroid 777 Hz).
 
 ## 4. Toolkit implementasi
 
@@ -107,3 +145,47 @@ di set 3D: lampu meja, jendela, layar, rim light di Pion, sumber cahaya misteriu
 - `jitter` = getaran tangan di target.
 
 Renderer museum sudah membaca `F.cam.roll`.
+
+### `engine/tension_mix.py`: mix seperti referensi
+
+```
+python3 engine/tension_mix.py --vo vo.wav --music music.wav --stt stt.json --tension tension.json \
+        [--sfx sfx.json] --cues-out sfx_cues.json -o mix.wav
+```
+
+- Musik di **20,8 dB** di bawah VO saat bicara, tanpa fade-in, sampai frame terakhir.
+- Lubang −14 dB 0,32 dtk sebelum "but / until / wait / then" yang membuka kalimat, dan di marker `drop`.
+  "wait" juga menurunkan musik 2 dB selama 1 dtk.
+- Low shelf −6 dB di 120 Hz pada musik.
+- VO dikompres: diuji pada VO Mona Lisa, std turun 6,75 → 5,03 dB (referensi 4,8).
+- `--cues-out` menulis daftar SFX yang disarankan (kata kerja fisik + light beat yang belum punya bunyi), siap
+  dibuat dengan ElevenLabs sound-generation lalu dimasukkan lewat `--sfx` (`[{t, file, db}]`).
+- Master **−14 LUFS, −1 dBTP** (dua pass loudnorm), berhenti 0,2 dtk setelah kata terakhir.
+
+Diuji dengan me-remix stem Mona Lisa v4: hasilnya −14,0 LUFS, peak −1,0 dBFS, musik turun 12,2 dB, dan
+17 saran SFX.
+
+## 5. Cara membawakan narasi (untuk TTS)
+
+- Pakai suara narator yang lebih tinggi dan hangat (pitch ~170–200 Hz), dengan stability rendah supaya
+  ekspresif (target rentang pitch 17 semitone).
+- Di eleven_v3, tandai kata belok dengan audio tag: `[whispers] But…`, `[whispers] Wait…`,
+  `[emphatic] until…`, `[surprised] nobody…`. Hasilnya harus seperti tabel poin 19: "but" dan "wait" lebih
+  rendah dan pelan.
+- Generate satu paragraf sekaligus (tidak per kalimat) supaya tidak ada jeda (lihat `PANDUAN_VIRAL.md`).
+
+## 6. Checklist tension (isi sebelum render)
+
+- [ ] `tension.py plan` dijalankan dari STT final, dan grafiknya dicek (malam, reveal, drop sudah benar).
+- [ ] Cahaya berubah tiap ~3–4 dtk di awal kalimat, bergantian hangat/dingin, dengan tengah paling gelap dan
+      lonjakan hangat di 70–80%.
+- [ ] Kata "night" = siang jadi malam navy di lokasi yang sama, dengan satu sumber cahaya misterius.
+- [ ] Ada benda tenggat waktu di layar (jam, banner, kalender).
+- [ ] Kamera: `bank: 2.5`, `jitter: 0.0015`, dutch angle di beat yang paling tegang.
+- [ ] Vignette 0,79, latar belakang blur (DOF), flash putih hanya di reveal.
+- [ ] Set punya titik terang (practical light) di setiap shot, agar p98 ≥ 210.
+- [ ] Musik ringan ~110 BPM: drum keluar di bagian tegang, masuk di bagian aksi; tanpa fade; −20,8 dB di
+      bawah VO.
+- [ ] Lubang musik sebelum belokan; ~15 SFX per menit.
+- [ ] Narator membisik di "but" / "wait".
+- [ ] `qc_kualitas.py` lolos.
