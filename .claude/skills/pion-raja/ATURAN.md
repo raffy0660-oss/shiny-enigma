@@ -71,4 +71,8 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
     - benda yang sama menyambungkan dua latar (match cut bentuk/benda: bulan -> lampu, bingkai kosong -> bingkai foto).
     Rencanakan rantai transisi ini di storyboard SEBELUM membangun set (set yang bersebelahan / bersarang dibangun dalam
     satu dunia 3D supaya kamera bisa terbang kontinu dari satu ke yang lain).
-
+28. **Naskah, audio, dan packaging mengikuti `PANDUAN_VIRAL.md`** (hasil ukur 14 video referensi): kata pertama
+    di ≤ 0.2 dtk; kalimat 1 = tindakan paling aneh yang konkret; tokoh yang meremehkan + 1 dialog lucu; re-hook
+    "Wait…?" di 30–55%; pivot "You see," + analogi di 65–82%; payoff ironis yang mengulang pembuka; 3.6–3.8 kata/dtk
+    tanpa jeda > 0.3 dtk; master -14 LUFS; video habis ≤ 0.25 dtk setelah kata terakhir, tanpa fade. Isi checklist di
+    bagian H sebelum render.
