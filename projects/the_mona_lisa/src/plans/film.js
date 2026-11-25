@@ -36,7 +36,7 @@ const SH = [   // [t0, t1, set/loc, camera(t), mood]
   [24.4, 28.4, "gallery", t => { const k = sm((t - 24.4) / 4.0); return camK(L3([1.65, 0.75, -0.3], [1.45, 0.9, -0.75], k), [0, lerp(2.9, 2.3, k), -2.9], 54 - 5 * k); }, "reconstruct"],  // how he came down
   [28.4, 30.5, "gallery", t => { const k = sm((t - 28.4) / 2.1); return camK(L3([0.35, 3.62, -2.15], [0.24, 3.8, -2.32], k), [0, 4.22, -2.65], 34 - 8 * k); }, "investigateCool"],        // the black fabric in the hook
   [30.5, 32.4, "gallery", t => { const k = sm((t - 30.5) / 1.9); return camK(L3([1.95, 1.38, -2.35], [1.82, 1.32, -2.4], k), [0.3, 0.72, -2.6], 58 - 4 * k); }, "investigateCool"],   // from the right, above the rope, further back (user: not blocked, not too close)      // he notes it in the DEATH NOTE (inside the rope, clear of the posts)
-  [32.4, 35.0, "security", t => { const k = sm((t - 32.4) / 2.6); return camK(L3([61.35, 1.28, 1.25], [61.15, 1.3, 0.95], k), [60.0, 1.7, -1.45], 50 - 4 * k); }],                     // the CCTV wall, live
+  [32.4, 35.0, "gallery", t => { const k = sm((t - 32.4) / 2.6); return camK([-4.05, 4.12, 3.05], [lerp(-0.6, 0.15, k), 1.2, -3.0], 44 - 3 * k, { aperture: 0.0004 }); }, "night"],   // the footage itself: CAM 01 over the gallery (POV + HUD in post, like the references' dashcam shots)
   [35.0, 38.25, "security", t => { const k = sm((t - 35.0) / 3.25); return camK(L3([60.62, 1.45, 0.25], [60.45, 1.55, -0.05], k), [60.0, 1.75, -1.45], 46 - 7 * k); }],              // ... one by one: NO SIGNAL
   [38.25, 39.05, "security", t => { const k = sm((t - 38.25) / 0.8); return camK(L3([59.3, 1.1, -0.28], [59.38, 1.08, -0.22], k), [60.3, 0.72, 0.05], 44 - 6 * sm(clamp((t - 38.25) / 0.2))); }],   // clear of the desk monitors   // his face
   [39.05, 43.9, "security", t => { const k = sm((t - 39.05) / 4.85); return camK(L3([61.1, 1.28, -0.12], [60.98, 1.22, -0.32], k), LOGP, 40 - 7 * k); }],                           // the maintenance log
@@ -60,6 +60,7 @@ function frame(f) {
   if (S[2] === "office") return { t, set: "office", cam: c, mood: "normal", lampK: 0.6, dust: false, charLight: "screen",
     laptop: Object.assign({ mode: "case", k: clamp((t - 5.75) / 2.0), light: 6.5 }, LAPP), pion: PION("fO", t, { anchor: [0, SEAT, PZ], ground: SEAT, preset: "seated" }) };
   const F = { t, set: "museum", loc: S[2], cam: c, pions: [] };
+  if (S[2] === "gallery" && S[0] === 32.4) { Object.assign(F, { mood: "night", painting: true, glass: "ok", tape: false, fabric: false, ropeDown: false, bw: 1, cctvPov: true }); return F; }   // 02:05, before the robbery: all quiet
   if (S[2] === "gallery") {
     Object.assign(F, { mood: S[4], painting: false, glass: "ok", tape: true, fabric: true, ropeDown: true });
     if (t < 24.4) { const P = hops(t, WALK_G), yaw = t > 16.85 ? 180 : 180;
