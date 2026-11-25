@@ -24,13 +24,13 @@ for f in range(N):
 items += [
   {"type": "caption", "t0": 0.3, "t1": 2.5, "label": "LOUVRE, PARIS", "text": "02:05 AM"},
   {"type": "word", "t0": 17.1, "t1": 19.6, "text": "UNTOUCHED", "x": 0.5, "y": 0.27, "size": 0.12, "sub": "NO ALARM"},
-  {"type": "ring", "t0": 22.95, "t1": 24.35, "x": 0.5, "y": 0.4, "r": 0.11, "label": "THE HOOK", "ly": 0.27},
-  {"type": "ring", "t0": 29.3, "t1": 30.45, "x": 0.58, "y": 0.43, "r": 0.12, "label": "BLACK FABRIC", "ly": 0.28},
+  {"type": "ring", "t0": 22.95, "t1": 24.35, "x": 0.5, "y": 0.43, "r": 0.14, "label": "THE HOOK", "ly": 0.24},
+  {"type": "ring", "t0": 29.3, "t1": 30.45, "x": 0.84, "y": 0.45, "r": 0.15, "label": "BLACK FABRIC", "lx": 0.62, "ly": 0.24},
   {"type": "caption", "t0": 35.0, "t1": 38.2, "label": "3 MINUTES BEFORE", "text": "02:08 AM"},
-  {"type": "ring", "t0": 56.05, "t1": 57.45, "x": 0.68, "y": 0.5, "r": 0.15, "label": "SECOND SET", "ly": 0.3},
-  {"type": "ring", "t0": 57.85, "t1": 59.4, "x": 0.27, "y": 0.66, "r": 0.15, "label": "PATTERN A", "color": "#22c7b8", "ly": 0.48},
-  {"type": "ring", "t0": 58.3, "t1": 59.4, "x": 0.78, "y": 0.3, "r": 0.15, "label": "PATTERN B", "color": "#ff4fa3", "ly": 0.12},
-  {"type": "ring", "t0": 66.55, "t1": 67.55, "x": 0.8, "y": 0.52, "r": 0.1, "label": "KEYCARD", "ly": 0.4}]
+  {"type": "ring", "t0": 56.05, "t1": 57.45, "x": 0.75, "y": 0.72, "r": 0.2, "label": "SECOND SET", "lx": 0.62, "ly": 0.46},
+  {"type": "ring", "t0": 57.85, "t1": 59.4, "x": 0.2, "y": 0.7, "r": 0.19, "label": "PATTERN A", "color": "#22c7b8", "lx": 0.32, "ly": 0.45},
+  {"type": "ring", "t0": 58.3, "t1": 59.4, "x": 0.84, "y": 0.09, "r": 0.15, "label": "PATTERN B", "color": "#ff4fa3", "lx": 0.7, "ly": 0.27},
+  {"type": "ring", "t0": 66.55, "t1": 67.55, "x": 0.57, "y": 0.52, "r": 0.22, "label": "KEYCARD", "ly": 0.2}]
 CUTS = [5.6, 10.8, 24.4, 28.4, 32.4, 35.0, 49.25, 59.45, 65.55, 67.6]
 props = {"frames": N, "fps": 60, "width": 1080, "height": 1920, "seq": "film", "pts": {}, "items": items, "cuts": CUTS, "intro": None}
 pj = P + "/props_film.json"; json.dump(props, open(pj, "w"))
