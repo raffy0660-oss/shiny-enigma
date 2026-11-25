@@ -12,7 +12,7 @@ function hops(t, W, Hh = 0.5) { if (t <= W[0].t) return { p: W[0].p, lift: 0, sq
   return { p: L3(a.p, b.p, u), lift: 0.5 * 9.81 * hh * h * (TT - h), squash: h < 0.05 ? 0.9 : 1 }; } } const e = W[W.length - 1], d = t - e.t; return { p: e.p, lift: 0, squash: d < 0.08 ? 0.88 : 1 }; }
 // ---- Pion's paths
 const WALK_G = []; { let z = 3.4, t = 10.85; WALK_G.push({ t, p: [0.15, 0, z] }); for (let i = 0; i < 7; i++) { t += 0.38; z -= 0.62; WALK_G.push({ t, p: [0.15 + 0.06 * Math.sin(i * 1.3), 0, z] }); } }   // -> (0.1, -0.94) at 13.51
-WALK_G.push({ t: 15.95, p: [0.15, 0, -1.4] }, { t: 16.45, p: [0.22, 0, -2.12], h: 1.3 }, { t: 16.85, p: [0.25, 0, -2.6] });           // ... hops over the rope, stops at the case (the hook right above him)
+WALK_G.push({ t: 15.55, p: WALK_G[WALK_G.length - 1].p.slice(), h: 0 }, { t: 15.95, p: [0.15, 0, -1.4] }, { t: 16.45, p: [0.22, 0, -2.12], h: 1.3 }, { t: 16.85, p: [0.25, 0, -2.6] });           // ... hops over the rope, stops at the case (the hook right above him)   // stands still (the shock) until 15.55, then hops on
 const WALK_C = []; { let z = 2.7, t = 49.35; WALK_C.push({ t, p: [30.25, 0, z] }); for (let i = 0; i < 6; i++) { t += 0.36; z -= 0.42; WALK_C.push({ t, p: [30.25 + 0.04 * Math.sin(i), 0, z] }); } }   // -> z 0.18 at 51.51
 const PG = [0.25, 0, -2.6], PS = [60.35, 0, 0.05], PC = [30.25, 0, 0.18], PK = [60.72, 0, -0.18];
 const SEAT = 0.46, PZ = -1.37, LAPP = { pos: [0.05, 0.786, -1.12], ry: Math.PI };
@@ -35,10 +35,10 @@ const SH = [   // [t0, t1, set/loc, camera(t), mood]
   [22.7, 24.4, "gallery", t => { const k = sm((t - 22.7) / 1.7); return camK(L3([0.45, 3.45, -1.75], [0.32, 3.65, -2.05], k), [0, 4.22, -2.65], 40 - 8 * k); }, "investigateCool"],        // the hook
   [24.4, 28.4, "gallery", t => { const k = sm((t - 24.4) / 4.0); return camK(L3([1.65, 0.75, -0.3], [1.45, 0.9, -0.75], k), [0, lerp(2.9, 2.3, k), -2.9], 54 - 5 * k); }, "reconstruct"],  // how he came down
   [28.4, 30.5, "gallery", t => { const k = sm((t - 28.4) / 2.1); return camK(L3([0.35, 3.62, -2.15], [0.24, 3.8, -2.32], k), [0, 4.22, -2.65], 34 - 8 * k); }, "investigateCool"],        // the black fabric in the hook
-  [30.5, 32.4, "gallery", t => { const k = sm((t - 30.5) / 1.9); return camK(L3([1.02, 1.02, -2.32], [0.92, 0.98, -2.4], k), [0.25, 0.78, -2.6], 50 - 5 * k); }, "investigateCool"],      // he notes it in the DEATH NOTE (inside the rope, clear of the posts)
+  [30.5, 32.4, "gallery", t => { const k = sm((t - 30.5) / 1.9); return camK(L3([1.12, 0.78, -2.12], [1.0, 0.76, -2.2], k), [0.25, 0.62, -2.6], 52 - 5 * k); }, "investigateCool"],      // he notes it in the DEATH NOTE (inside the rope, clear of the posts)
   [32.4, 35.0, "security", t => { const k = sm((t - 32.4) / 2.6); return camK(L3([61.35, 1.28, 1.25], [61.15, 1.3, 0.95], k), [60.0, 1.7, -1.45], 50 - 4 * k); }],                     // the CCTV wall, live
   [35.0, 38.25, "security", t => { const k = sm((t - 35.0) / 3.25); return camK(L3([60.62, 1.45, 0.25], [60.45, 1.55, -0.05], k), [60.0, 1.75, -1.45], 46 - 7 * k); }],              // ... one by one: NO SIGNAL
-  [38.25, 39.05, "security", t => { const k = sm((t - 38.25) / 0.8); return camK(L3([59.45, 1.12, -0.95], [59.55, 1.1, -0.85], k), [60.3, 0.72, 0.05], 44 - 6 * sm(clamp((t - 38.25) / 0.2))); }],   // his face
+  [38.25, 39.05, "security", t => { const k = sm((t - 38.25) / 0.8); return camK(L3([59.3, 1.1, -0.28], [59.38, 1.08, -0.22], k), [60.3, 0.72, 0.05], 44 - 6 * sm(clamp((t - 38.25) / 0.2))); }],   // clear of the desk monitors   // his face
   [39.05, 43.9, "security", t => { const k = sm((t - 39.05) / 4.85); return camK(L3([61.1, 1.28, -0.12], [60.98, 1.22, -0.32], k), LOGP, 40 - 7 * k); }],                           // the maintenance log
   [43.9, 46.0, "security", t => { const k = sm((t - 43.9) / 2.1); return camK(L3([59.5, 1.05, -0.75], [59.62, 1.02, -0.62], k), [60.3, 0.72, 0.02], 44 - 5 * k); }],                 // "but there was one problem"
   [46.0, 49.25, "security", t => { const k = sm((t - 46.0) / 3.25); return camK(L3([59.78, 1.24, -0.2], [59.62, 1.18, -0.38], k), STAFFP, 38 - 7 * k); }],                         // the head technician: MISSING
