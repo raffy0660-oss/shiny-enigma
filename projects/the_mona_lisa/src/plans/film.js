@@ -48,7 +48,7 @@ const SH = [   // [t0, t1, set/loc, camera(t), mood]
   [59.45, 62.35, "corridor", t => { const k = sm((t - 59.45) / 2.9); return camK(L3([30.78, 1.0, 1.65], [30.7, 0.95, 1.25], k), [30.08, lerp(1.6, 0.9, k), -0.95], 50 - 5 * k); }],   // the thief came down here
   [62.35, 65.55, "corridor", t => { const k = sm((t - 62.35) / 3.2); return camK(L3([30.8, 0.98, 1.25], [30.72, 0.92, 0.75], k), [30.45, 0.8, -0.62], 46 - 9 * k); }],           // ... someone was waiting below
   [65.55, 67.6, "corridor", t => { const k = sm((t - 65.55) / 2.05); return camK(L3([30.35, 1.26, -4.3], [30.42, 1.22, -4.45], k), CARDP, 36 - 7 * k); }],                         // the keycard reader
-  [67.6, T, "security", t => { const k = sm((t - 67.6) / (T - 67.6)); return camK(L3([61.05, 1.24, -0.06], [60.8, 1.1, -0.5], k), LOGP, 38 - 18 * k); }],                         // the record: MUSEUM DIRECTOR
+  [67.6, T, "security", t => { const k = sm((t - 67.6) / (T - 67.6)); return camK(L3([61.0, 1.16, 0.18], [60.78, 1.08, 0.02], k), [60.65, 0.98, -0.88], 64 - 12 * k); }],   // the record: the whole screen stays in frame, the reveal fills it
 ];
 function frame(f) {
   const t = f / FPS, S = SH.find(s => t >= s[0] && t < s[1]) || SH[SH.length - 1];
@@ -80,7 +80,7 @@ function frame(f) {
     F.cctv = Array.from({ length: 9 }, (_, i) => off(i) ? "off" : "live");
     F.logHi = t >= 68.1 ? "dir" : t >= 42.45 ? "tech" : null; F.staff = t >= 46.0 && t < 49.25 ? (t >= 47.2 ? 1 : 0) : (t >= 49.25 ? null : null);
     if (!late) { F.pions.push(PION("fS", t, { anchor: PS, yaw: 180 })); F.key = { at: [PS[0], 0.7, PS[2]], from: [0.7, 1.5, 0.9], col: 0xc8d6ff, k: 6 }; }
-    else { F.pions.push(PION("fK", t, { anchor: PK, yaw: 190 })); F.key = { at: [PK[0], 0.7, PK[2]], from: [-0.6, 1.4, 0.6], col: 0x9fb4ff, k: 3.5 }; }
+    else { F.key = { at: LOGP, from: [0.3, 0.9, 0.9], col: 0x9fb4ff, k: 2.5, angle: 0.35 }; }   // the evidence alone in the frame (deep blue, a focused light on the screen)
     return F; }
   // corridor: stronger blue; the flashlight is the main light on what he finds
   const cool = clamp((t - 49.2) / 6), late = t >= 59.45;

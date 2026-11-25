@@ -95,7 +95,10 @@ const SECURITY = {};
     const rows = [["01:47:02", "routine check", "night.guard2"], ["01:58:40", "door 4 status", "night.guard2"], ["02:08:11", "SYSTEM OVERRIDE", "head.technician"], ["02:08:14", "CAMERAS 01-09 OFFLINE", "head.technician"], ["02:11:30", "door S3 keycard", "director"]];
     rows.forEach(([t, a, u], i) => { const y = 84 + i * 52; const hl = hi === i || (hi === "tech" && (i === 2 || i === 3)) || (hi === "dir" && i === 4); if (hl) { g.fillStyle = "rgba(255,70,60,.25)"; g.fillRect(14, y - 28, w - 28, 40); }
       g.fillStyle = hl ? "#ff8a7a" : "#58f08a"; g.fillText(t, 22, y); g.fillText(a, 140, y); g.fillText(u, 410, y); });
-    if (hi === "dir") { g.fillStyle = "rgba(255,40,40,.9)"; g.fillRect(20, h - 74, w - 40, 54); g.fillStyle = "#fff"; g.font = "900 30px monospace"; g.fillText("ONLY KEYCARD:  MUSEUM DIRECTOR", 34, h - 37); }
+    if (hi === "dir") {   // the reveal takes over the screen: readable in a vertical frame
+      g.fillStyle = "rgba(4,10,8,.82)"; g.fillRect(0, 0, w, h); g.fillStyle = "#b8202a"; g.fillRect(0, h * 0.28, w, h * 0.5);
+      g.textAlign = "center"; g.fillStyle = "#ffd8d8"; g.font = "700 26px monospace"; g.fillText("KEYCARD  S3  -  02:11:30  -  ONLY ENTRY", w / 2, h * 0.22);
+      g.fillStyle = "#fff"; g.font = "900 64px monospace"; g.fillText("MUSEUM", w / 2, h * 0.47); g.fillText("DIRECTOR", w / 2, h * 0.68); g.textAlign = "left"; }
     else { g.fillStyle = "#58f08a"; g.fillText("_", 22, h - 24); } });
   const staffTex = (miss) => canvasTex(480, 380, (g, w, h) => { g.fillStyle = "#0c1426"; g.fillRect(0, 0, w, h); g.fillStyle = "#1c2a4a"; g.fillRect(0, 0, w, 50); g.fillStyle = "#cfe0ff"; g.font = "700 24px monospace"; g.fillText("STAFF RECORD", 18, 33);
     g.fillStyle = "#26365a"; g.fillRect(24, 74, 150, 190); g.fillStyle = "#0a0d16"; g.beginPath(); g.arc(99, 140, 40, 0, 7); g.fill(); g.beginPath(); g.moveTo(44, 264); g.quadraticCurveTo(99, 170, 154, 264); g.fill();   // a pawn silhouette photo
