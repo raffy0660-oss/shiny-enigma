@@ -1,0 +1,373 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:Caveat;src:url(Caveat-400.ttf);font-weight:400}
+@font-face{font-family:Caveat;src:url(Caveat-700.ttf);font-weight:700}
+html,body{margin:0;background:#f4efe3}
+canvas{display:block}
+</style></head>
+<body><canvas id="c"></canvas>
+<script>
+'use strict';
+const INK = '#26232b', PAPER = '#f4efe3', GUIDE = 'rgba(70,120,200,.45)';
+let g, SEED = 1;
+const rnd = () => { SEED = (SEED * 16807) % 2147483647; return SEED / 2147483647; };
+const lerp = (a, b, t) => a + (b - a) * t;
+const sgn = v => v < 0 ? -1 : 1;
+const jit = (i, s) => Math.sin(i * .21 + s) * .6 + Math.sin(i * .07 + s * 1.7) * .4;
+
+// ---------------- primitives (point lists) ----------------
+function ell(cx, cy, rx, ry, a0 = 0, a1 = Math.PI * 2) {
+  const n = Math.max(16, Math.ceil(Math.abs(a1 - a0) * Math.max(rx, ry) / 3)), p = [];
+  for (let i = 0; i <= n; i++) { const a = lerp(a0, a1, i / n); p.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]); }
+  return p;
+}
+function bez(p0, p1, p2, p3) {
+  const L = Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) + Math.hypot(p1[0] - p0[0], p1[1] - p0[1]), n = Math.max(8, Math.ceil(L / 3)), p = [];
+  for (let i = 0; i <= n; i++) { const t = i / n, u = 1 - t;
+    p.push([u*u*u*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t*t*t*p3[0], u*u*u*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t*t*t*p3[1]]); }
+  return p;
+}
+function quad(p0, c, p1) { return bez(p0, [p0[0] + (c[0] - p0[0]) * 2 / 3, p0[1] + (c[1] - p0[1]) * 2 / 3], [p1[0] + (c[0] - p1[0]) * 2 / 3, p1[1] + (c[1] - p1[1]) * 2 / 3], p1); }
+function line(a, b) { const n = Math.max(2, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) / 3)), p = []; for (let i = 0; i <= n; i++) p.push([lerp(a[0], b[0], i / n), lerp(a[1], b[1], i / n)]); return p; }
+function poly(pts) { let out = []; for (let i = 0; i < pts.length - 1; i++) out = out.concat(line(pts[i], pts[i + 1])); return out; }
+// soft capsule / bean: wider at the bottom
+function bean(cx, top, bot, wT, wB, n = 2.7) {
+  const cy = (top + bot) / 2, hh = (bot - top) / 2, p = [];
+  for (let i = 0; i <= 160; i++) { const a = i / 160 * Math.PI * 2, u = Math.cos(a), v = Math.sin(a);
+    const w = lerp(wT, wB, (v + 1) / 2) / 2; p.push([cx + sgn(u) * Math.pow(Math.abs(u), 2 / n) * w, cy + sgn(v) * Math.pow(Math.abs(v), 2 / n) * hh]); }
+  return p;
+}
+function path(p, closed) { g.beginPath(); p.forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); if (closed) g.closePath(); }
+
+// ---------------- sketch rendering ----------------
+function stroke(p, w, closed, col = INK, amp = 1.1) {
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (let pass = 0; pass < 2; pass++) {
+    const s = rnd() * 100, a = amp * (pass ? 1.6 : 1);
+    g.beginPath();
+    p.forEach((q, i) => { const x = q[0] + a * jit(i, s), y = q[1] + a * jit(i, s + 9); i ? g.lineTo(x, y) : g.moveTo(x, y); });
+    if (closed) g.closePath();
+    g.globalAlpha = pass ? .38 : .93; g.lineWidth = pass ? w * .45 : w; g.strokeStyle = col; g.stroke();
+  }
+  g.globalAlpha = 1;
+}
+function fill(p, col, off = [-2.5, 2], al = .92) {
+  g.save(); g.translate(off[0], off[1]); path(p, true); g.fillStyle = col; g.globalAlpha = al; g.fill(); g.restore(); g.globalAlpha = 1;
+}
+function clip(p) { g.save(); path(p, true); g.clip(); }
+function hatch(p, x0, x1, y0, y1, col = 'rgba(40,30,70,.20)', gap = 7) { // diagonal pencil shading
+  clip(p); g.strokeStyle = col; g.lineWidth = 1.7; g.lineCap = 'round';
+  for (let x = x0 - (y1 - y0); x < x1; x += gap) { g.beginPath(); g.moveTo(x, y1); g.lineTo(x + (y1 - y0) * .55, y0); g.stroke(); }
+  g.restore();
+}
+function shape(p, col, w, sh = true) { // fill + shade right side + outline
+  if (col) fill(p, col);
+  if (col && sh) { let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; p.forEach(q => { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); y1 = Math.max(y1, q[1]); });
+    hatch(p, lerp(x0, x1, .66), x1 + 4, y0, y1); }
+  stroke(p, w, true);
+}
+function dot(x, y, r, col = INK) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = col; g.fill(); }
+function text(t, x, y, size, opt = {}) {
+  g.font = `${opt.w || 400} ${size}px Caveat`; g.fillStyle = opt.col || INK; g.textAlign = opt.al || 'center'; g.textBaseline = 'alphabetic'; g.fillText(t, x, y);
+}
+function guideLine(x0, x1, y, label) {
+  g.save(); g.setLineDash([10, 8]); g.strokeStyle = GUIDE; g.lineWidth = 2; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke(); g.restore();
+  if (label) text(label, x0 - 10, y + 7, 26, { al: 'right', col: 'rgba(50,95,170,.9)' });
+}
+
+// ---------------- face ----------------
+// f: {eyes, look:[x,y], brow (deg, + = angry), browH, mouth, blush, sweat, tears, anger, glasses, stache, scar}
+function eye(x, y, r, type, look, s, far) {
+  const w = 3.2 * s, rx = far ? r * .75 : r;
+  if (type === 'happy') { stroke(ell(x, y + r * .35, rx * .9, r * .8, Math.PI * 1.1, Math.PI * 1.9), w, false); return; }
+  if (type === 'closed') { stroke(ell(x, y - r * .3, rx * .9, r * .7, Math.PI * .15, Math.PI * .85), w, false); return; }
+  if (type === 'line') { stroke(line([x - rx, y], [x + rx, y]), w, false); return; }
+  const R = type === 'wide' ? r * 1.25 : r;
+  const e = ell(x, y, far ? R * .75 : R, R); fill(e, '#ffffff', [0, 0]); stroke(e, w * .9, true);
+  const pr = type === 'wide' ? R * .22 : R * .38;
+  dot(x + look[0] * R * .38, y + look[1] * R * .38, pr);
+  if (type === 'half') { // suspicious lid
+    clip(e); g.fillStyle = '#fbf3e6'; g.fillRect(x - R - 2, y - R - 2, R * 2 + 4, R * .95); g.restore();
+    stroke(line([x - R * .95, y - R * .1], [x + R * .95, y - R * .1]), w, false);
+  }
+}
+function face(cx, cy, s, f, view) {
+  const r = 13.5 * s, w = 3.4 * s, L = f.look || [0, 0];
+  let ex, far = -1;
+  if (view === 'side') ex = [cx + 52 * s];
+  else if (view === 'q') { ex = [cx - 4 * s, cx + 44 * s]; far = 1; }
+  else ex = [cx - 27 * s, cx + 27 * s];
+  const ey = cy + 2 * s;
+  if (f.glasses) ex.forEach(x => stroke(ell(x, ey, r * 1.45, r * 1.45), 2.6 * s, true, '#5a4630'));
+  ex.forEach((x, i) => eye(x, ey, r, f.eyes || 'round', L, s, i === far));
+  if (f.glasses && ex.length === 2) stroke(line([ex[0] + r * 1.45, ey], [ex[1] - r * 1.45, ey]), 2.6 * s, false, '#5a4630');
+  // brows: outer end -> inner end; + angle = inner end lower (angry), - = inner end higher (sad/scared)
+  if (f.brow !== null && f.brow !== undefined) {
+    const a = (f.brow || 0) * Math.PI / 180, bl = 12 * s, y0 = ey - (f.browH || 1) * (r + 9 * s);
+    const mid = view === 'q' ? cx + 20 * s : cx;
+    ex.forEach(x => { const d = view === 'side' ? 1 : (x < mid ? 1 : -1);
+      stroke(line([x - d * bl, y0 - Math.sin(a) * bl], [x + d * bl, y0 + Math.sin(a) * bl]), (f.thick ? 6 : 3.8) * s, false); });
+  }
+  // mouth
+  const mx = view === 'side' ? cx + 60 * s : view === 'q' ? cx + 24 * s : cx + (f.mx || 0) * s, my = cy + 36 * s, m = f.mouth || 'smile';
+  if (f.stache) { const st = []; for (let i = 0; i <= 20; i++) { const t = i / 20, x = mx + (t - .5) * 46 * s; st.push([x, my - 12 * s + Math.sin(t * Math.PI) * -7 * s + Math.abs(t - .5) * 10 * s]); }
+    for (let i = 20; i >= 0; i--) { const t = i / 20, x = mx + (t - .5) * 46 * s; st.push([x, my - 3 * s + Math.abs(t - .5) * 12 * s]); }
+    fill(st, INK, [0, 0]); stroke(st, 2 * s, true); }
+  if (m === 'smile') stroke(ell(mx, my - 8 * s, 13 * s, 9 * s, Math.PI * .2, Math.PI * .8), w, false);
+  if (m === 'flat') stroke(line([mx - 10 * s, my], [mx + 10 * s, my]), w, false);
+  if (m === 'frown') stroke(ell(mx, my + 8 * s, 12 * s, 8 * s, Math.PI * 1.2, Math.PI * 1.8), w, false);
+  if (m === 'o') { const o = ell(mx, my + 2 * s, 7 * s, 9 * s); fill(o, '#5b2a2a', [0, 0]); stroke(o, w, true); }
+  if (m === 'smirk') stroke(quad([mx - 12 * s, my + 2 * s], [mx + 4 * s, my + 4 * s], [mx + 14 * s, my - 7 * s]), w, false);
+  if (m === 'wavy') { const p = []; for (let i = 0; i <= 24; i++) p.push([mx - 16 * s + i * 32 * s / 24, my + Math.sin(i / 24 * Math.PI * 4) * 3.5 * s]); stroke(p, w, false); }
+  if (m === 'grin' || m === 'laugh') { // D-shaped open mouth (teeth grid like the reference)
+    const big = m === 'laugh' ? 1.35 : 1, hw = 17 * s * big, hd = 18 * s * big;
+    const p = line([mx - hw, my - 6 * s], [mx + hw, my - 6 * s]).concat(ell(mx, my - 6 * s, hw, hd, 0, Math.PI));
+    fill(p, m === 'laugh' ? '#7a2a2e' : '#ffffff', [0, 0]);
+    if (m === 'laugh') { const tg = ell(mx, my + hd * .55, hw * .55, hd * .35, Math.PI, Math.PI * 2).concat(ell(mx, my + hd * .55, hw * .55, hd * .32, 0, Math.PI)); clip(p); fill(tg, '#e8707a', [0, 0]); g.restore(); fill(line([mx - hw, my - 6 * s], [mx + hw, my - 6 * s]).concat(ell(mx, my - 6 * s, hw, 7 * s, 0, Math.PI)), '#fff', [0, 0]); }
+    else { clip(p); g.strokeStyle = INK; g.lineWidth = 2 * s; for (let k = -1; k <= 1; k++) { g.beginPath(); g.moveTo(mx + k * hw * .45, my - 6 * s); g.lineTo(mx + k * hw * .45, my + hd); g.stroke(); }
+      g.beginPath(); g.moveTo(mx - hw, my + 3 * s); g.lineTo(mx + hw, my + 3 * s); g.stroke(); g.restore(); }
+    stroke(p, w, true);
+  }
+  if (f.blush) [-1, 1].forEach(k => { if (view === 'side' && k < 0) return; g.save(); g.globalAlpha = .45; dot(view === 'q' ? cx + (k < 0 ? -18 : 62) * s : cx + k * 44 * s, cy + 24 * s, 10 * s, '#ff8a9a'); g.restore(); });
+  if (f.blushHard) [-1, 1].forEach(k => { for (let j = -1; j <= 1; j++) stroke(line([cx + k * 44 * s + j * 7 * s - 3 * s, cy + 30 * s], [cx + k * 44 * s + j * 7 * s + 3 * s, cy + 20 * s]), 2.4 * s, false, '#e2475f'); });
+  if (f.sweat) { const sx = cx + 70 * s, sy = cy - 40 * s, p = quad([sx, sy - 18 * s], [sx - 12 * s, sy + 6 * s], [sx, sy + 8 * s]).concat(quad([sx, sy + 8 * s], [sx + 12 * s, sy + 6 * s], [sx, sy - 18 * s])); fill(p, '#9fd3ff', [0, 0]); stroke(p, 2.6 * s, true); }
+  if (f.tears) ex.forEach(x => { const p = quad([x - 6 * s, ey + r], [x - 12 * s, ey + r + 30 * s], [x - 2 * s, ey + r + 40 * s]); stroke(p, 6 * s, false, '#5fb4f0'); stroke(p, 2 * s, false); });
+  if (f.anger) { const ax = cx + 52 * s, ay = cy - 56 * s; [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => stroke(quad([ax + a * 4 * s, ay + b * 13 * s], [ax + a * 4 * s, ay + b * 4 * s], [ax + a * 13 * s, ay + b * 4 * s]), 3.6 * s, false, '#d8323a')); }
+  if (f.scar) { stroke(line([cx - 50 * s, cy + 10 * s], [cx - 34 * s, cy + 28 * s]), 2.4 * s, false); [0, 1, 2].forEach(k => stroke(line([cx - 50 * s + k * 7 * s, cy + 22 * s - k * 0 + k * 2 * s], [cx - 40 * s + k * 7 * s, cy + 14 * s + k * 2 * s]), 2 * s, false)); }
+}
+
+// ---------------- hair & headwear ----------------
+function hair(cx, cy, rx, ry, s, h, view) {
+  const t = h.type, col = h.col || '#3a2a22', w = 5 * s;
+  if (t === 'none') return;
+  if (t === 'short' || t === 'ponytail' || t === 'bun' || t === 'cepak') {
+    let p;
+    if (view === 'back') { p = ell(cx, cy, rx + 3 * s, ry + 3 * s, Math.PI * .85, Math.PI * 2.15); const y = cy + 34 * s; for (let i = 0; i <= 8; i++) p.push([cx + rx * .95 - i * rx * 1.9 / 8, y + (i % 2 ? 7 : 0) * s]); }
+    else if (view === 'side') { p = ell(cx, cy, rx + 3 * s, ry + 3 * s, Math.PI * .78, Math.PI * 1.86); p.push([cx + 34 * s, cy - 42 * s], [cx + 16 * s, cy - 30 * s], [cx + 6 * s, cy - 40 * s], [cx - 14 * s, cy - 22 * s], [cx - 22 * s, cy + 6 * s], [cx - 44 * s, cy + 36 * s]); }
+    else {
+      const a0 = view === 'q' ? Math.PI * .92 : Math.PI * 1.06, a1 = view === 'q' ? Math.PI * 1.97 : Math.PI * 1.94;
+      p = ell(cx, cy, rx + 3 * s, ry + 3 * s, a0, a1);
+      const e = p[p.length - 1], b = p[0], n = 7, fy = cy - (t === 'cepak' ? 56 : 50) * s;
+      for (let i = 1; i < n; i++) { const tt = i / n; p.push([lerp(e[0], b[0], tt), fy + (i % 2 ? (t === 'cepak' ? 4 : 10) * s : 0) + (view === 'q' ? (tt - .5) * 20 * s : 0)]); }
+    }
+    if (t === 'bun') { const bn = ell(cx + (view === 'side' ? -40 * s : 0), cy - ry - 14 * s, 26 * s, 22 * s); shape(bn, col, w, false); stroke(ell(cx + (view === 'side' ? -40 * s : 0), cy - ry - 14 * s, 14 * s, 11 * s, .5, 3.5), 2.4 * s, false); }
+    if (t === 'ponytail' && view !== 'side') { const tail = quad([cx + rx * .7, cy - ry * .5], [cx + rx * 1.7, cy - ry * .2], [cx + rx * 1.15, cy + ry * .9]).concat(quad([cx + rx * 1.15, cy + ry * .9], [cx + rx * 1.15, cy], [cx + rx * .8, cy - ry * .2])); shape(tail, col, w, false); dot(cx + rx * .78, cy - ry * .42, 8 * s, '#e2475f'); }
+    shape(p, col, w, false);
+    if (t !== 'cepak') for (let k = 0; k < 4; k++) stroke(quad([cx - rx * .55 + k * rx * .35, cy - ry * .9], [cx - rx * .45 + k * rx * .35, cy - ry * .65], [cx - rx * .5 + k * rx * .35, cy - ry * .45]), 1.6 * s, false, 'rgba(255,255,255,.35)', .6);
+    else for (let k = 0; k < 40; k++) dot(cx + (rnd() - .5) * rx * 1.5, cy - ry * .6 + (rnd() - .5) * ry * .45, 1.2 * s, 'rgba(255,255,255,.35)');
+  }
+  if (t === 'peci') { // black songkok
+    const y = cy - ry * .62, hw = rx * .72, p = poly([[cx - hw, y + 14 * s], [cx - hw * .93, y - 30 * s], [cx + hw * .93, y - 30 * s], [cx + hw, y + 14 * s]]).concat(quad([cx + hw, y + 14 * s], [cx, y + 22 * s], [cx - hw, y + 14 * s]));
+    shape(p, '#24242c', w, false); stroke(line([cx - hw * .9, y - 18 * s], [cx + hw * .9, y - 18 * s]), 1.6 * s, false, 'rgba(255,255,255,.3)');
+  }
+  if (t === 'cap') { // baseball cap
+    const dome = ell(cx, cy - ry * .28, rx * 1.02, ry * .82, Math.PI, Math.PI * 2); dome.push([cx - rx * 1.02, cy - ry * .28]);
+    const brim = ell(cx + (view === 'q' ? 30 * s : 0), cy - ry * .28, rx * 1.1, 13 * s, 0, Math.PI).concat([[cx - rx * 1.02, cy - ry * .28]]);
+    shape(dome, h.col, w); shape(brim, h.brim || h.col, w, false);
+    if (h.badge) { const b = ell(cx, cy - ry * .62, 15 * s, 13 * s); shape(b, '#ffffff', 2.6 * s, false); }
+    dot(cx, cy - ry * 1.08, 5 * s);
+  }
+  if (t === 'helm') {
+    const dome = ell(cx, cy - 4 * s, rx * 1.13, ry * 1.1, Math.PI * .92, Math.PI * 2.08); shape(dome, h.col, w);
+    const vis = poly([[cx - rx * .95, cy - ry * .5], [cx + rx * .95, cy - ry * .5], [cx + rx * .85, cy - ry * .78], [cx - rx * .85, cy - ry * .78], [cx - rx * .95, cy - ry * .5]]);
+    shape(vis, '#2a3448', 3.4 * s, false); stroke(line([cx - rx * .6, cy - ry * .72], [cx - rx * .2, cy - ry * .72]), 2.4 * s, false, 'rgba(255,255,255,.6)');
+    stroke(ell(cx, cy - 4 * s, rx * 1.13, ry * 1.1, Math.PI * 1.3, Math.PI * 1.7), 3 * s, false, 'rgba(255,255,255,.55)');
+  }
+}
+function hijab(cx, cy, rx, ry, s, h, top) { // outer shape is drawn before the body top, face opening after
+  const p = ell(cx, cy - 4 * s, rx * 1.16, ry * 1.12, Math.PI * .78, Math.PI * 2.22);
+  p.push([cx + rx * 1.35, top + 70 * s], [cx, top + 86 * s], [cx - rx * 1.35, top + 70 * s]);
+  return p;
+}
+
+// ---------------- clothes on the body ----------------
+function clothes(cx, top, bot, wT, wB, s, c, body, view) {
+  const w = 5 * s, waist = c.waist ? lerp(top, bot, c.waist) : null;
+  fill(body, c.top);
+  if (waist) { clip(body); fill(poly([[cx - 200 * s, waist], [cx + 200 * s, waist], [cx + 200 * s, bot + 20 * s], [cx - 200 * s, bot + 20 * s]]), c.bottom, [0, 0]);
+    if (c.bottomPattern) c.bottomPattern(waist); g.restore(); }
+  clip(body);
+  if (c.pattern) c.pattern();
+  g.restore();
+  // shading + outline
+  let x0 = cx - wB / 2, x1 = cx + wB / 2; hatch(body, lerp(x0, x1, .68), x1 + 4, top, bot);
+  stroke(body, w, true);
+  if (waist) { stroke(line([cx - wB * .49, waist], [cx + wB * .49, waist]), 3 * s, false); if (c.belt) { const b = poly([[cx - 9 * s, waist - 6 * s], [cx + 9 * s, waist - 6 * s], [cx + 9 * s, waist + 6 * s], [cx - 9 * s, waist + 6 * s], [cx - 9 * s, waist - 6 * s]]); shape(b, '#d9b23a', 2.4 * s, false); } }
+  if (view === 'back' || view === 'side') return;
+  const fx = view === 'q' ? cx + 22 * s : cx;
+  if (c.collar === 'kaos') stroke(ell(fx, top + 6 * s, 22 * s, 14 * s, Math.PI * .05, Math.PI * .95), 3.2 * s, false);
+  if (c.collar === 'kemeja' || c.collar === 'polo') {
+    [-1, 1].forEach(k => { const p = poly([[fx, top + 30 * s], [fx + k * 26 * s, top + 4 * s], [fx + k * 30 * s, top + 22 * s], [fx, top + 30 * s]]); shape(p, c.collarCol || '#ffffff', 3 * s, false); });
+    if (c.collar === 'kemeja') [44, 70, 96].forEach(y => { if (top + y * s < (waist || bot) - 8 * s) { stroke(ell(fx, top + y * s, 3.4 * s, 3.4 * s), 2 * s, true); } });
+    else stroke(line([fx, top + 30 * s], [fx, top + 50 * s]), 2.4 * s, false);
+  }
+  if (c.extra) c.extra(fx);
+}
+
+// ---------------- full character ----------------
+// spec: {view, s, kid, skin, hair, top, bottom, waist, collar, pattern, arms:[L,R], face, hijab, dressLen, acc}
+function character(cx, gy, sp) {
+  const s = sp.s || 1, view = sp.view || 'front', k = sp.kid ? .86 : 1;
+  const legLen = (sp.kid ? 74 : 92) * s, bot = gy - legLen + (sp.dressLen || 0) * s, top = gy - (sp.kid ? 210 : 240) * s;
+  const side = view === 'side';
+  const wT = (side ? 90 : 104) * s * k, wB = (side ? 110 : 128) * s * k * (sp.wide || 1);
+  const hr = 76 * s * k, hcx = cx + (side ? 6 * s : 0), hcy = top - 54 * s * k, hrx = hr * 1.02, hry = hr * .97;
+  const ow = 5 * s;
+  const body = bean(cx, top, bot, wT, wB);
+  const sh = y => lerp(wT, wB, (y - top) / (bot - top)) / 2;
+  // legs + shoes
+  const legTop = gy - legLen - 4 * s;
+  const legs = side ? [[cx - 6 * s, cx - 2 * s, 1], [cx + 6 * s, cx + 10 * s, 1]] : view === 'q' ? [[cx - 16 * s, cx - 20 * s, -1], [cx + 22 * s, cx + 26 * s, 1]] : [[cx - 20 * s, cx - 24 * s, -1], [cx + 20 * s, cx + 24 * s, 1]];
+  legs.forEach(([x0, x1, d]) => { stroke(line([x0, legTop], [x1, gy - 6 * s]), 4.4 * s, false);
+    const shoe = ell(x1 + (side ? 10 : d * 8) * s, gy - 5 * s, 14 * s, 6.5 * s); shape(shoe, sp.shoe || '#2d2a33', 2.4 * s, false); });
+  // shadow under feet
+  g.save(); g.globalAlpha = .12; g.fillStyle = '#2a2050'; g.beginPath(); g.ellipse(cx, gy + 2 * s, 70 * s, 9 * s, 0, 0, 7); g.fill(); g.restore();
+  // arms (some behind the body)
+  const sy = top + 46 * s;
+  const shL = [cx - sh(sy) + 8 * s, sy], shR = [cx + sh(sy) - 8 * s, sy];
+  const armPath = (sd, type) => { const o = sd < 0 ? shL : shR, d = sd;
+    switch (type) {
+      case 'wave': return quad(o, [o[0] + d * 70 * s, o[1] - 20 * s], [o[0] + d * 62 * s, o[1] - 110 * s]);
+      case 'stop': return quad(o, [o[0] + d * 80 * s, o[1] - 6 * s], [o[0] + d * 92 * s, o[1] - 70 * s]);
+      case 'hip': return poly([o, [o[0] + d * 42 * s, o[1] + 40 * s], [o[0] + d * 6 * s, o[1] + 74 * s]]);
+      case 'mouth': return quad(o, [o[0] + d * 54 * s, o[1] + 30 * s], [hcx + d * 14 * s, hcy + 40 * s]);
+      case 'phone': return quad(o, [o[0] + d * 30 * s, o[1] + 70 * s], [cx + d * 10 * s, o[1] + 34 * s]);
+      case 'cane': return quad(o, [o[0] + d * 34 * s, o[1] + 40 * s], [o[0] + d * 44 * s, o[1] + 82 * s]);
+      case 'cross': return poly([o, [o[0] + d * 22 * s, o[1] + 42 * s], [cx - d * 30 * s, o[1] + 36 * s]]);
+      case 'swing': return quad(o, [o[0] + d * 30 * s, o[1] + 50 * s], [o[0] + d * 48 * s, o[1] + 92 * s]);
+      default: return quad(o, [o[0] + d * 28 * s, o[1] + 40 * s], [o[0] + d * 30 * s, o[1] + 96 * s]);
+    } };
+  const arms = sp.arms || ['down', 'down'];
+  const drawArm = (sd, type) => { const p = armPath(sd, type); stroke(p, 4.2 * s, false); const e = p[p.length - 1]; dot(e[0], e[1], 6.5 * s);
+    if (type === 'phone') { const ph = poly([[e[0] - 9 * s, e[1] - 20 * s], [e[0] + 9 * s, e[1] - 20 * s], [e[0] + 9 * s, e[1] + 10 * s], [e[0] - 9 * s, e[1] + 10 * s], [e[0] - 9 * s, e[1] - 20 * s]]); shape(ph, '#2b3040', 2.6 * s, false); dot(e[0], e[1] - 6 * s, 3 * s, '#7fd0ff'); dot(e[0], e[1] + 4 * s, 6 * s); }
+    if (type === 'cane') { stroke(line([e[0], e[1] - 6 * s], [e[0] + sd * 6 * s, gy - 2 * s]), 4.6 * s, false, '#6b4423'); stroke(ell(e[0] - sd * 8 * s, e[1] - 6 * s, 9 * s, 7 * s, Math.PI, Math.PI * 2), 4.6 * s, false, '#6b4423'); dot(e[0], e[1], 6.5 * s); }
+    if (type === 'stop') { [-1, 0, 1].forEach(j => stroke(line([e[0], e[1]], [e[0] + j * 8 * s, e[1] - 16 * s]), 3.6 * s, false)); }
+  };
+  if (view === 'q') drawArm(-1, arms[0]);
+  if (side) drawArm(-1, 'swing');
+  // hijab outer (behind head, over shoulders)
+  let hj = null;
+  if (sp.hijab) { hj = hijab(hcx, hcy, hrx, hry, s, sp.hijab, top); }
+  // body + clothes
+  clothes(cx, top, bot, wT, wB, s, sp, body, view);
+  if (hj) shape(hj, sp.hijab.col, ow);
+  // head
+  const head = ell(hcx, hcy, hrx, hry);
+  if (!hj) { fill(head, sp.skin || '#fbf3e6', [0, 0], 1); g.save(); clip(head); g.globalAlpha = .55; fill(ell(hcx + hrx * .9, hcy + 6 * s, hrx * .45, hry * 1.1), '#fde3c4', [0, 0]); g.restore(); g.restore(); stroke(head, ow, true); }
+  else { const fo = ell(hcx + (view === 'q' ? 18 * s : 0), hcy + 6 * s, hrx * .74, hry * .8); fill(fo, sp.skin || '#fbf3e6', [0, 0], 1); stroke(fo, 3.6 * s, true);
+    stroke(ell(hcx, hcy + 6 * s, hrx * .86, hry * .92, Math.PI * .85, Math.PI * 2.15), 2.6 * s, false, 'rgba(0,0,0,.35)'); }
+  if (sp.hair) hair(hcx, hcy, hrx, hry, s, sp.hair, view);
+  if (view !== 'back') face(hcx + (hj ? (view === 'q' ? 18 * s : 0) : 0), hcy + (hj ? 8 * s : 0), s * k * (hj ? .92 : 1), sp.face || {}, view);
+  if (sp.acc) sp.acc(hcx, hcy, s, top, bot);
+  if (view !== 'q' && !side) drawArm(-1, arms[0]);
+  if (!side) drawArm(1, arms[1]); else drawArm(1, 'swing');
+}
+
+// ---------------- sheets ----------------
+function paper(W, H, title, sub) {
+  const c = document.getElementById('c'); c.width = W; c.height = H; g = c.getContext('2d');
+  g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
+  for (let i = 0; i < 5000; i++) { g.fillStyle = `rgba(120,100,70,${rnd() * .05})`; g.fillRect(rnd() * W, rnd() * H, 2, 2); }
+  g.strokeStyle = 'rgba(80,60,40,.10)'; g.lineWidth = 1; for (let y = 120; y < H; y += 60) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  text(title, 50, 78, 64, { al: 'left', w: 700 }); if (sub) text(sub, 52, 116, 32, { al: 'left', col: '#5a5560' });
+}
+const BASE = { top: '#4fb3a9', bottom: '#3c4a78', waist: .64, collar: 'kaos', hair: { type: 'short' }, face: { eyes: 'round', mouth: 'smile', brow: 0 } };
+
+function sheetBase() {
+  paper(2000, 1250, 'Sketsa Karakter: Badan Dasar (manusia)', 'turnaround depan / 3/4 / samping / belakang, gaya video referensi');
+  const gy = 1060, s = 1.45, xs = [270, 610, 950, 1290];
+  const tops = gy - 240 * s, head = tops - 54 * s;
+  guideLine(150, 1420, head - 74 * s, 'puncak');
+  guideLine(150, 1420, head + 2 * s, 'mata');
+  guideLine(150, 1420, tops, 'bahu');
+  guideLine(150, 1420, gy - 92 * s, 'pinggul');
+  guideLine(150, 1420, gy, 'tanah');
+  ['front', 'q', 'side', 'back'].forEach((v, i) => { character(xs[i], gy, Object.assign({}, BASE, { view: v, s })); });
+  ['DEPAN', '3/4', 'SAMPING', 'BELAKANG'].forEach((t, i) => text(t, xs[i], gy + 70, 40, { w: 700 }));
+  // proportion bracket
+  const bx = 1415; g.strokeStyle = '#c0392b'; g.lineWidth = 2.5;
+  [[head - 74 * s, head + 72 * s, 'kepala ±40%'], [tops, gy - 92 * s, 'badan ±40%'], [gy - 92 * s, gy, 'kaki ±20%']].forEach(([a, b, t]) => {
+    g.beginPath(); g.moveTo(bx, a + 4); g.lineTo(bx + 14, a + 4); g.lineTo(bx + 14, b - 4); g.lineTo(bx, b - 4); g.stroke();
+    text(t, bx + 26, (a + b) / 2 + 9, 30, { al: 'left', col: '#c0392b' }); });
+  // notes
+  const nx = 1640; let ny = 250;
+  text('Catatan desain', nx, ny, 44, { al: 'left', w: 700 }); ny += 56;
+  ['Kepala bulat besar, tanpa leher', '(menempel di atas badan)', '', 'Badan = kapsul / kacang,', 'lebih lebar di bawah.', 'Baju & celana ada di kapsul', '', 'Lengan & kaki = garis tinta', 'tipis, tangan bulat kecil', '', 'Muka 2D: mata bulat + titik,', 'alis garis, mulut garis.', 'Tanpa hidung, tanpa telinga', '', 'Kulit krem hampir putih,', 'muka paling terang di frame', '', 'Outline tinta tebal & rata,', 'shading cuma di baju',
+   '', 'Tinggi ±1,0 m di dunia 3D', '(set dibuat seukuran badan)'].forEach(t => { text(t, nx, ny, 31, { al: 'left', col: t.startsWith('(') ? '#6a6570' : INK }); ny += t ? 36 : 18; });
+}
+
+function sheetCast() {
+  paper(2000, 1400, 'Sketsa Karakter: Warga Indonesia', 'contoh tipe karakter dari badan dasar yang sama (tinggal ganti rambut, baju, aksesori)');
+  const s = 1.0, rows = [640, 1250], xs = [250, 730, 1210, 1690];
+  const flower = (cx, top, bot, col) => () => { for (let y = top; y < bot + 40; y += 30) for (let x = cx - 120; x < cx + 120; x += 30) { const ox = x + ((y / 30) % 2) * 15; for (let p = 0; p < 5; p++) dot(ox + Math.cos(p * 1.256) * 5, y + Math.sin(p * 1.256) * 5, 3.6, col); dot(ox, y, 2.6, '#f5c542'); } };
+  const batik = (cx, top, bot, col) => () => { g.strokeStyle = col; g.lineWidth = 3.4; for (let d = -300; d < 300; d += 26) { g.beginPath(); for (let t = 0; t <= 1; t += .05) { const x = cx + d + t * 160, y = top + t * 260 + Math.sin(t * 18) * 5; t ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); }
+    for (let y = top + 10; y < bot; y += 34) for (let x = cx - 90; x < cx + 90; x += 34) { g.beginPath(); g.arc(x + ((y / 34) % 2) * 17, y, 4, 0, 7); g.fillStyle = col; g.fill(); } };
+  const C = [
+    { name: 'Ibu Ratna', note: 'ibu-ibu arisan: hijab, daster bunga', x: 0, r: 0,
+      sp: { top: '#f29bb2', hijab: { col: '#d9577c' }, dressLen: 40, arms: ['hip', 'down'], face: { eyes: 'round', mouth: 'smile', brow: -8, blush: 1, look: [.3, 0] },
+        pattern: null } },
+    { name: 'Pak Darto', note: 'bapak / Pak RT: peci, kumis, batik', x: 1, r: 0,
+      sp: { top: '#b8743b', bottom: '#4a4f5c', waist: .66, collar: 'kemeja', collarCol: '#9a5a26', belt: 1, hair: { type: 'peci' }, arms: ['hip', 'hip'], face: { eyes: 'round', mouth: 'flat', brow: 10, thick: 1, stache: 1 } } },
+    { name: 'Bang Udin', note: 'tukang parkir: rompi oranye, peluit', x: 2, r: 0,
+      sp: { top: '#2f3e66', bottom: '#3a3a44', waist: .7, collar: 'kaos', hair: { type: 'cap', col: '#2f3e66', brim: '#26304f' }, arms: ['down', 'stop'], face: { eyes: 'round', mouth: 'smirk', brow: -6, look: [-.4, 0] } } },
+    { name: 'Dika', note: 'anak SD: seragam putih merah, topi', x: 3, r: 0,
+      sp: { kid: 1, top: '#f7f6f0', bottom: '#d8323a', waist: .6, collar: 'kemeja', hair: { type: 'cap', col: '#d8323a', badge: 1 }, arms: ['down', 'wave'], face: { eyes: 'round', mouth: 'grin', brow: -10, blush: 1 } } },
+    { name: 'Mas Bayu', note: 'ojol: helm & jaket hijau, HP', x: 0, r: 1,
+      sp: { top: '#37a85a', bottom: '#33343d', waist: .72, collar: 'kemeja', collarCol: '#2b8447', hair: { type: 'helm', col: '#37a85a' }, arms: ['down', 'phone'], face: { eyes: 'round', mouth: 'smile', brow: 0, look: [.2, .5] } } },
+    { name: 'Nek Sumi', note: 'nenek: sanggul, kacamata, kebaya, tongkat', x: 1, r: 1,
+      sp: { top: '#c9694b', bottom: '#7a4b2a', waist: .55, dressLen: 40, hair: { type: 'bun', col: '#bdb9c6' }, arms: ['down', 'cane'], face: { eyes: 'happy', mouth: 'smile', brow: -12, glasses: 1, blush: 1 } } },
+    { name: 'Mbak Sari', note: 'kasir minimarket: kuncir, seragam, name tag', x: 2, r: 1,
+      sp: { top: '#2f6fd6', bottom: '#2c2f3a', waist: .7, collar: 'polo', collarCol: '#e2475f', hair: { type: 'ponytail', col: '#2a1d18' }, arms: ['down', 'down'], face: { eyes: 'round', mouth: 'smile', brow: -6, blush: 1, look: [-.2, 0] } } },
+    { name: 'Bang Jago', note: 'preman pasar: cepak, kaos hitam, kalung', x: 3, r: 1,
+      sp: { top: '#2c2b31', bottom: '#3f5f8f', waist: .66, collar: 'kaos', belt: 1, hair: { type: 'cepak', col: '#1d1a1a' }, arms: ['hip', 'hip'], face: { eyes: 'half', mouth: 'smirk', brow: 16, thick: 1, scar: 1 }, wide: 1.08 } },
+  ];
+  C.forEach(c => {
+    const cx = xs[c.x], gy = rows[c.r], s0 = s, sp = Object.assign({ s: s0, view: 'front' }, c.sp);
+    const k = sp.kid ? .86 : 1, top = gy - (sp.kid ? 210 : 240) * s0, bot = gy - (sp.kid ? 74 : 92) * s0 + (sp.dressLen || 0) * s0;
+    if (c.name === 'Ibu Ratna') sp.pattern = flower(cx, top, bot, '#ffffff');
+    if (c.name === 'Pak Darto') sp.pattern = batik(cx, top, bot, '#6b3b17');
+    if (c.name === 'Nek Sumi') { sp.bottomPattern = w => batik(cx, w, bot, '#3e2412')(); sp.extra = fx => { [-1, 1].forEach(d => stroke(quad([fx + d * 8, top + 6], [fx + d * 18, top + 50], [fx + d * 6, top + 96]), 3, false)); const br = ell(fx, top + 44, 9, 9); shape(br, '#f2c94c', 2.4, false); }; }
+    if (c.name === 'Bang Udin') sp.extra = fx => { const wb = 128; const v = [[cx - 52, top + 8], [cx - 14, top + 8], [cx - 6, top + 110], [cx - 64, top + 110]]; [-1, 1].forEach(d => { const p = poly(v.map(q => [cx + (q[0] - cx) * d, q[1]]).concat([[cx + (v[0][0] - cx) * d, v[0][1]]])); clip(bean(cx, top, bot, 104, 128)); shape(p, '#ff8a1f', 3.4, false); fill(poly([[cx + d * 10, top + 64], [cx + d * 70, top + 64], [cx + d * 70, top + 78], [cx + d * 10, top + 78]]), '#e9eef2', [0, 0]); g.restore(); }); };
+    if (c.name === 'Bang Udin') sp.acc = (hx, hy, s) => { const px = hx + 12, py = hy + 38; const w = poly([[px - 4, py - 7], [px + 26, py - 7], [px + 26, py + 7], [px - 4, py + 7], [px - 4, py - 7]]); shape(w, '#d9d9e0', 2.6, false); stroke(quad([px + 26, py], [px + 40, py + 40], [px + 10, py + 90]), 2, false, '#e2475f'); text('priiit!', hx + 120, hy - 40, 34, { w: 700, col: '#c0392b' }); };
+    if (c.name === 'Dika') sp.extra = fx => { const t = poly([[fx - 6, top + 30], [fx + 6, top + 30], [fx + 4, top + 74], [fx, top + 82], [fx - 4, top + 74], [fx - 6, top + 30]]); shape(t, '#d8323a', 2.4, false); [-1, 1].forEach(d => stroke(line([cx + d * 30, top + 10], [cx + d * 38, top + 100]), 5, false, '#4a6fb5')); };
+    if (c.name === 'Mas Bayu') sp.extra = fx => { stroke(line([fx, top + 30], [fx, top + 150]), 2.6, false); [-1, 1].forEach(d => stroke(line([fx + d * 30, top + 96], [fx + d * 48, top + 96]), 2.6, false)); };
+    if (c.name === 'Mbak Sari') sp.extra = fx => { const t = poly([[fx + 18, top + 46], [fx + 46, top + 46], [fx + 46, top + 62], [fx + 18, top + 62], [fx + 18, top + 46]]); shape(t, '#ffffff', 2.2, false); stroke(line([fx + 22, top + 54], [fx + 42, top + 54]), 1.6, false); stroke(line([cx - 52, top + 86], [cx + 52, top + 86]), 6, false, '#e2475f'); };
+    if (c.name === 'Bang Jago') sp.extra = fx => { for (let i = 0; i <= 12; i++) { const t = i / 12; dot(fx - 26 + t * 52, top + 10 + Math.sin(t * Math.PI) * 26, 4.2, '#e8b923'); } };
+    if (c.name === 'Ibu Ratna') sp.acc = (hx, hy, s, top) => { const bx = hx + 79, by = top + 150; const b = poly([[bx - 20, by], [bx + 20, by], [bx + 24, by + 34], [bx - 24, by + 34], [bx - 20, by]]); shape(b, '#7a4fa0', 3, false); stroke(ell(bx, by, 14, 14, Math.PI, Math.PI * 2), 3, false); };
+    character(cx, gy, sp);
+    text(c.name, cx, gy + 58, 44, { w: 700 });
+    text(c.note, cx, gy + 92, 28, { col: '#5a5560' });
+  });
+}
+
+function sheetFaces() {
+  paper(2000, 1000, 'Sketsa Karakter: Ekspresi', 'mata, alis, dan mulut 2D (yang ganti cuma garisnya, kepala tetap)');
+  const E = [
+    ['Netral', { eyes: 'round', mouth: 'flat', brow: 0 }],
+    ['Senang', { eyes: 'round', mouth: 'smile', brow: -10, blush: 1 }],
+    ['Ngakak', { eyes: 'happy', mouth: 'laugh', brow: -14, blush: 1 }],
+    ['Kaget', { eyes: 'wide', mouth: 'o', brow: -18, browH: 1.35, sweat: 1 }],
+    ['Curiga', { eyes: 'half', mouth: 'flat', brow: 14, look: [.7, 0] }],
+    ['Sedih / nangis', { eyes: 'closed', mouth: 'frown', brow: -22, tears: 1 }],
+    ['Marah', { eyes: 'round', mouth: 'grin', brow: 26, thick: 1, anger: 1 }],
+    ['Panik', { eyes: 'wide', mouth: 'wavy', brow: -20, browH: 1.3, sweat: 1, look: [-.6, 0] }],
+    ['Licik', { eyes: 'half', mouth: 'smirk', brow: 18, look: [-.6, .1] }],
+    ['Malu', { eyes: 'closed', mouth: 'wavy', brow: -14, blushHard: 1, blush: 1 }],
+  ];
+  const s = 1.25;
+  E.forEach(([n, f], i) => { const cx = 210 + (i % 5) * 395, cy = 300 + Math.floor(i / 5) * 420;
+    const hrx = 76 * s * 1.02, hry = 76 * s * .97, head = ell(cx, cy, hrx, hry);
+    fill(head, '#fbf3e6', [0, 0], 1); g.save(); clip(head); g.globalAlpha = .55; fill(ell(cx + hrx * .9, cy + 6 * s, hrx * .45, hry * 1.1), '#fde3c4', [0, 0]); g.restore(); g.restore(); stroke(head, 5 * s, true);
+    hair(cx, cy, hrx, hry, s, { type: 'short' }, 'front');
+    face(cx, cy, s, f, 'front');
+    text(n, cx, cy + 160, 46, { w: 700 }); });
+}
+
+(async () => {
+  await document.fonts.load('700 40px Caveat'); await document.fonts.load('400 40px Caveat');
+  const which = location.hash.slice(1) || 'base'; SEED = 7;
+  ({ base: sheetBase, cast: sheetCast, faces: sheetFaces })[which]();
+  window.DONE = true;
+})();
+</script></body></html>

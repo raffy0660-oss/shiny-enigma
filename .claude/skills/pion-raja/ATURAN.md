@@ -55,7 +55,7 @@ Kode: pion_raja/ (engine, render, react mode, castle/hospital, sfx). Contoh leng
 24. **Ikuti PANDUAN_REFERENSI_DETEKTIF.md** untuk video detektif/explainer: ganti fokus kamera tiap 1-2 dtk, smash zoom ke benda di katanya, POV+HUD untuk rekaman, grade low-key misterius (bukan terang) dengan subjek tetap disorot, iris di beat tegang, close-up reaksi. TANPA garis konsentrasi (lihat 25).
 23. **Gerakan aksi pakai fisika, bukan lerp keyframe**: tali = bandul (gravitasi, panjang tali berubah, efek Coriolis),
     berhenti di tali = pegas teredam (sedikit mantul), rotasi badan = inersia + redaman, puntiran tali = pegas torsi,
-    tinju = impuls + hentakan balik, tangan = pegas mengikuti target. Lihat `projects/the_mona_lisa/src/plans/heist_sim.js`.
+    tinju = impuls + hentakan balik, tangan = pegas mengikuti target. Lihat `.claude/skills/pion-raja/projects/the_mona_lisa/src/plans/heist_sim.js`.
 25. **Zoom = zoom saja, tanpa garis-garis** (garis konsentrasi radial / speed lines TIDAK ada di referensi, jangan dipakai).
     Zoom harus berangkat dari framing yang AGAK JAUH dulu, supaya saat zoom masuk benar-benar terasa "menampilkan sesuatu"
     (reveal). Jangan zoom dari framing yang sudah dekat.

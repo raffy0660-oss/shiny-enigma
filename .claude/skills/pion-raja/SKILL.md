@@ -57,6 +57,19 @@ no subtitles, dramatic hook, SFX on every action). Talk to the user in Indonesia
 | `examples/proj10_photograph/` | **Template for the next 3D-world video** (approved code of "The Photograph" + charlayer): 3 sets, render runner, plan lib, film assembly, Remotion data words, stem audio mix, SFX list, tools |
 | `examples/proj6`, `examples/proj7` | Flood/underwater project; Las Vegas Sphere project (three.js city, Remotion overlay, SFX, assembly) |
 
+## Everything in one folder (merged 28 Nov 2026)
+
+All Pion work from every branch now lives inside this skill folder:
+
+| Path | What |
+|---|---|
+| `projects/the_photograph/`, `projects/the_mona_lisa/`, `projects/the_mysterious_like/` | Complete finished projects (plans, cues, scene code, SFX, VO, final videos, handoffs). `projects/the_photograph/setup.sh` rebuilds its work tree |
+| `pion_out/` | Mona Lisa demo videos, SFX stem, key-frame test |
+| `pion3d/` | Earlier Blender experiments from the castle branch: full-3D Pion builders (`build_pion.py`, `build_pion_toon.py`; the user later rejected a 3D-mesh Pion), castle builder, light/emotion sheets, `demo/castle_demo_1080x1350.mp4` |
+| `arsip/pion-raja-skill-v3.zip` | Zipped v3 of this skill (history only) |
+| `skill_pendukung/` | Helper skills used for the Blender/three.js castle work: `blender-materials`, `blender-modeling`, `scenario-blender-expert`, `scenario-blender-lighting-rendering`, `threejs-aaa-graphics-builder`. They are nested here, so they do not auto-load: read their `SKILL.md` when needed |
+| `eksperimen_karakter/` | Human-character experiments for new non-Pion content (sketches, pixel/voxel, paper/clay/low-poly, Blender soft-block "anak SD" after the user's reference). See its README |
+
 ## Setup (once per machine/session)
 
 - Node + Playwright with Chromium, `ffmpeg`, Python 3 with `numpy pillow opencv-python-headless`

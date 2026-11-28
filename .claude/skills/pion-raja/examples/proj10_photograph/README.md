@@ -1,7 +1,7 @@
 # proj10_photograph: template for the next detective / 3D-world Pion video
 
 Approved pipeline of "The Photograph" (73.4 s, 1080x1920, 60 fps), plus the character-in-world layer the user asked for next.
-Full project (all plans, cues, assets, history): `projects/the_photograph/`. Rules and every user decision: `../../BRIEF_KONTEN.md`.
+Full project (all plans, cues, assets, history): `.claude/skills/pion-raja/projects/the_photograph/`. Rules and every user decision: `../../BRIEF_KONTEN.md`.
 
 ## What is in here
 | File | What |
@@ -25,5 +25,5 @@ Full project (all plans, cues, assets, history): `projects/the_photograph/`. Rul
 3. Contact sheet, fix, commit plan + cue + a test (never the raw frames). 4. At the end: overlay, SFX + `sfx_only.wav`, assemble, check, send.
 
 ## Setup
-Same as `projects/the_photograph/setup.sh` (engine copy, Remotion, three@0.186.0, Caveat font). Symlink the scene modules/plans/cues into
+Same as `.claude/skills/pion-raja/projects/the_photograph/setup.sh` (engine copy, Remotion, three@0.186.0, Caveat font). Symlink the scene modules/plans/cues into
 `~/pion/projN/` so edits land in git; copy the node runners (node resolves `__dirname` through symlinks).

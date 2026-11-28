@@ -2,7 +2,7 @@
 
 Rangkuman **semua arahan user** dari proyek "The Photograph" (sesi 1 + 2, Nov 2026) dan cara memenuhinya.
 Video ke-2 harus memenuhi semuanya sejak awal, tanpa menunggu user mengoreksi lagi.
-Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `projects/the_photograph/` (proyek lengkap).
+Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `.claude/skills/pion-raja/projects/the_photograph/` (proyek lengkap).
 
 ## 1. Cara kerja
 - **Bahasa:** bicara dengan user dalam **Bahasa Indonesia**.
@@ -10,7 +10,7 @@ Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `project
 - **Cek sebelum kirim:** lihat contact sheet / frame kunci sendiri sebelum mengirim apa pun. Kirim lewat **SendUserFile dari scratchpad**.
 - **Git:** jangan buat PR. Commit dan push ke branch kerja **sesering mungkin** (container bisa hilang). Jangan commit frame mentah.
 - **Arsip percakapan:** di akhir sesi (dan setiap kali user minta), ekspor percakapan lengkap ke `projects/<proyek>/PERCAKAPAN_SESIn.md`
-  dengan `projects/the_photograph/src/tools/export_chat.py`, dan perbarui rangkuman arahan (`PROMPT_USER_SESIn.md`).
+  dengan `.claude/skills/pion-raja/projects/the_photograph/src/tools/export_chat.py`, dan perbarui rangkuman arahan (`PROMPT_USER_SESIn.md`).
 - **Alur per adegan:** plan + cue → commit → render engine (lip-sync VO) → render scene (pecah rentang frame) → contact sheet → perbaiki → commit.
 - **Proses latar:** maksimal 2 jam per proses. Pakai `nohup` + file penanda selesai. Perintah tunggu yang panjang sering dihentikan aplikasi:
   cek cepat, atau jadwalkan check-in.
@@ -86,7 +86,7 @@ Kode yang sudah disetujui: `examples/proj10_photograph/` (template) dan `project
   → kotak musik mencekam saat twist.
 - SFX ElevenLabs untuk setiap aksi + selalu kirim **`sfx_only.wav`** (musik + SFX tanpa VO).
 - Akun ElevenLabs gratis: **tidak ada Music API**. Buat musik dari SFX v3 `loop: true` (≤30 dtk per bagian). **Kuota kredit hampir habis**
-  (9.207 dari 10.000 per 22 Nov 2026): rencanakan dulu daftar suara, pakai ulang `projects/the_photograph/assets/sfx/`.
+  (9.207 dari 10.000 per 22 Nov 2026): rencanakan dulu daftar suara, pakai ulang `.claude/skills/pion-raja/projects/the_photograph/assets/sfx/`.
 
 ## 7. Jebakan teknis yang sudah ketemu (jangan diulang)
 - Kartu tanpa depth test → karakter menutupi kalender. Clipping plane meja → potongan lurus "kotak". Pakai `charlayer.js`.

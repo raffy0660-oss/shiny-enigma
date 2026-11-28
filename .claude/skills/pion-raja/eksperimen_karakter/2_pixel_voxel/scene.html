@@ -1,0 +1,186 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const Q = new URLSearchParams(location.search);
+const MODE = Q.get('mode') || '3d', VIEW = Q.get('view') || 'world', ROT = +(Q.get('rot') || 0);
+const W = +(Q.get('w') || 1080), H = +(Q.get('h') || 1350);
+const U = 1 / 48;                         // one pixel / voxel = 1/48 m (character ~1.0 m tall)
+
+await new FontFace('Mont', 'url(Montserrat-900.ttf)').load().then(f => document.fonts.add(f));
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H); renderer.setPixelRatio(1);
+renderer.toneMapping = THREE.AgXToneMapping; renderer.toneMappingExposure = 1.15;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const srgb = (r, g, b) => new THREE.Color().setRGB(r / 255, g / 255, b / 255, THREE.SRGBColorSpace);
+function canvasTex(w, h, paint, rep) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; paint(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  if (rep) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); }
+  return t;
+}
+let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const INK = '#2a1d16';
+
+// ---------- sky (golden hour) + fog
+scene.background = canvasTex(4, 512, (g, w, h) => { const q = g.createLinearGradient(0, 0, 0, h);
+  q.addColorStop(0, '#6d7fe6'); q.addColorStop(.55, '#b9a6e8'); q.addColorStop(1, '#ffc6a3'); g.fillStyle = q; g.fillRect(0, 0, w, h); });
+scene.fog = new THREE.Fog(0xf3c7a4, 7, 22);
+
+// ---------- lights
+const sun = new THREE.DirectionalLight(0xffd6a6, 4.0); sun.position.set(-3.2, 4.2, 2.6); sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: .5, far: 15 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.015; scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xc4d6ff, 0xb08a6a, 0.9));
+
+// ---------- ground: painted paving, ink joints
+const paving = canvasTex(1024, 1024, (g, w, h) => {
+  g.fillStyle = '#cdb9a0'; g.fillRect(0, 0, w, h);
+  const bw = 128, bh = 64;
+  for (let y = 0, row = 0; y < h; y += bh, row++) for (let x = -(row % 2) * bw / 2; x < w; x += bw) {
+    const v = rnd(); g.fillStyle = v < .33 ? '#d6c3aa' : v < .66 ? '#c7b298' : '#d0bca2'; g.fillRect(x + 3, y + 3, bw - 6, bh - 6);
+    g.fillStyle = 'rgba(255,245,225,.35)'; g.fillRect(x + 6, y + 5, bw - 14, 4);
+    g.strokeStyle = 'rgba(42,29,22,.55)'; g.lineWidth = 4; g.strokeRect(x + 2, y + 2, bw - 4, bh - 4);
+  }
+  for (let i = 0; i < 260; i++) { g.fillStyle = `rgba(90,70,50,${rnd() * .18})`; g.beginPath(); g.arc(rnd() * w, rnd() * h, 1 + rnd() * 3, 0, 7); g.fill(); }
+}, [14, 14]);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(22, 22), new THREE.MeshStandardMaterial({ map: paving, roughness: .95 }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; ground.userData.ink = 'full'; scene.add(ground);
+
+// ---------- curb with yellow/black parking paint
+const curbTex = canvasTex(1024, 64, (g, w, h) => { for (let x = 0; x < w; x += 64) { g.fillStyle = (x / 64) % 2 ? '#2b2a30' : '#f2c230'; g.fillRect(x, 0, 64, h); } }, [6, 1]);
+const curb = new THREE.Mesh(new RoundedBoxGeometry(9, .16, .3, 2, .03), new THREE.MeshStandardMaterial({ map: curbTex, roughness: .9 }));
+curb.position.set(0, .08, -1.25); curb.castShadow = curb.receiveShadow = true; curb.userData.ink = 'full'; scene.add(curb);
+// sidewalk behind the curb
+const walk = new THREE.Mesh(new THREE.BoxGeometry(9, .16, 1.1), new THREE.MeshStandardMaterial({ color: srgb(196, 186, 176), roughness: .95 }));
+walk.position.set(0, .08, -1.95); walk.receiveShadow = true; walk.userData.ink = 'full'; scene.add(walk);
+
+// ---------- shop wall: plaster, glowing window, PARKIR sign
+const wallTex = canvasTex(1024, 512, (g, w, h) => {
+  g.fillStyle = '#f0dcc0'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(150,110,70,${rnd() * .06})`; g.fillRect(rnd() * w, rnd() * h, 3 + rnd() * 10, 2 + rnd() * 4); }
+  g.fillStyle = '#c96f4a'; g.fillRect(0, h - 70, w, 70); g.fillStyle = INK; g.fillRect(0, h - 74, w, 5);
+  // window (right half) with warm interior shelves
+  const wx = 300, wy = 90, ww = 330, wh = 290;
+  g.fillStyle = '#ffe2a6'; g.fillRect(wx, wy, ww, wh);
+  for (let s = 0; s < 4; s++) { g.fillStyle = '#d8a35c'; g.fillRect(wx, wy + 55 + s * 62, ww, 8);
+    for (let k = 0; k < 10; k++) { g.fillStyle = ['#e2475f', '#2f6fd6', '#37a85a', '#f2c230', '#ffffff'][(k + s) % 5]; g.fillRect(wx + 12 + k * 30, wy + 22 + s * 62, 20, 33); } }
+  g.strokeStyle = INK; g.lineWidth = 10; g.strokeRect(wx, wy, ww, wh); g.lineWidth = 6; g.beginPath(); g.moveTo(wx + ww / 2, wy); g.lineTo(wx + ww / 2, wy + wh); g.stroke();
+  // awning stripe over the window
+  for (let x = wx - 20; x < wx + ww + 20; x += 40) { g.fillStyle = ((x - wx) / 40) % 2 ? '#ffffff' : '#2f6fd6'; g.fillRect(x, wy - 46, 40, 34); }
+  g.strokeStyle = INK; g.lineWidth = 5; g.strokeRect(wx - 20, wy - 46, ww + 40, 34);
+});
+const wallEm = canvasTex(1024, 512, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); g.fillStyle = '#ffcf80'; g.fillRect(305, 95, 320, 280); });
+const wall = new THREE.Mesh(new THREE.BoxGeometry(5, 2.2, .25), [0, 0, 0, 0, 1, 0].map(i => i ? new THREE.MeshStandardMaterial({ map: wallTex, emissiveMap: wallEm, emissive: 0xffffff, emissiveIntensity: .55, roughness: .95 }) : new THREE.MeshStandardMaterial({ color: srgb(220, 196, 168), roughness: .95 })));
+wall.position.set(0, 1.1, -2.55); wall.castShadow = wall.receiveShadow = true; wall.userData.ink = 'full'; scene.add(wall);
+const signTex = canvasTex(512, 384, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); g.fillStyle = '#1f5fbf'; g.fillRect(18, 18, w - 36, h - 36);
+  g.fillStyle = '#ffffff'; g.font = '900 230px Mont'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('P', w / 2, h / 2 - 30);
+  g.font = '900 64px Mont'; g.fillText('PARKIR', w / 2, h - 70);
+});
+const sign = new THREE.Mesh(new RoundedBoxGeometry(.62, .46, .04, 2, .02), [0, 0, 0, 0, 1, 0].map(i => new THREE.MeshStandardMaterial(i ? { map: signTex, roughness: .6 } : { color: 0xffffff })));
+sign.position.set(-1.75, 1.35, -2.4); sign.castShadow = true; sign.userData.ink = 'full'; scene.add(sign);
+
+// ---------- props: traffic cone, potted plant, a parked scooter-ish block
+function cone(x, z) {
+  const grp = new THREE.Group(); const t = canvasTex(256, 256, (g, w, h) => { g.fillStyle = '#ff7a1a'; g.fillRect(0, 0, w, h); g.fillStyle = '#ffffff'; g.fillRect(0, 95, w, 50); });
+  const c = new THREE.Mesh(new THREE.ConeGeometry(.12, .4, 24, 1, true), new THREE.MeshStandardMaterial({ map: t, roughness: .7 })); c.position.y = .23;
+  const b = new THREE.Mesh(new RoundedBoxGeometry(.3, .04, .3, 2, .012), new THREE.MeshStandardMaterial({ color: srgb(255, 122, 26), roughness: .7 })); b.position.y = .02;
+  [c, b].forEach(m => { m.castShadow = m.receiveShadow = true; m.userData.ink = 'full'; grp.add(m); }); grp.position.set(x, 0, z); scene.add(grp);
+}
+cone(.85, .25); cone(-2.1, -.4);
+const pot = new THREE.Mesh(new THREE.CylinderGeometry(.2, .15, .32, 24), new THREE.MeshStandardMaterial({ color: srgb(201, 105, 75), roughness: .9 }));
+pot.position.set(-1.2, .16 + .16, -1.95); pot.castShadow = pot.receiveShadow = true; pot.userData.ink = 'full'; scene.add(pot);
+[[0, .6, 0, .26], [-.14, .5, .05, .18], [.15, .52, -.02, .19]].forEach(([x, y, z, r]) => {
+  const m = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 3), new THREE.MeshStandardMaterial({ color: srgb(80, 168, 82), roughness: .9 }));
+  m.position.set(-1.2 + x, .16 + y, -1.95 + z); m.castShadow = m.receiveShadow = true; m.userData.ink = 'sil'; scene.add(m); });
+
+// ---------- the character
+const CH = new THREE.Group(); scene.add(CH);
+const data = await (await fetch('voxels.json')).json();
+let spriteMesh = null;
+if (MODE === '3d') {
+  const geo = new THREE.BoxGeometry(U, U, U);
+  const vm = new THREE.MeshStandardMaterial({ roughness: .85, toneMapped: false });
+  // palette-preserving light: keep the pixel colours, only ramp brightness by how lit the voxel is (light + shadow)
+  vm.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <opaque_fragment>',
+    'float dl = dot(diffuseColor.rgb, vec3(.299,.587,.114)) + 1e-3; float rl = dot(outgoingLight, vec3(.299,.587,.114)) / dl;\n outgoingLight = diffuseColor.rgb * mix(.58, 1.06, smoothstep(.25, 2.4, rl)) * vec3(1., .975, .94);\n#include <opaque_fragment>'); };
+  const mesh = new THREE.InstancedMesh(geo, vm, data.v.length);
+  const m4 = new THREE.Matrix4();
+  data.v.forEach(([x, y, z, r, g, b], i) => {
+    m4.makeTranslation((x + .5 - data.cx) * U, (y + .5) * U, z * U); mesh.setMatrixAt(i, m4);
+    const j = .97 + rnd() * .06, c = srgb(Math.min(255, r * j), Math.min(255, g * j), Math.min(255, b * j)); const hsl = {}; c.getHSL(hsl); c.setHSL(hsl.h, Math.min(1, hsl.s * 1.05), hsl.l); mesh.setColorAt(i, c);
+  });
+  mesh.castShadow = mesh.receiveShadow = true; mesh.userData.ink = 'sil'; CH.add(mesh);
+} else {
+  const tex = await new THREE.TextureLoader().loadAsync('sprite.png');
+  tex.magFilter = tex.minFilter = THREE.NearestFilter; tex.generateMipmaps = false; tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({ map: tex, alphaTest: .5, side: THREE.DoubleSide, color: 0xfff4ea, toneMapped: false });
+  spriteMesh = new THREE.Mesh(new THREE.PlaneGeometry(data.w * U, data.h * U), mat);
+  spriteMesh.position.set((data.w / 2 - data.cx) * U, data.h * U / 2 - (data.h - 48) * U, 0);
+  spriteMesh.castShadow = true; spriteMesh.userData.ink = 'none'; CH.add(spriteMesh);
+}
+CH.rotation.y = ROT * Math.PI / 180;
+
+// ---------- camera
+const cam = new THREE.PerspectiveCamera(VIEW === 'turn' ? 26 : 32, W / H, .05, 60);
+if (VIEW === 'turn') { cam.position.set(0, .66, 2.55); cam.lookAt(0, .5, 0); }
+else { cam.position.set(1.0, 1.0, 2.7); cam.lookAt(0, .52, -.25); }
+if (spriteMesh) { const p = cam.position; CH.rotation.y = Math.atan2(p.x - CH.position.x, p.z - CH.position.z); }
+
+// ---------- ink pass: depth + normal edges drawn over the frame (sprite already has its own pixel outline)
+const rtD = new THREE.WebGLRenderTarget(W, H); rtD.depthTexture = new THREE.DepthTexture(W, H);
+const rtN = new THREE.WebGLRenderTarget(W, H, { type: THREE.HalfFloatType });
+const normalMat = new THREE.MeshNormalMaterial();
+const maskMat = new THREE.ShaderMaterial({ vertexShader: '#include <common>\n#include <morphtarget_pars_vertex>\nvoid main(){ vec3 transformed = position; vec4 mv = vec4(transformed,1.);\n#ifdef USE_INSTANCING\n mv = instanceMatrix * mv;\n#endif\n gl_Position = projectionMatrix * modelViewMatrix * mv; }', fragmentShader: 'void main(){ gl_FragColor = vec4(0.); }', blending: THREE.NoBlending });
+const inkMat = new THREE.ShaderMaterial({
+  uniforms: { tD: { value: rtD.depthTexture }, tN: { value: rtN.texture }, res: { value: new THREE.Vector2(W, H) }, near: { value: cam.near }, far: { value: cam.far }, th: { value: 2.2 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0., 1.); }',
+  fragmentShader: `uniform sampler2D tD, tN; uniform vec2 res; uniform float near, far, th; varying vec2 vUv;
+    float lin(vec2 uv){ float z = texture2D(tD, uv).x * 2. - 1.; return 2. * near * far / (far + near - z * (far - near)); }
+    void main(){
+      float dc = lin(vUv); vec4 nc = texture2D(tN, vUv); float e = 0.;
+      for (int i = 0; i < 8; i++) {
+        float a = float(i) * .785398; vec2 o = vec2(cos(a), sin(a)) * th / res;
+        float dn = lin(vUv + o); e = max(e, smoothstep(.035, .07, abs(dn - dc) / min(dn, dc)));
+        vec4 nn = texture2D(tN, vUv + o);
+        if (nc.a > .5 && nn.a > .5) e = max(e, smoothstep(.25, .5, 1. - dot(normalize(nc.xyz * 2. - 1.), normalize(nn.xyz * 2. - 1.))));
+      }
+      float fade = 1. - smoothstep(6., 16., dc);
+      gl_FragColor = vec4(.16, .11, .09, e * .9 * fade);
+    }`,
+  transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
+});
+const inkQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), inkMat); const inkScene = new THREE.Scene(); inkScene.add(inkQuad);
+const orth = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+function setVis(fn) { scene.traverse(o => { if (o.isMesh) o.visible = fn(o.userData.ink || 'full'); }); }
+function frame() {
+  renderer.autoClear = true;
+  // depth (everything but the sprite), normals (only 'full' objects; voxels get silhouette ink only)
+  setVis(k => k !== 'none'); renderer.setRenderTarget(rtD); renderer.render(scene, cam);
+  setVis(k => k !== 'none'); scene.traverse(o => { if (o.isMesh && o.userData.ink === 'sil') { o.userData.m0 = o.material; o.material = maskMat; } }); scene.overrideMaterial = null; scene.traverse(o => { if (o.isMesh && o.userData.ink === 'full') { o.userData.m0 = o.material; o.material = normalMat; } }); const bg = scene.background; scene.background = null;
+  renderer.setClearColor(0x000000, 0); renderer.setRenderTarget(rtN); renderer.clear(); renderer.render(scene, cam);
+  scene.traverse(o => { if (o.isMesh && o.userData.m0) { o.material = o.userData.m0; delete o.userData.m0; } }); scene.background = bg; setVis(() => true);
+  // main frame without the sprite, then ink, then the sprite on top (depth-tested against the frame)
+  if (spriteMesh) { spriteMesh.material.colorWrite = false; spriteMesh.material.depthWrite = false; }
+  renderer.setRenderTarget(null); renderer.render(scene, cam);
+  renderer.autoClear = false; renderer.render(inkScene, orth);
+  if (spriteMesh) { spriteMesh.material.colorWrite = true; spriteMesh.material.depthWrite = true;
+    const only = new THREE.Scene(); const sc = sun.clone(); sc.castShadow = false; only.add(sc, new THREE.HemisphereLight(0xbdd2ff, 0xc39a74, 1.15)); const parent = spriteMesh.parent; const wp = new THREE.Vector3(), wq = new THREE.Quaternion();
+    spriteMesh.getWorldPosition(wp); spriteMesh.getWorldQuaternion(wq); only.add(spriteMesh); spriteMesh.position.copy(wp); spriteMesh.quaternion.copy(wq);
+    renderer.render(only, cam); }
+  window.DONE = true;
+}
+frame();
+</script></body></html>
